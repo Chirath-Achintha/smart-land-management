@@ -13,7 +13,12 @@ const Login = () => {
         e.preventDefault();
         // Simulation: Just login with the selected role
         login(role);
-        navigate('/dashboard');
+
+        if (role === 'buyer') {
+            navigate('/');
+        } else {
+            navigate('/dashboard');
+        }
     };
 
     return (

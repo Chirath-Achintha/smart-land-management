@@ -27,6 +27,7 @@ import AdminDashboard from '../pages/dashboard/AdminDashboard';
 import AgentAssignment from '../pages/dashboard/admin/AgentAssignment';
 import ServiceManagement from '../pages/dashboard/admin/ServiceManagement';
 import ComplaintsManagement from '../pages/dashboard/admin/ComplaintsManagement';
+import UserManagement from '../pages/dashboard/admin/UserManagement';
 
 // Seller Sub-pages
 import SellerListingsPage from '../pages/dashboard/seller/SellerListingsPage';
@@ -76,7 +77,7 @@ const AppRoutes = () => {
                     <Route path="/dashboard/properties" element={<div><h2 style={{ color: '#333' }}>Saved Properties</h2><p>Saved properties content goes here.</p></div>} />
                     <Route path="/dashboard/listings" element={<div><h2 style={{ color: '#333' }}>My Listings</h2><p>Listings management goes here.</p></div>} />
                     <Route path="/dashboard/clients" element={<div><h2 style={{ color: '#333' }}>My Clients</h2><p>Client management goes here.</p></div>} />
-                    <Route path="/dashboard/users" element={<div><h2 style={{ color: '#333' }}>Manage Users</h2><p>System users management goes here.</p></div>} />
+                    <Route path="/dashboard/users" element={<UserManagement />} />
                     <Route path="/dashboard/seller/listings" element={<SellerListingsPage />} />
                     <Route path="/dashboard/seller/bids" element={<SellerBidsPage />} />
                     <Route path="/dashboard/seller/bidding" element={<SellerBiddingPage />} />

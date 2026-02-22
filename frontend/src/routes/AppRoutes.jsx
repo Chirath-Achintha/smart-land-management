@@ -23,6 +23,11 @@ import SellerDashboard from '../pages/dashboard/SellerDashboard';
 import AgentDashboard from '../pages/dashboard/AgentDashboard';
 import AdminDashboard from '../pages/dashboard/AdminDashboard';
 
+// Seller Sub-pages
+import SellerListingsPage from '../pages/dashboard/seller/SellerListingsPage';
+import SellerBidsPage from '../pages/dashboard/seller/SellerBidsPage';
+import SellerAvailabilityPage from '../pages/dashboard/seller/SellerAvailabilityPage';
+
 import { useAuth } from '../context/AuthContext';
 
 const AppRoutes = () => {
@@ -64,6 +69,9 @@ const AppRoutes = () => {
                     <Route path="/dashboard/listings" element={<div><h2 style={{ color: '#333' }}>My Listings</h2><p>Listings management goes here.</p></div>} />
                     <Route path="/dashboard/clients" element={<div><h2 style={{ color: '#333' }}>My Clients</h2><p>Client management goes here.</p></div>} />
                     <Route path="/dashboard/users" element={<div><h2 style={{ color: '#333' }}>Manage Users</h2><p>System users management goes here.</p></div>} />
+                    <Route path="/dashboard/seller/listings" element={<SellerListingsPage />} />
+                    <Route path="/dashboard/seller/bids" element={<SellerBidsPage />} />
+                    <Route path="/dashboard/seller/availability" element={<SellerAvailabilityPage />} />
                 </Route>
 
                 {/* Fallback Catch-all Route */}

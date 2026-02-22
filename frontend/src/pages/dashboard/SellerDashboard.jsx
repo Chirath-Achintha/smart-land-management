@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const SELLER_ID = 'sunil_perera';
 const SELLER_ID = 'sunil_perera'; // demo seller id
 
 const SellerDashboard = () => {
@@ -53,6 +54,15 @@ const SellerDashboard = () => {
             <div style={S.section}>
                 <h2 style={S.sectionTitle}>Quick Actions</h2>
                 <div style={S.btnRow}>
+                    <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/seller/listings')}>
+                        Manage My Listings
+                    </button>
+                    <button style={{ ...S.actionBtn, ...S.outlineBtn }} onClick={() => navigate('/dashboard/seller/bids')}>
+                        View Bids
+                    </button>
+                    <button style={{ ...S.actionBtn, ...S.outlineBtn }} onClick={() => navigate('/dashboard/seller/availability')}>
+                        Set Availability
+                    </button>
                     <button
                         className="btn-dark"
                         style={S.actionBtn}
@@ -103,6 +113,7 @@ const S = {
     title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
     subtitle: { color: '#777', fontSize: '1rem' },
     cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '48px' },
+    card: { background: '#fff', borderRadius: '16px', padding: '32px 28px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '8px' },
     card: { background: '#fff', borderRadius: '16px', padding: '32px 28px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.2s', cursor: 'default' },
     statVal: { fontSize: '2.8rem', fontWeight: '800', lineHeight: 1 },
     statLabel: { fontSize: '0.85rem', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },

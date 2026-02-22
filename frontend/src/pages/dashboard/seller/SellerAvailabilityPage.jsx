@@ -58,6 +58,8 @@ const SellerAvailabilityPage = () => {
     return (
         <div style={S.root}>
             <div style={S.header}>
+                <h1 style={S.title}>Site Visit Availability</h1>
+                <p style={S.subtitle}>Set the days and times when buyers can visit your properties.</p>
                 <div>
                     <h1 style={S.title}>Site Visit Availability</h1>
                     <p style={S.subtitle}>Set the days and times when buyers can visit your properties.</p>
@@ -71,6 +73,11 @@ const SellerAvailabilityPage = () => {
                     {/* Listing Selector */}
                     <div style={S.selectorRow}>
                         <label style={S.sectionLabel}>Select Property</label>
+                        <select value={selectedId} onChange={e => handleSelectListing(e.target.value)} style={S.select}>
+                            {listings.map(l => <option key={l.id} value={String(l.id)}>{l.name}</option>)}
+                        </select>
+                        {selectedListing && (
+                            <span style={S.locationTag}>{selectedListing.village}, {selectedListing.district}</span>
                         <select
                             value={selectedId}
                             onChange={e => handleSelectListing(e.target.value)}
@@ -94,6 +101,7 @@ const SellerAvailabilityPage = () => {
                         <div style={S.sectionLabel}>Add Availability Slot</div>
                         <p style={S.hint}>Choose a day and enter a time range (e.g. 09:00 AM – 12:00 PM)</p>
                         <div style={S.slotInputRow}>
+                            <select value={slotDay} onChange={e => setSlotDay(e.target.value)} style={{ ...S.input, flex: '0 0 160px' }}>
                             <select
                                 value={slotDay}
                                 onChange={e => setSlotDay(e.target.value)}
@@ -109,6 +117,11 @@ const SellerAvailabilityPage = () => {
                                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSlot())}
                                 style={{ ...S.input, flex: 1 }}
                             />
+                            <button type="button" style={S.addBtn} onClick={addSlot}>Add Slot</button>
+                        </div>
+                    </div>
+
+                    {/* Slot List grouped by day */}
                             <button type="button" style={S.addBtn} onClick={addSlot}>
                                 Add Slot
                             </button>
@@ -121,11 +134,18 @@ const SellerAvailabilityPage = () => {
                             <div style={S.sectionLabel}>Scheduled Slots ({slots.length})</div>
                             <div style={S.slotGrid}>
                                 {DAYS.map(day => {
+                                    const daySlots = slots.map((s, i) => ({ ...s, idx: i })).filter(s => s.day === day);
                                     const daySlots = slots.filter(s => s.day === day);
                                     if (daySlots.length === 0) return null;
                                     return (
                                         <div key={day} style={S.dayGroup}>
                                             <div style={S.dayLabel}>{day}</div>
+                                            {daySlots.map(slot => (
+                                                <div key={slot.idx} style={S.slotChip}>
+                                                    <span style={S.slotTime}>{slot.time}</span>
+                                                    <button type="button" style={S.removeBtn} onClick={() => removeSlot(slot.idx)}>&times;</button>
+                                                </div>
+                                            ))}
                                             {daySlots.map((slot, idx) => {
                                                 const globalIdx = slots.indexOf(slot);
                                                 return (
@@ -150,6 +170,10 @@ const SellerAvailabilityPage = () => {
                         <p style={S.noSlots}>No availability slots added yet for this property.</p>
                     )}
 
+                    {/* Save */}
+                    <div style={S.footer}>
+                        {saved && <span style={S.savedMsg}>Availability saved.</span>}
+                        <button className="btn-dark" style={S.saveBtn} onClick={saveSlots}>Save Availability</button>
                     {/* Save Button */}
                     <div style={S.footer}>
                         {saved && <span style={S.savedMsg}>Availability saved.</span>}

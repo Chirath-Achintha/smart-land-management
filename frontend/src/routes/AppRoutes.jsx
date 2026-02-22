@@ -24,16 +24,22 @@ import BuyerDashboard from '../pages/dashboard/BuyerDashboard';
 import SellerDashboard from '../pages/dashboard/SellerDashboard';
 import AgentDashboard from '../pages/dashboard/AgentDashboard';
 import AdminDashboard from '../pages/dashboard/AdminDashboard';
+import ConstructorManagerDashboard from '../pages/dashboard/ConstructorManagerDashboard';
 import AgentAssignment from '../pages/dashboard/admin/AgentAssignment';
 import ServiceManagement from '../pages/dashboard/admin/ServiceManagement';
 import ComplaintsManagement from '../pages/dashboard/admin/ComplaintsManagement';
 import UserManagement from '../pages/dashboard/admin/UserManagement';
+import ConstructorProjectsPage from '../pages/dashboard/constructor/ConstructorProjectsPage';
+import ConstructorServiceBookingsPage from '../pages/dashboard/constructor/ConstructorServiceBookingsPage';
 
 // Seller Sub-pages
 import SellerListingsPage from '../pages/dashboard/seller/SellerListingsPage';
 import SellerBidsPage from '../pages/dashboard/seller/SellerBidsPage';
 import SellerBiddingPage from '../pages/dashboard/seller/SellerBiddingPage';
 import SellerAvailabilityPage from '../pages/dashboard/seller/SellerAvailabilityPage';
+
+// Agent Sub-pages
+import AgentClientsPage from '../pages/dashboard/agent/AgentClientsPage';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -48,6 +54,7 @@ const AppRoutes = () => {
             case 'buyer': return <BuyerDashboard />;
             case 'seller': return <SellerDashboard />;
             case 'agent': return <AgentDashboard />;
+            case 'constructor_manager': return <ConstructorManagerDashboard />;
             case 'admin': return <AdminDashboard />;
             default: return <Navigate to="/login" replace />;
         }
@@ -75,8 +82,10 @@ const AppRoutes = () => {
                 <Route element={<DashboardLayout role={role} />}>
                     <Route path="/dashboard" element={getDashboardByRole()} />
                     <Route path="/dashboard/properties" element={<div><h2 style={{ color: '#333' }}>Saved Properties</h2><p>Saved properties content goes here.</p></div>} />
+                    <Route path="/dashboard/projects" element={<ConstructorProjectsPage />} />
+                    <Route path="/dashboard/service-requests" element={<ConstructorServiceBookingsPage />} />
                     <Route path="/dashboard/listings" element={<div><h2 style={{ color: '#333' }}>My Listings</h2><p>Listings management goes here.</p></div>} />
-                    <Route path="/dashboard/clients" element={<div><h2 style={{ color: '#333' }}>My Clients</h2><p>Client management goes here.</p></div>} />
+                    <Route path="/dashboard/clients" element={<AgentClientsPage />} />
                     <Route path="/dashboard/users" element={<UserManagement />} />
                     <Route path="/dashboard/seller/listings" element={<SellerListingsPage />} />
                     <Route path="/dashboard/seller/bids" element={<SellerBidsPage />} />

@@ -46,9 +46,17 @@ const ServiceBookingPage = () => {
             startTime: bookingTime,
             status: 'Scheduled',
             provider: 'Pending Assignment',
-            price: selectedService.basePrice
+            price: selectedService.basePrice,
+            buyerName: user?.name || 'Anonymous Buyer',
+            buyerEmail: user?.email || 'anonymous@example.com'
         };
-        setBookings([newBooking, ...bookings]);
+        const updatedBookings = [newBooking, ...bookings];
+        setBookings(updatedBookings);
+
+        // Persist to all_service_bookings for Constructor Manager
+        const allBookings = JSON.parse(localStorage.getItem('all_service_bookings') || '[]');
+        localStorage.setItem('all_service_bookings', JSON.stringify([newBooking, ...allBookings]));
+
         setShowForm(false);
         setBookingDate('');
         setBookingTime('');

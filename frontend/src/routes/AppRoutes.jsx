@@ -24,6 +24,9 @@ import BuyerDashboard from '../pages/dashboard/BuyerDashboard';
 import SellerDashboard from '../pages/dashboard/SellerDashboard';
 import AgentDashboard from '../pages/dashboard/AgentDashboard';
 import AdminDashboard from '../pages/dashboard/AdminDashboard';
+import AgentAssignment from '../pages/dashboard/admin/AgentAssignment';
+import ServiceManagement from '../pages/dashboard/admin/ServiceManagement';
+import ComplaintsManagement from '../pages/dashboard/admin/ComplaintsManagement';
 
 // Seller Sub-pages
 import SellerListingsPage from '../pages/dashboard/seller/SellerListingsPage';
@@ -78,6 +81,11 @@ const AppRoutes = () => {
                     <Route path="/dashboard/seller/bids" element={<SellerBidsPage />} />
                     <Route path="/dashboard/seller/bidding" element={<SellerBiddingPage />} />
                     <Route path="/dashboard/seller/availability" element={<SellerAvailabilityPage />} />
+
+                    {/* Admin Specific Routes */}
+                    <Route path="/dashboard/admin/agents" element={<AgentAssignment />} />
+                    <Route path="/dashboard/admin/services" element={<ServiceManagement />} />
+                    <Route path="/dashboard/admin/complaints" element={<ComplaintsManagement />} />
                 </Route>
 
                 {/* Fallback Catch-all Route */}

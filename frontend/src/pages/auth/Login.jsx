@@ -11,7 +11,15 @@ const Login = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Simulation: Just login with the selected role
+
+        // Hardcoded Admin Check
+        if (email === 'admin@smartland.com' && password === 'admin123') {
+            login('admin');
+            navigate('/dashboard');
+            return;
+        }
+
+        // Simulation: Just login with the selected role for other users
         login(role);
 
         if (role === 'buyer') {

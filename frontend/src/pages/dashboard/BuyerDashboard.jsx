@@ -58,7 +58,7 @@ const BuyerDashboard = () => {
     return (
         <div style={S.container}>
             <header style={S.header}>
-                <h1 style={S.title}>Buyer Portfolio</h1>
+                <h1 style={S.title}>Buyer Profile</h1>
                 <p style={S.subtitle}>Overview of your property activities and profile</p>
             </header>
 

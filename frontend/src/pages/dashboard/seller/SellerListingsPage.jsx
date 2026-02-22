@@ -30,6 +30,9 @@ function getSeedListings() {
         { id: 101, name: 'Golden Valley Acres', district: 'Kandy', village: 'Digana', perches: 40, pricePerPerch: 150000, totalPrice: 6000000, type: 'Agricultural', status: 'Available', roadAccess: '15ft Carpet Road', electricity: true, water: true, img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80', openForBidding: true, startingBid: 5000000, biddingStart: '2024-02-01', biddingEnd: '2024-03-01' },
         { id: 102, name: 'Ocean View Ridge', district: 'Galle', village: 'Unawatuna', perches: 20, pricePerPerch: 850000, totalPrice: 17000000, type: 'Residential', status: 'Reserved', roadAccess: '20ft Concrete Road', electricity: true, water: true, img: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=800&q=80', openForBidding: false, startingBid: '', biddingStart: '', biddingEnd: '' },
         { id: 103, name: 'Pine Forest Retreat', district: 'Nuwara Eliya', village: 'Nanu Oya', perches: 160, pricePerPerch: 300000, totalPrice: 48000000, type: 'Mixed', status: 'Sold', roadAccess: '12ft Gravel Road', electricity: true, water: true, img: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80', openForBidding: false, startingBid: '', biddingStart: '', biddingEnd: '' },
+        { id: 101, name: 'Golden Valley Acres', district: 'Kandy', village: 'Digana', perches: 40, pricePerPerch: 150000, totalPrice: 6000000, type: 'Agricultural', status: 'Available', roadAccess: '15ft Carpet Road', electricity: true, water: true, img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80' },
+        { id: 102, name: 'Ocean View Ridge', district: 'Galle', village: 'Unawatuna', perches: 20, pricePerPerch: 850000, totalPrice: 17000000, type: 'Residential', status: 'Reserved', roadAccess: '20ft Concrete Road', electricity: true, water: true, img: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=800&q=80' },
+        { id: 103, name: 'Pine Forest Retreat', district: 'Nuwara Eliya', village: 'Nanu Oya', perches: 160, pricePerPerch: 300000, totalPrice: 48000000, type: 'Mixed', status: 'Sold', roadAccess: '12ft Gravel Road', electricity: true, water: true, img: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80' },
     ];
 }
 
@@ -61,6 +64,17 @@ const SellerListingsPage = () => {
 
     const openAdd = () => { setForm(EMPTY_FORM); setEditingId(null); setShowForm(true); };
     const openEdit = (l) => { setForm({ ...EMPTY_FORM, ...l }); setEditingId(l.id); setShowForm(true); };
+    const openAdd = () => {
+        setForm(EMPTY_FORM);
+        setEditingId(null);
+        setShowForm(true);
+    };
+
+    const openEdit = (listing) => {
+        setForm({ ...listing });
+        setEditingId(listing.id);
+        setShowForm(true);
+    };
 
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -94,6 +108,40 @@ const SellerListingsPage = () => {
     };
 
     const handleDelete = (id) => { save(listings.filter(l => l.id !== id)); setDeleteConfirm(null); };
+        reader.onload = (ev) => {
+            setForm(f => ({ ...f, img: ev.target.result }));
+        };
+        reader.readAsDataURL(file);
+    };
+
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const total = calcTotal(form.perches, form.pricePerPerch);
+        if (editingId) {
+            const updated = listings.map(l =>
+                l.id === editingId ? { ...form, id: editingId, totalPrice: total, perches: parseFloat(form.perches), pricePerPerch: parseFloat(form.pricePerPerch) } : l
+            );
+            save(updated);
+        } else {
+            const newItem = {
+                ...form,
+                id: Date.now(),
+                totalPrice: total,
+                perches: parseFloat(form.perches),
+                pricePerPerch: parseFloat(form.pricePerPerch),
+            };
+            save([...listings, newItem]);
+        }
+        setShowForm(false);
+        setForm(EMPTY_FORM);
+        setEditingId(null);
+    };
+
+    const handleDelete = (id) => {
+        save(listings.filter(l => l.id !== id));
+        setDeleteConfirm(null);
+    };
 
     return (
         <div style={S.root}>
@@ -105,6 +153,14 @@ const SellerListingsPage = () => {
                 <button className="btn-dark" style={S.addBtn} onClick={openAdd}>+ Add New Listing</button>
             </div>
 
+                    <p style={S.subtitle}>Manage, add, and update all your property listings.</p>
+                </div>
+                <button className="btn-dark" style={S.addBtn} onClick={openAdd}>
+                    + Add New Listing
+                </button>
+            </div>
+
+            {/* Listings Table */}
             {listings.length === 0 ? (
                 <div style={S.empty}>No listings yet. Add your first property!</div>
             ) : (
@@ -113,6 +169,7 @@ const SellerListingsPage = () => {
                         <thead>
                             <tr>
                                 {['Property', 'Location', 'Size', 'Starting Bid', 'Total Price', 'Type', 'Bidding', 'Status', 'Actions'].map(h => (
+                                {['Property Name', 'Location', 'Size', 'Price/Perch', 'Total Price', 'Type', 'Status', 'Actions'].map(h => (
                                     <th key={h} style={S.th}>{h}</th>
                                 ))}
                             </tr>
@@ -126,6 +183,7 @@ const SellerListingsPage = () => {
                                         <td style={S.td}>
                                             <div style={S.nameCell}>
                                                 {l.img && <img src={l.img} alt={l.name} style={S.thumbnail} />}
+                                                <img src={l.img} alt={l.name} style={S.thumbnail} />
                                                 <span style={{ fontWeight: '700', color: '#1A1A1A' }}>{l.name}</span>
                                             </div>
                                         </td>
@@ -147,6 +205,10 @@ const SellerListingsPage = () => {
                                             )}
                                         </td>
                                         <td style={S.td}>
+                                        <td style={S.td}>Rs. {Number(l.pricePerPerch).toLocaleString()}</td>
+                                        <td style={{ ...S.td, fontWeight: '700' }}>Rs. {Number(l.totalPrice).toLocaleString()}</td>
+                                        <td style={S.td}><span style={S.typeTag}>{l.type}</span></td>
+                                        <td style={S.td}>
                                             <span style={{ ...S.statusBadge, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
                                                 {l.status}
                                             </span>
@@ -166,6 +228,7 @@ const SellerListingsPage = () => {
             )}
 
             {/* Delete Confirm */}
+            {/* Delete Confirm Dialog */}
             {deleteConfirm && (
                 <div style={S.overlay}>
                     <div style={S.dialog}>
@@ -179,6 +242,7 @@ const SellerListingsPage = () => {
                 </div>
             )}
 
+            {/* Add / Edit Form Modal */}
             {showForm && (
                 <div style={S.overlay}>
                     <div style={S.formModal}>
@@ -189,6 +253,9 @@ const SellerListingsPage = () => {
                         <form onSubmit={handleSubmit} style={S.form}>
                             {/* ── Property Details ── */}
                             <div style={S.sectionDivider}>Property Details</div>
+                            <button style={S.closeBtn} onClick={() => setShowForm(false)}>✕</button>
+                        </div>
+                        <form onSubmit={handleSubmit} style={S.form}>
                             <div style={S.formGrid}>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Property Name *</label>
@@ -218,6 +285,9 @@ const SellerListingsPage = () => {
                                     <label style={S.label}>Land Type *</label>
                                     <select name="type" value={form.type} onChange={handleFormChange} style={S.input}>
                                         {['Residential', 'Agricultural', 'Commercial', 'Mixed'].map(t => <option key={t}>{t}</option>)}
+                                        {['Residential', 'Agricultural', 'Commercial', 'Mixed'].map(t => (
+                                            <option key={t}>{t}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div style={{ ...S.formGroup, gridColumn: '1/-1' }}>
@@ -239,6 +309,21 @@ const SellerListingsPage = () => {
                                     </label>
                                     {form.img && (
                                         <button type="button" style={S.removeImgBtn} onClick={() => setForm(f => ({ ...f, img: '' }))}>Remove image</button>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            onChange={handleImageUpload}
+                                        />
+                                    </label>
+                                    {form.img && (
+                                        <button
+                                            type="button"
+                                            style={S.removeImgBtn}
+                                            onClick={() => setForm(f => ({ ...f, img: '' }))}
+                                        >
+                                            Remove image
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -309,6 +394,14 @@ const SellerListingsPage = () => {
                                         </div>
                                     </div>
                                 )}
+                                <label style={S.checkLabel}>
+                                    <input type="checkbox" name="electricity" checked={form.electricity} onChange={handleFormChange} />
+                                    Electricity
+                                </label>
+                                <label style={S.checkLabel}>
+                                    <input type="checkbox" name="water" checked={form.water} onChange={handleFormChange} />
+                                    Water
+                                </label>
                             </div>
 
                             <div style={S.formFooter}>
@@ -346,6 +439,13 @@ const S = {
     biddingOpen: { background: '#eafaf1', color: '#2ecc71', border: '1px solid #2ecc71' },
     biddingClosed: { background: '#f5f0ea', color: '#aaa', border: '1px solid #ddd' },
     biddingDate: { fontSize: '0.7rem', color: '#bbb', marginTop: '3px' },
+    table: { width: '100%', borderCollapse: 'collapse', minWidth: '800px' },
+    th: { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', borderBottom: '2px solid #f5f0ea', whiteSpace: 'nowrap' },
+    tr: { transition: 'background 0.15s' },
+    td: { padding: '16px 20px', fontSize: '0.875rem', color: '#333', verticalAlign: 'middle', borderBottom: '1px solid #f5f0ea' },
+    nameCell: { display: 'flex', alignItems: 'center', gap: '12px' },
+    thumbnail: { width: '48px', height: '36px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 },
+    typeTag: { background: '#f5f0ea', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700', color: '#555' },
     statusBadge: { padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     actionBtns: { display: 'flex', gap: '8px' },
     editBtn: { background: '#1A1A1A', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' },
@@ -379,6 +479,23 @@ const S = {
     imgPreview: { width: '100%', height: '160px', objectFit: 'cover', display: 'block' },
     imgPlaceholder: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '140px' },
     removeImgBtn: { marginTop: '8px', background: 'none', border: 'none', color: '#e74c3c', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" },
+    formFooter: { display: 'flex', justifyContent: 'flex-end', gap: '12px' },
+    cancelBtn: { background: '#f5f0ea', color: '#555', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif" },
+    confirmDelBtn: { background: '#e74c3c', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif" },
+    imgUploadBox: { display: 'block', border: '2px dashed #e0dbd4', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', minHeight: '140px', background: '#fdfaf7', transition: 'border-color 0.2s' },
+    imgPreview: { width: '100%', height: '160px', objectFit: 'cover', display: 'block' },
+    imgPlaceholder: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '140px' },
+    removeImgBtn: { marginTop: '8px', background: 'none', border: 'none', color: '#e74c3c', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" },
+    availSection: { background: '#fdfaf7', border: '1px solid #ede8e1', borderRadius: '12px', padding: '20px 24px', marginBottom: '24px' },
+    availHint: { fontSize: '0.8rem', color: '#999', margin: '4px 0 16px', fontWeight: '500' },
+    slotInputRow: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' },
+    addSlotBtn: { padding: '12px 20px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 },
+    slotList: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px' },
+    slotChip: { display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '7px 12px', fontSize: '0.85rem' },
+    slotDay: { fontWeight: '700', color: '#1A1A1A' },
+    slotTime: { color: '#555' },
+    slotRemove: { background: 'none', border: 'none', color: '#bbb', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 2px', fontWeight: '700', display: 'flex', alignItems: 'center' },
+    noSlots: { fontSize: '0.8rem', color: '#bbb', marginTop: '12px', marginBottom: 0, fontStyle: 'italic' },
 };
 
 export default SellerListingsPage;

@@ -1,16 +1,23 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from '../components/common/Header';
 import GlobalFooter from '../components/common/Footer';
+import { useAuth } from '../context/AuthContext';
 
 const MainLayout = () => {
+    const { user } = useAuth();
+    const location = useLocation();
+
+    // Hide header/footer if role is admin and we are in a dashboard route
+    const isAdminDashboard = user?.role === 'admin' && location.pathname.startsWith('/dashboard');
+
     return (
         <div style={styles.container}>
-            <Header />
+            {!isAdminDashboard && <Header />}
             <div style={styles.mainContent}>
                 <Outlet />
             </div>
-            <GlobalFooter />
+            {!isAdminDashboard && <GlobalFooter />}
         </div>
     );
 };

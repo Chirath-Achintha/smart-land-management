@@ -11,6 +11,7 @@ import LandingPage from '../pages/landing/LandingPage';
 import LandListingPage from '../pages/lands/LandListingPage';
 import LandDetailPage from '../pages/lands/LandDetailPage';
 import BiddingPage from '../pages/lands/BiddingPage';
+import ScheduleVisitPage from '../pages/lands/ScheduleVisitPage';
 
 // Auth Pages
 import Login from '../pages/auth/Login';
@@ -22,12 +23,15 @@ import SellerDashboard from '../pages/dashboard/SellerDashboard';
 import AgentDashboard from '../pages/dashboard/AgentDashboard';
 import AdminDashboard from '../pages/dashboard/AdminDashboard';
 
+import { useAuth } from '../context/AuthContext';
+
 const AppRoutes = () => {
-    // Temporary role switching logic
-    // "buyer" | "seller" | "agent" | "admin"
-    const role = "buyer";
+    const { user } = useAuth();
+    const role = user?.role;
 
     const getDashboardByRole = () => {
+        if (!user) return <Navigate to="/login" replace />;
+
         switch (role) {
             case 'buyer': return <BuyerDashboard />;
             case 'seller': return <SellerDashboard />;
@@ -45,6 +49,7 @@ const AppRoutes = () => {
                 <Route path="/lands" element={<LandListingPage />} />
                 <Route path="/lands/:id" element={<LandDetailPage />} />
                 <Route path="/bidding/:id" element={<BiddingPage />} />
+                <Route path="/schedule-visit/:id" element={<ScheduleVisitPage />} />
 
                 {/* Auth Routes */}
                 <Route element={<AuthLayout />}>

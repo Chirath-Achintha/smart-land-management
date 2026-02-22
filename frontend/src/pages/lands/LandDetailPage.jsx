@@ -101,7 +101,12 @@ const LandDetailPage = () => {
                                 >
                                     Place a Bid
                                 </button>
-                                <button style={S.secBtn}>Schedule a Visit</button>
+                                <button
+                                    style={S.secBtn}
+                                    onClick={() => navigate(`/schedule-visit/${land.id}`)}
+                                >
+                                    Schedule a Visit
+                                </button>
                             </div>
                         </div>
                     </div>

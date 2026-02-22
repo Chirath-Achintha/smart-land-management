@@ -14,8 +14,18 @@ export const LANDS = [
         distanceToTown: 2.5,
         type: "Agricultural",
         img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
-        auctionEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 days from now
-        baseBid: 5500000
+        auctionEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString(),
+        baseBid: 5500000,
+        owner: {
+            name: "Sunil Perera",
+            phone: "+94 77 123 4567",
+            role: "Seller",
+            freeSlots: [
+                { day: "Monday", time: "10:00 AM - 02:00 PM" },
+                { day: "Wednesday", time: "09:00 AM - 12:00 PM" },
+                { day: "Saturday", time: "03:00 PM - 06:00 PM" }
+            ]
+        }
     },
     {
         id: 2,
@@ -32,8 +42,18 @@ export const LANDS = [
         distanceToTown: 1.2,
         type: "Residential",
         img: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=800&q=80",
-        auctionEnd: new Date(Date.now() + 1000 * 60 * 60 * 5).toISOString(), // 5 hours from now
-        baseBid: 16000000
+        auctionEnd: new Date(Date.now() + 1000 * 60 * 60 * 5).toISOString(),
+        baseBid: 16000000,
+        owner: {
+            name: "Kamal Gunaratne",
+            phone: "+94 71 987 6543",
+            role: "Seller",
+            freeSlots: [
+                { day: "Tuesday", time: "02:00 PM - 05:00 PM" },
+                { day: "Friday", time: "10:00 AM - 01:00 PM" },
+                { day: "Sunday", time: "08:00 AM - 11:00 AM" }
+            ]
+        }
     },
     {
         id: 3,
@@ -50,8 +70,17 @@ export const LANDS = [
         distanceToTown: 5.0,
         type: "Mixed",
         img: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80",
-        auctionEnd: new Date(Date.now() + 1000 * 60 * 30).toISOString(), // 30 mins from now
-        baseBid: 45000000
+        auctionEnd: new Date(Date.now() + 1000 * 60 * 30).toISOString(),
+        baseBid: 45000000,
+        owner: {
+            name: "Dilini Fernando",
+            phone: "+94 76 555 1234",
+            role: "Seller",
+            freeSlots: [
+                { day: "Monday", time: "08:00 AM - 10:00 AM" },
+                { day: "Thursday", time: "01:00 PM - 04:00 PM" }
+            ]
+        }
     },
     {
         id: 4,
@@ -69,7 +98,16 @@ export const LANDS = [
         type: "Agricultural",
         img: "https://images.unsplash.com/photo-1516466723877-e4ec1d736c8a?w=800&q=80",
         auctionEnd: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString(),
-        baseBid: 14000000
+        baseBid: 14000000,
+        owner: {
+            name: "Nimal Siriwardena",
+            phone: "+94 70 111 2222",
+            role: "Seller",
+            freeSlots: [
+                { day: "Wednesday", time: "02:00 PM - 06:00 PM" },
+                { day: "Friday", time: "02:00 PM - 06:00 PM" }
+            ]
+        }
     },
     {
         id: 5,
@@ -87,7 +125,16 @@ export const LANDS = [
         type: "Residential",
         img: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80",
         auctionEnd: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
-        baseBid: 10000000
+        baseBid: 10000000,
+        owner: {
+            name: "Anura Bandara",
+            phone: "+94 72 333 4444",
+            role: "Seller",
+            freeSlots: [
+                { day: "Monday", time: "09:00 AM - 11:00 AM" },
+                { day: "Friday", time: "03:00 PM - 05:00 PM" }
+            ]
+        }
     },
     {
         id: 6,
@@ -105,6 +152,16 @@ export const LANDS = [
         type: "Commercial",
         img: "https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=800&q=80",
         auctionEnd: new Date(Date.now() + 1000 * 60 * 15).toISOString(),
-        baseBid: 5800000
+        baseBid: 5800000,
+        owner: {
+            name: "Priyantha Kumara",
+            phone: "+94 78 888 9999",
+            role: "Seller",
+            freeSlots: [
+                { day: "Saturday", time: "10:00 AM - 04:00 PM" },
+                { day: "Sunday", time: "10:00 AM - 04:00 PM" }
+            ]
+        }
     }
 ];
+

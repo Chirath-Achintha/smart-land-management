@@ -103,6 +103,24 @@
     transform: translateY(-1px);
 }
 
+.btn-outline {
+    background: transparent;
+    color: var(--text-dark);
+    border: 1px solid var(--text-dark);
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.btn-outline:hover {
+    background: rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
+}
+
 /* HERO */
 .landing-hero {
     display: flex;

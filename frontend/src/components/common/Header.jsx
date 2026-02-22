@@ -15,7 +15,9 @@ const Header = () => {
 
     const handleNavClick = (n) => {
         setActiveNav(n);
-        if (location.pathname !== '/') {
+        if (n === 'Inquiry') {
+            navigate('/inquiry');
+        } else if (location.pathname !== '/') {
             navigate('/#' + n.toLowerCase());
         }
     };
@@ -27,15 +29,27 @@ const Header = () => {
                 <span className="nav-logo-text">Dwello</span>
             </div>
             <ul className="landing-nav-links">
-                {NAV.map((n) => (
-                    <li key={n}>
-                        <a
-                            href={location.pathname === '/' ? `#${n.toLowerCase()}` : `/#${n.toLowerCase()}`}
-                            className={`landing-nav-link ${activeNav === n ? 'active' : ''}`}
-                            onClick={() => handleNavClick(n)}
-                        >{n}</a>
-                    </li>
-                ))}
+                {NAV.map((n) => {
+                    const isHashLink = n !== 'Inquiry';
+                    const linkProps = isHashLink ? {
+                        href: location.pathname === '/' ? `#${n.toLowerCase()}` : `/#${n.toLowerCase()}`
+                    } : {
+                        style: { cursor: 'pointer' }
+                    };
+
+                    return (
+                        <li key={n}>
+                            <a
+                                {...linkProps}
+                                className={`landing-nav-link ${activeNav === n ? 'active' : ''}`}
+                                onClick={(e) => {
+                                    if (!isHashLink) e.preventDefault();
+                                    handleNavClick(n);
+                                }}
+                            >{n}</a>
+                        </li>
+                    );
+                })}
             </ul>
             <div className="nav-actions">
                 <button className="nav-icon"><SearchIcon /></button>

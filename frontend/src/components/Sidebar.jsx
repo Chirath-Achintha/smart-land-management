@@ -19,7 +19,10 @@ const NAV = {
         { to: '/dashboard/clients', label: 'My Clients' },
     ],
     admin: [
-        { to: '/dashboard', label: 'Dashboard' },
+        { to: '/dashboard', label: 'Dashboard Overview' },
+        { to: '/dashboard/admin/agents', label: 'Agent Assignment' },
+        { to: '/dashboard/admin/services', label: 'Service Management' },
+        { to: '/dashboard/admin/complaints', label: 'Complaints & Inquiries' },
         { to: '/dashboard/users', label: 'Manage Users' },
     ],
 };

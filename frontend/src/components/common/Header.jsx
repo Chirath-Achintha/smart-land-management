@@ -17,6 +17,8 @@ const Header = () => {
         setActiveNav(n);
         if (n === 'Inquiry') {
             navigate('/inquiry');
+        } else if (n === 'Service') {
+            navigate('/services');
         } else if (location.pathname !== '/') {
             navigate('/#' + n.toLowerCase());
         }
@@ -30,7 +32,7 @@ const Header = () => {
             </div>
             <ul className="landing-nav-links">
                 {NAV.map((n) => {
-                    const isHashLink = n !== 'Inquiry';
+                    const isHashLink = n !== 'Inquiry' && n !== 'Service';
                     const linkProps = isHashLink ? {
                         href: location.pathname === '/' ? `#${n.toLowerCase()}` : `/#${n.toLowerCase()}`
                     } : {

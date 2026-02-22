@@ -13,6 +13,7 @@ import LandDetailPage from '../pages/lands/LandDetailPage';
 import BiddingPage from '../pages/lands/BiddingPage';
 import ScheduleVisitPage from '../pages/lands/ScheduleVisitPage';
 import InquiryPage from '../pages/inquiry/InquiryPage';
+import ServiceBookingPage from '../pages/services/ServiceBookingPage';
 
 // Auth Pages
 import Login from '../pages/auth/Login';
@@ -52,6 +53,7 @@ const AppRoutes = () => {
                 <Route path="/bidding/:id" element={<BiddingPage />} />
                 <Route path="/schedule-visit/:id" element={<ScheduleVisitPage />} />
                 <Route path="/inquiry" element={<InquiryPage />} />
+                <Route path="/services" element={<ServiceBookingPage />} />
 
                 {/* Auth Routes */}
                 <Route element={<AuthLayout />}>

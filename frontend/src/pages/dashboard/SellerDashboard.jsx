@@ -174,6 +174,9 @@ const SellerDashboard = () => {
                             <button style={{ ...S.actionBtn, ...S.outlineBtn }} onClick={() => navigate('/dashboard/seller/availability')}>
                                 Set Availability
                             </button>
+                            <button style={{ ...S.actionBtn, ...S.outlineBtn }} onClick={() => navigate('/dashboard/seller/visits')}>
+                                View Visit Requests
+                            </button>
                         </div>
                     </div>
                 </div>

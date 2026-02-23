@@ -1,0 +1,27 @@
+# Core Web Framework
+fastapi==0.109.2                # The web framework for building APIs
+uvicorn[standard]==0.27.1       # The ASGI server to run the FastAPI application
+
+# Data Validation & Settings
+pydantic==2.6.1                 # Data validation and settings management
+pydantic-settings==2.1.0        # Pydantic settings management
+
+# Database & ORM
+sqlalchemy==2.0.27              # SQL Toolkit and Object-Relational Mapper (ORM)
+alembic==1.13.1                 # Database migrations tool for SQLAlchemy
+psycopg2-binary==2.9.9          # PostgreSQL database adapter
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0 # JSON Web Token (JWT) implementation
+passlib[bcrypt]==1.7.4          # Password hashing and verification
+python-multipart==0.0.9         # Support for form data and file uploads
+
+# Utilities
+python-dotenv==1.0.1            # Loads environment variables from .env file
+email-validator==2.1.0.post1    # Email validation for Pydantic models
+slowapi==0.1.9                  # Rate limiting for FastAPI endpoints
+cors-headers==0.1.0             # Middleware for Cross-Origin Resource Sharing (CORS)
+
+# Testing & HTTP Client
+httpx==0.26.0                   # Modern HTTP client for testing and external calls
+pytest==8.0.0                   # Testing framework

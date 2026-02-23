@@ -15,8 +15,9 @@ const NAV = {
         { to: '/dashboard/seller/availability', label: 'Site Visits' },
     ],
     agent: [
-        { to: '/dashboard', label: 'Dashboard' },
+        { to: '/dashboard', label: 'Overview' },
         { to: '/dashboard/clients', label: 'My Clients' },
+        { to: '/dashboard/service-requests', label: 'Service Requests' },
     ],
     admin: [
         { to: '/dashboard', label: 'Dashboard Overview' },
@@ -24,6 +25,11 @@ const NAV = {
         { to: '/dashboard/admin/services', label: 'Service Management' },
         { to: '/dashboard/admin/complaints', label: 'Complaints & Inquiries' },
         { to: '/dashboard/users', label: 'Manage Users' },
+    ],
+    constructor_manager: [
+        { to: '/dashboard', label: 'Overview' },
+        { to: '/dashboard/projects', label: 'My Projects' },
+        { to: '/dashboard/service-requests', label: 'Service Requests' },
     ],
 };
 

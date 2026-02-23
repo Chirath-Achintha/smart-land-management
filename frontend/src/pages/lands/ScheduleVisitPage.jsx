@@ -29,6 +29,26 @@ const ScheduleVisitPage = () => {
 
     const handleBooking = (e) => {
         e.preventDefault();
+
+        if (visitType === 'agent') {
+            const newAgentBooking = {
+                id: `BK-${Math.floor(Math.random() * 9000) + 1000}`,
+                landId: `LND-${land.id}`,
+                buyer: 'Anonymous Buyer',
+                land: land.name,
+                location: `${land.village}, ${land.district}`,
+                seller: land.owner.name,
+                date: selectedDate,
+                time: selectedTime,
+                status: 'Assigned'
+            };
+
+            const AGENT_ID = 'agent_001';
+            const raw = localStorage.getItem(`agent_bookings_${AGENT_ID}`);
+            const bookings = raw ? JSON.parse(raw) : [];
+            localStorage.setItem(`agent_bookings_${AGENT_ID}`, JSON.stringify([newAgentBooking, ...bookings]));
+        }
+
         alert(`Visit Scheduled Successfully!\nType: ${visitType === 'self' ? 'Self Visit' : 'Agent Visit'}\nDate: ${selectedDate}\nTime: ${selectedTime}\n${visitType === 'agent' && requestAgent ? 'Agent Requested: Yes' : ''}`);
         navigate(`/lands/${land.id}`);
     };

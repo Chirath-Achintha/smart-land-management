@@ -22,6 +22,7 @@ const Register = () => {
                     <select style={styles.input}>
                         <option value="buyer">Buyer</option>
                         <option value="seller">Seller</option>
+                        <option value="constructor_manager">Constructor Manager</option>
                     </select>
                 </div>
 

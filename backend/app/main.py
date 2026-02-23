@@ -8,12 +8,14 @@ from app.models.land_model import Land
 from app.models.bid_model import Bid
 from app.models.availability_model import Availability
 from app.models.visit_model import Visit
+from app.models.inquiry_model import Inquiry
 
 from app.routes.auth_routes         import router as auth_router
 from app.routes.land_routes         import router as land_router
 from app.routes.bid_routes          import router as bid_router
 from app.routes.availability_routes import router as availability_router
 from app.routes.visit_routes        import router as visit_router
+from app.routes.inquiry_routes      import router as inquiry_router
 
 # Auto-create all tables on startup
 Base.metadata.create_all(bind=engine)
@@ -45,6 +47,7 @@ app.include_router(land_router)
 app.include_router(bid_router)
 app.include_router(availability_router)
 app.include_router(visit_router)
+app.include_router(inquiry_router)
 
 @app.get("/")
 async def health_check():

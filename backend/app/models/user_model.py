@@ -8,6 +8,8 @@ class UserRole(str, enum.Enum):
     buyer = "buyer"
     seller = "seller"
     constructor_manager = "constructor_manager"
+    admin = "admin"
+    agent = "agent"
 
 class User(Base):
     __tablename__ = "users"
@@ -27,3 +29,4 @@ class User(Base):
     bids         = relationship("Bid",          back_populates="buyer")
     availability = relationship("Availability", back_populates="seller")
     visits       = relationship("Visit",        back_populates="buyer")
+    inquiries    = relationship("Inquiry",      back_populates="buyer")

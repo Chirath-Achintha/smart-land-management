@@ -6,7 +6,7 @@ from app.database.connection import get_db
 from app.models.bid_model import Bid
 from app.models.land_model import Land
 from app.models.user_model import User
-from app.schemas.bid_schema import BidCreate, BidStatusUpdate, BidResponse
+from app.schemas.bid_schema import BidCreate, BidResponse
 from app.routes.auth_routes import get_current_user
 
 router = APIRouter(prefix="/bids", tags=["Bids"])
@@ -98,32 +98,6 @@ def get_my_bids(
         .all()
     )
     return [_to_response(b) for b in bids]
-
-
-# ── Seller updates bid status (Accept / Reject) ───────────────────────────────
-@router.put("/{bid_id}/status", response_model=BidResponse)
-def update_bid_status(
-    bid_id: int,
-    data: BidStatusUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    bid = db.query(Bid).filter(Bid.id == bid_id).first()
-    if not bid:
-        raise HTTPException(status_code=404, detail="Bid not found")
-
-    # Only the seller of the corresponding land can update status
-    land = db.query(Land).filter(Land.id == bid.land_id).first()
-    if not land or land.seller_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorised to update this bid")
-
-    if data.status not in ("Accepted", "Rejected", "Pending"):
-        raise HTTPException(status_code=400, detail="Invalid status value")
-
-    bid.status = data.status
-    db.commit()
-    db.refresh(bid)
-    return _to_response(bid)
 
 
 # ── Seller deletes a bid (optional cleanup) ───────────────────────────────────

@@ -265,17 +265,8 @@ const LandDetailPage = () => {
     const navigate = useNavigate();
 
     const [land, setLand] = useState(null);
-    const [bids, setBids] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showBidModal, setShowBidModal] = useState(false);
     const [showVisitModal, setShowVisitModal] = useState(false);
-
-    const fetchBids = () => {
-        fetch(`${API}/bids/land/${id}`)
-            .then(r => r.json())
-            .then(data => setBids(Array.isArray(data) ? data : []))
-            .catch(() => setBids([]));
-    };
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -283,7 +274,6 @@ const LandDetailPage = () => {
             .then(r => r.json())
             .then(data => { setLand(data); setLoading(false); })
             .catch(() => setLoading(false));
-        fetchBids();
     }, [id]);
 
     if (loading) return <div className="lands-root" style={{ textAlign: 'center', padding: '100px', color: '#999' }}>Loading…</div>;
@@ -294,7 +284,7 @@ const LandDetailPage = () => {
         </div>
     );
 
-    const highestBid = bids.length > 0 ? Math.max(...bids.map(b => b.amount)) : null;
+    const highestBid = null;
 
     return (
         <div style={{ background: '#FAF6F1', minHeight: '100vh', paddingBottom: '80px' }}>
@@ -372,7 +362,7 @@ const LandDetailPage = () => {
                                         opacity: land.open_for_bidding ? 1 : 0.45,
                                         cursor: land.open_for_bidding ? 'pointer' : 'not-allowed',
                                     }}
-                                    onClick={() => land.open_for_bidding && setShowBidModal(true)}
+                                    onClick={() => land.open_for_bidding && navigate(`/bidding/${id}`)}
                                     title={land.open_for_bidding ? '' : 'Bidding is currently closed'}>
                                     Place a Bid
                                 </button>
@@ -398,49 +388,24 @@ const LandDetailPage = () => {
                     </div>
                 </div>
 
-                {/* Current bids */}
-                {bids.length > 0 && (
-                    <div style={S.bidsSection}>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '24px', color: '#1A1A1A' }}>
-                            Current Bids ({bids.length})
-                        </h2>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {bids.map((bid, i) => (
-                                <div key={bid.id} style={{
-                                    background: '#FAFAFA', borderRadius: '12px', padding: '20px 24px',
-                                    borderLeft: `4px solid ${i === 0 ? '#27ae60' : '#ddd'}`
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <div>
-                                            <div style={{ fontWeight: '800', fontSize: '1.2rem', color: '#1A1A1A' }}>
-                                                Rs. {Number(bid.amount).toLocaleString()}
-                                            </div>
-                                            <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '4px' }}>
-                                                by {bid.buyer_name || 'Buyer'} · {bid.created_at ? new Date(bid.created_at).toLocaleDateString() : ''}
-                                            </div>
-                                            {bid.message && (
-                                                <div style={{ fontSize: '0.85rem', color: '#444', marginTop: '8px', fontStyle: 'italic' }}>
-                                                    "{bid.message}"
-                                                </div>
-                                            )}
-                                        </div>
-                                        <span style={{
-                                            display: 'inline-block', padding: '4px 12px', borderRadius: '20px',
-                                            fontSize: '0.75rem', fontWeight: '700',
-                                            background: bid.status === 'Accepted' ? '#eafaf1' : bid.status === 'Rejected' ? '#fdecea' : '#f0f4ff',
-                                            color: bid.status === 'Accepted' ? '#27ae60' : bid.status === 'Rejected' ? '#d32f2f' : '#1565c0',
-                                        }}>
-                                            {i === 0 && bid.status === 'Pending' ? '🏆 Highest' : bid.status}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                {/* Bids CTA — link to dedicated bidding page */}
+                {land.open_for_bidding && (
+                    <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                        <button
+                            onClick={() => navigate(`/bidding/${id}`)}
+                            style={{
+                                background: 'transparent', border: '1.5px solid #1A1A1A',
+                                borderRadius: '10px', padding: '12px 32px',
+                                fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer',
+                                color: '#1A1A1A', fontFamily: "'DM Sans', sans-serif"
+                            }}
+                        >
+                            View All Bids →
+                        </button>
                     </div>
                 )}
             </div>
 
-            {showBidModal && <BidModal land={land} onClose={() => { setShowBidModal(false); fetchBids(); }} />}
             {showVisitModal && <VisitModal land={land} onClose={() => setShowVisitModal(false)} />}
         </div>
     );

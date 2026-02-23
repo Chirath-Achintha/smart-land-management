@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 
 const SELLER_ID = 'sunil_perera';
 
+const API = 'http://127.0.0.1:8000';
+
 function getSeedListings() {
     return [
         { id: 101, name: 'Golden Valley Acres', district: 'Kandy', village: 'Digana', perches: 40, pricePerPerch: 150000, totalPrice: 6000000, type: 'Agricultural', status: 'Available', roadAccess: '15ft Carpet Road', electricity: true, water: true, img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80' },
@@ -17,20 +19,45 @@ const SellerDashboard = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState({ active: 0, sold: 0, pendingBids: 0 });
 
-    // Profile State
-    const [profile, setProfile] = useState({
-        name: 'Sunil Perera',
-        email: user?.email || 'sunil@example.com',
-        phone: '+94 71 987 6543',
-        nic: '821234567V',
-        address: 'No 12, Lake View, Kandy',
-    });
+    // Profile fetched from DB
+    const [profile, setProfile] = useState(null);
+    const [profileLoading, setProfileLoading] = useState(true);
 
     const [isEditing, setIsEditing] = useState(false);
-    const [tempProfile, setTempProfile] = useState({ ...profile });
+    const [tempProfile, setTempProfile] = useState({});
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteVerification, setDeleteVerification] = useState('');
 
+    // Fetch user from DB using JWT
+    useEffect(() => {
+        const token = localStorage.getItem('access_token');
+        if (!token) { setProfileLoading(false); return; }
+
+        fetch(`${API}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+            .then(r => r.json())
+            .then(data => {
+                setProfile({
+                    name: data.full_name || '',
+                    email: data.email || '',
+                    nic: data.nic_number || '',
+                    address: data.address || '',
+                    role: (data.role || '').replace('_', ' '),
+                });
+                setTempProfile({
+                    name: data.full_name || '',
+                    email: data.email || '',
+                    nic: data.nic_number || '',
+                    address: data.address || '',
+                    role: (data.role || '').replace('_', ' '),
+                });
+            })
+            .catch(console.error)
+            .finally(() => setProfileLoading(false));
+    }, []);
+
+    // Load listing stats
     useEffect(() => {
         const raw = localStorage.getItem(`seller_listings_${SELLER_ID}`);
         const listings = raw ? JSON.parse(raw) : getSeedListings();
@@ -81,7 +108,9 @@ const SellerDashboard = () => {
         <div style={S.root}>
             <div style={S.header}>
                 <h1 style={S.title}>Seller Dashboard</h1>
-                <p style={S.subtitle}>Welcome back! Here's an overview of your land portfolio.</p>
+                <p style={S.subtitle}>
+                    {profileLoading ? 'Loading...' : <>Welcome back, <strong>{profile?.name}</strong>! Here's an overview of your land portfolio.</>}
+                </p>
             </div>
 
             {/* Summary Cards */}
@@ -111,7 +140,7 @@ const SellerDashboard = () => {
                         </div>
 
                         <div style={S.profileGrid}>
-                            {Object.keys(profile).map(key => (
+                            {profile && Object.keys(profile).map(key => (
                                 <div key={key} style={S.profileItem}>
                                     <span style={S.label}>{key.replace('nic', 'NIC').toUpperCase()}</span>
                                     {isEditing ? (

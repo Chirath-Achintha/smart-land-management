@@ -1,211 +1,254 @@
 import React, { useState, useEffect } from 'react';
 
-const SELLER_ID = 'sunil_perera';
+const API = 'http://127.0.0.1:8000';
 
-const TABS = ['Active', 'Winning', 'Rejected', 'Closed'];
-
-const TAB_COLORS = {
-    Active: { bg: '#eafaf1', color: '#27ae60', dot: '#2ecc71' },
-    Winning: { bg: '#eaf4fb', color: '#2980b9', dot: '#3498db' },
-    Rejected: { bg: '#fef5e7', color: '#e67e22', dot: '#f39c12' },
-    Closed: { bg: '#f0f0f0', color: '#888', dot: '#bbb' },
+const STATUS_STYLES = {
+    Pending: { bg: '#eaf4fb', color: '#1565c0', border: '#90caf9' },
+    Accepted: { bg: '#eafaf1', color: '#27ae60', border: '#a5d6a7' },
+    Rejected: { bg: '#fdecea', color: '#d32f2f', border: '#ef9a9a' },
 };
 
-function getSeedListings() {
-    return [
-        { id: 101, name: 'Golden Valley Acres', district: 'Kandy', village: 'Digana', status: 'Available', baseBid: 5500000, auctionEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString() },
-        { id: 102, name: 'Ocean View Ridge', district: 'Galle', village: 'Unawatuna', status: 'Reserved', baseBid: 16000000, auctionEnd: new Date(Date.now() + 1000 * 60 * 60 * 5).toISOString() },
-        { id: 103, name: 'Pine Forest Retreat', district: 'Nuwara Eliya', village: 'Nanu Oya', status: 'Sold', baseBid: 45000000, auctionEnd: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
-    ];
-}
-
-function getSeedBids(landId, land) {
-    return [
-        { id: Date.now() - 5000, name: 'Saman Kumara', amount: land.baseBid + 500000, time: '10 mins ago', date: '2024-02-20', bidder: 'Saman Kumara', status: undefined, isUser: false },
-        { id: Date.now() - 10000, name: 'Anura Perera', amount: land.baseBid + 200000, time: '1 hour ago', date: '2024-02-20', bidder: 'Anura Perera', status: undefined, isUser: false },
-    ];
-}
-
 const SellerBidsPage = () => {
-    const [activeTab, setActiveTab] = useState('Active');
-    const [allBids, setAllBids] = useState([]);
-    const [listings, setListings] = useState([]);
+    const [bids, setBids] = useState([]);
+    const [lands, setLands] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [selectedLand, setSelectedLand] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [updating, setUpdating] = useState(null); // bid id being updated
 
-    useEffect(() => {
-        const raw = localStorage.getItem(`seller_listings_${SELLER_ID}`);
-        const myListings = raw ? JSON.parse(raw) : getSeedListings();
+    const token = localStorage.getItem('access_token');
+    const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
-        // Ensure seed bids exist in localStorage for each listing
-        myListings.forEach(l => {
-            const key = `bids_land_${l.id}`;
-            if (!localStorage.getItem(key)) {
-                localStorage.setItem(key, JSON.stringify(getSeedBids(l.id, l)));
-            }
-        });
+    // Fetch all bids on seller's lands from DB
+    const fetchBids = () => {
+        fetch(`${API}/bids/my-listings`, { headers: authHeaders })
+            .then(r => r.json())
+            .then(data => {
+                setBids(Array.isArray(data) ? data : []);
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
+    };
 
-        setListings(myListings);
+    // Fetch seller's own land list for filter dropdown
+    const fetchLands = () => {
+        fetch(`${API}/lands/my`, { headers: authHeaders })
+            .then(r => r.json())
+            .then(data => setLands(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    };
 
-        // Aggregate all bids with land context
-        const aggregated = [];
-        myListings.forEach(l => {
-            const bidsRaw = localStorage.getItem(`bids_land_${l.id}`);
-            const bids = bidsRaw ? JSON.parse(bidsRaw) : [];
-            const auctionEnded = new Date(l.auctionEnd).getTime() < Date.now();
-            const maxAmount = bids.length > 0 ? Math.max(...bids.map(b => b.amount)) : 0;
+    useEffect(() => { fetchBids(); fetchLands(); }, []);
 
-            bids.forEach(b => {
-                let computedStatus;
-                if (l.status === 'Sold') {
-                    computedStatus = b.amount === maxAmount ? 'Winning' : 'Rejected';
-                } else if (auctionEnded) {
-                    computedStatus = b.amount === maxAmount ? 'Winning' : 'Closed';
-                } else {
-                    computedStatus = 'Active';
-                }
-
-                aggregated.push({
-                    ...b,
-                    land: l,
-                    computedStatus,
-                    isHighest: b.amount === maxAmount,
-                });
+    const updateBidStatus = async (bidId, newStatus) => {
+        setUpdating(bidId);
+        try {
+            const res = await fetch(`${API}/bids/${bidId}/status`, {
+                method: 'PUT',
+                headers: authHeaders,
+                body: JSON.stringify({ status: newStatus }),
             });
-        });
+            if (res.ok) fetchBids();
+        } catch { /* ignore */ }
+        setUpdating(null);
+    };
 
-        // Sort by amount descending
-        aggregated.sort((a, b) => b.amount - a.amount);
-        setAllBids(aggregated);
-    }, []);
-
-    const filtered = allBids.filter(b => {
-        const matchTab = b.computedStatus === activeTab;
-        const matchLand = selectedLand === 'all' || String(b.land.id) === String(selectedLand);
-        return matchTab && matchLand;
+    // Filter bids
+    const filtered = bids.filter(b => {
+        const matchLand = selectedLand === 'all' || String(b.land_id) === String(selectedLand);
+        const matchStatus = statusFilter === 'All' || b.status === statusFilter;
+        return matchLand && matchStatus;
     });
 
-    const countFor = (tab) => allBids.filter(b => b.computedStatus === tab).length;
+    const counts = {
+        All: bids.length,
+        Pending: bids.filter(b => b.status === 'Pending').length,
+        Accepted: bids.filter(b => b.status === 'Accepted').length,
+        Rejected: bids.filter(b => b.status === 'Rejected').length,
+    };
+
+    // Find land name from lands array
+    const getLandName = (land_id) => {
+        const l = lands.find(l => l.id === land_id);
+        return l ? `${l.name} (${l.village}, ${l.district})` : `Land #${land_id}`;
+    };
+
+    // Group bids by land_id for highest bid calculation
+    const highestByLand = {};
+    bids.forEach(b => {
+        if (!highestByLand[b.land_id] || b.amount > highestByLand[b.land_id]) {
+            highestByLand[b.land_id] = b.amount;
+        }
+    });
 
     return (
         <div style={S.root}>
+            {/* Header */}
             <div style={S.header}>
                 <div>
                     <h1 style={S.title}>Bids Overview</h1>
                     <p style={S.subtitle}>Track and manage all bid activities on your listings.</p>
                 </div>
-                <select
-                    style={S.filterSelect}
-                    value={selectedLand}
-                    onChange={e => setSelectedLand(e.target.value)}
-                >
-                    <option value="all">All Listings</option>
-                    {listings.map(l => (
-                        <option key={l.id} value={l.id}>{l.name}</option>
-                    ))}
-                </select>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <select style={S.select} value={selectedLand} onChange={e => setSelectedLand(e.target.value)}>
+                        <option value="all">All Listings</option>
+                        {lands.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                </div>
             </div>
 
-            {/* Tab Bar */}
+            {/* Status Filter Tabs */}
             <div style={S.tabBar}>
-                {TABS.map(tab => {
-                    const isActive = activeTab === tab;
-                    const tc = TAB_COLORS[tab];
-                    const count = countFor(tab);
-                    return (
-                        <button
-                            key={tab}
-                            style={{
-                                ...S.tabBtn,
-                                background: isActive ? tc.bg : 'transparent',
-                                color: isActive ? tc.color : '#888',
-                                borderBottom: isActive ? `3px solid ${tc.dot}` : '3px solid transparent',
-                                fontWeight: isActive ? '800' : '600',
-                            }}
-                            onClick={() => setActiveTab(tab)}
-                        >
-                            <span style={{ ...S.tabDot, background: tc.dot }} />
-                            {tab}
-                            <span style={{
-                                ...S.tabCount,
-                                background: isActive ? tc.dot : '#e5e0da',
-                                color: isActive ? '#fff' : '#888',
-                            }}>
-                                {count}
-                            </span>
-                        </button>
-                    );
-                })}
+                {['All', 'Pending', 'Accepted', 'Rejected'].map(tab => (
+                    <button key={tab} style={{
+                        ...S.tabBtn,
+                        background: statusFilter === tab ? '#1A1A1A' : '#fff',
+                        color: statusFilter === tab ? '#fff' : '#666',
+                        border: statusFilter === tab ? '1px solid #1A1A1A' : '1px solid #e5e0da',
+                    }} onClick={() => setStatusFilter(tab)}>
+                        {tab}
+                        <span style={{
+                            ...S.tabCount,
+                            background: statusFilter === tab ? 'rgba(255,255,255,0.2)' : '#f5f0ea',
+                            color: statusFilter === tab ? '#fff' : '#555',
+                        }}>
+                            {counts[tab]}
+                        </span>
+                    </button>
+                ))}
             </div>
 
-            {/* Bids List */}
-            <div style={S.bidsContainer}>
-                {filtered.length === 0 ? (
-                    <div style={S.empty}>
-                        <p>No {activeTab.toLowerCase()} bids found for this selection.</p>
-                    </div>
+            {/* Bids Table */}
+            <div style={S.tableWrap}>
+                {loading ? (
+                    <div style={S.empty}>Loading bids…</div>
+                ) : filtered.length === 0 ? (
+                    <div style={S.empty}>No {statusFilter !== 'All' ? statusFilter.toLowerCase() : ''} bids found.</div>
                 ) : (
-                    <div style={S.bidsList}>
-                        {/* Column Header */}
+                    <>
+                        {/* Column headers */}
                         <div style={S.colHeader}>
-                            <span style={{ flex: '2' }}>Bidder</span>
-                            <span style={{ flex: '2' }}>Property</span>
-                            <span style={{ flex: '1', textAlign: 'right' }}>Bid Amount</span>
-                            <span style={{ flex: '1', textAlign: 'center' }}>Time</span>
-                            <span style={{ flex: '1', textAlign: 'center' }}>Status</span>
+                            <span style={{ flex: 2 }}>Bidder</span>
+                            <span style={{ flex: 2 }}>Property</span>
+                            <span style={{ flex: 1 }}>Message</span>
+                            <span style={{ flex: 1, textAlign: 'right' }}>Bid Amount</span>
+                            <span style={{ flex: 1, textAlign: 'center' }}>Date</span>
+                            <span style={{ flex: 1, textAlign: 'center' }}>Status</span>
+                            <span style={{ flex: 1.5, textAlign: 'center' }}>Actions</span>
                         </div>
-                        {filtered.map((b, i) => {
-                            const tc = TAB_COLORS[b.computedStatus];
+
+                        {filtered.map((bid, i) => {
+                            const ss = STATUS_STYLES[bid.status] || STATUS_STYLES.Pending;
+                            const isHighest = highestByLand[bid.land_id] === bid.amount;
                             return (
-                                <div
-                                    key={`${b.id}-${i}`}
-                                    style={{
-                                        ...S.bidRow,
-                                        background: i % 2 === 0 ? '#fff' : '#fdfaf7',
-                                        borderLeft: b.isHighest ? `4px solid ${tc.dot}` : '4px solid transparent',
-                                    }}
-                                >
-                                    <div style={{ ...S.bidCell, flex: '2' }}>
-                                        <div style={S.avatar}>{(b.name || b.bidder || 'U').charAt(0).toUpperCase()}</div>
+                                <div key={bid.id} style={{
+                                    ...S.bidRow,
+                                    background: i % 2 === 0 ? '#fff' : '#fdfaf7',
+                                    borderLeft: isHighest ? '4px solid #27ae60' : '4px solid transparent',
+                                }}>
+                                    {/* Bidder */}
+                                    <div style={{ ...S.cell, flex: 2 }}>
+                                        <div style={S.avatar}>
+                                            {(bid.buyer_name || 'B').charAt(0).toUpperCase()}
+                                        </div>
                                         <div>
-                                            <div style={{ fontWeight: '700', color: '#1A1A1A', fontSize: '0.9rem' }}>{b.name || b.bidder}</div>
-                                            {b.isHighest && (
-                                                <div style={{ fontSize: '0.7rem', color: tc.color, fontWeight: '700' }}>
-                                                    ★ Highest Bidder
+                                            <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1A1A1A' }}>
+                                                {bid.buyer_name || 'Buyer'}
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: '#aaa' }}>
+                                                {bid.buyer_email || ''}
+                                            </div>
+                                            {isHighest && (
+                                                <div style={{ fontSize: '0.7rem', color: '#27ae60', fontWeight: '700' }}>
+                                                    ★ Highest Bid
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                    <div style={{ ...S.bidCell, flex: '2' }}>
-                                        <div>
-                                            <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#333' }}>{b.land.name}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#999' }}>{b.land.village}, {b.land.district}</div>
+
+                                    {/* Property */}
+                                    <div style={{ ...S.cell, flex: 2 }}>
+                                        <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#333' }}>
+                                            {getLandName(bid.land_id)}
                                         </div>
                                     </div>
-                                    <div style={{ ...S.bidCell, flex: '1', justifyContent: 'flex-end' }}>
+
+                                    {/* Message */}
+                                    <div style={{ ...S.cell, flex: 1 }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#777', fontStyle: 'italic' }}>
+                                            {bid.message ? `"${bid.message.substring(0, 40)}${bid.message.length > 40 ? '…' : ''}"` : '—'}
+                                        </span>
+                                    </div>
+
+                                    {/* Amount */}
+                                    <div style={{ ...S.cell, flex: 1, justifyContent: 'flex-end' }}>
                                         <span style={{ fontWeight: '800', fontSize: '1rem', color: '#1A1A1A' }}>
-                                            Rs. {Number(b.amount).toLocaleString()}
+                                            Rs. {Number(bid.amount).toLocaleString()}
                                         </span>
                                     </div>
-                                    <div style={{ ...S.bidCell, flex: '1', justifyContent: 'center' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#aaa' }}>{b.time || b.date}</span>
+
+                                    {/* Date */}
+                                    <div style={{ ...S.cell, flex: 1, justifyContent: 'center' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                                            {bid.created_at ? new Date(bid.created_at).toLocaleDateString() : '—'}
+                                        </span>
                                     </div>
-                                    <div style={{ ...S.bidCell, flex: '1', justifyContent: 'center' }}>
+
+                                    {/* Status badge */}
+                                    <div style={{ ...S.cell, flex: 1, justifyContent: 'center' }}>
                                         <span style={{
-                                            padding: '4px 12px',
-                                            borderRadius: '20px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: '700',
-                                            background: tc.bg,
-                                            color: tc.color,
-                                            border: `1px solid ${tc.dot}`,
+                                            padding: '4px 12px', borderRadius: '20px',
+                                            fontSize: '0.75rem', fontWeight: '700',
+                                            background: ss.bg, color: ss.color,
+                                            border: `1px solid ${ss.border}`,
                                         }}>
-                                            {b.computedStatus}
+                                            {bid.status}
                                         </span>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div style={{ ...S.cell, flex: 1.5, justifyContent: 'center', gap: '8px' }}>
+                                        {bid.status === 'Pending' && (
+                                            <>
+                                                <button
+                                                    style={S.acceptBtn}
+                                                    disabled={updating === bid.id}
+                                                    onClick={() => updateBidStatus(bid.id, 'Accepted')}
+                                                >
+                                                    {updating === bid.id ? '…' : '✓ Accept'}
+                                                </button>
+                                                <button
+                                                    style={S.rejectBtn}
+                                                    disabled={updating === bid.id}
+                                                    onClick={() => updateBidStatus(bid.id, 'Rejected')}
+                                                >
+                                                    ✕ Reject
+                                                </button>
+                                            </>
+                                        )}
+                                        {bid.status === 'Accepted' && (
+                                            <button
+                                                style={S.rejectBtn}
+                                                disabled={updating === bid.id}
+                                                onClick={() => updateBidStatus(bid.id, 'Rejected')}
+                                            >
+                                                ✕ Reject
+                                            </button>
+                                        )}
+                                        {bid.status === 'Rejected' && (
+                                            <button
+                                                style={S.acceptBtn}
+                                                disabled={updating === bid.id}
+                                                onClick={() => updateBidStatus(bid.id, 'Accepted')}
+                                            >
+                                                ✓ Accept
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             );
                         })}
-                    </div>
+                    </>
                 )}
             </div>
         </div>
@@ -214,21 +257,21 @@ const SellerBidsPage = () => {
 
 const S = {
     root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' },
+    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' },
     title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
     subtitle: { color: '#777', fontSize: '0.95rem' },
-    filterSelect: { padding: '10px 16px', borderRadius: '8px', border: '1px solid #e5e0da', background: '#fff', fontFamily: "'DM Sans', sans-serif", fontSize: '0.9rem', cursor: 'pointer', outline: 'none' },
-    tabBar: { display: 'flex', gap: '4px', marginBottom: '24px', background: '#fff', borderRadius: '12px', padding: '8px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', flexWrap: 'wrap' },
-    tabBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', transition: 'all 0.2s', fontFamily: "'DM Sans', sans-serif" },
-    tabDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
-    tabCount: { padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700', transition: 'all 0.2s' },
-    bidsContainer: { background: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'hidden' },
-    empty: { textAlign: 'center', padding: '80px 20px', color: '#bbb' },
-    bidsList: {},
+    select: { padding: '10px 16px', borderRadius: '8px', border: '1px solid #e5e0da', background: '#fff', fontFamily: "'DM Sans', sans-serif", fontSize: '0.9rem', cursor: 'pointer', outline: 'none' },
+    tabBar: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
+    tabBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 18px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '700', transition: 'all 0.2s', fontFamily: "'DM Sans', sans-serif" },
+    tabCount: { padding: '2px 8px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: '700' },
+    tableWrap: { background: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'auto' },
+    empty: { textAlign: 'center', padding: '80px 20px', color: '#bbb', fontSize: '1rem' },
     colHeader: { display: 'flex', padding: '14px 24px', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#aaa', borderBottom: '2px solid #f5f0ea', gap: '12px' },
-    bidRow: { display: 'flex', alignItems: 'center', padding: '18px 24px', gap: '12px', borderBottom: '1px solid #f5f0ea', transition: 'background 0.15s' },
-    bidCell: { display: 'flex', alignItems: 'center', gap: '12px' },
+    bidRow: { display: 'flex', alignItems: 'center', padding: '18px 24px', gap: '12px', borderBottom: '1px solid #f5f0ea', transition: 'background 0.15s', borderLeft: '4px solid transparent' },
+    cell: { display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' },
     avatar: { width: '38px', height: '38px', borderRadius: '50%', background: '#1A1A1A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1rem', flexShrink: 0 },
+    acceptBtn: { background: '#eafaf1', color: '#27ae60', border: '1px solid #a5d6a7', borderRadius: '6px', padding: '6px 12px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' },
+    rejectBtn: { background: '#fdecea', color: '#d32f2f', border: '1px solid #ef9a9a', borderRadius: '6px', padding: '6px 12px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' },
 };
 
 export default SellerBidsPage;

@@ -1,11 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const ServiceManagement = () => {
     // Bookings Data
-    const [bookings, setBookings] = useState([
-        { id: 'BK001', customer: 'Alice Wong', service: 'Construction', date: '2026-03-10', team: 'BuildRight Ltd.', status: 'Scheduled' },
-        { id: 'BK002', customer: 'Bob Miller', service: 'Land Development', date: '2026-03-12', team: 'Terra-Form Co.', status: 'In Progress' },
-    ]);
+    const [bookings, setBookings] = useState([]);
+
+    useEffect(() => {
+        const storedBookings = localStorage.getItem('all_service_bookings');
+        if (storedBookings) {
+            setBookings(JSON.parse(storedBookings));
+        } else {
+            const defaultBookings = [
+                { id: 'BK001', buyerName: 'Alice Wong', service: 'Construction', land: 'Ocean View Ridge', date: '2026-03-10', provider: 'BuildRight Ltd.', status: 'Scheduled' },
+                { id: 'BK002', buyerName: 'Bob Miller', service: 'Land Development', land: 'N/A', date: '2026-03-12', provider: 'Terra-Form Co.', status: 'In Progress' },
+            ];
+            setBookings(defaultBookings);
+            localStorage.setItem('all_service_bookings', JSON.stringify(defaultBookings));
+        }
+    }, []);
 
     // Service Crews (Teams) Data
     const [crews, setCrews] = useState([
@@ -54,16 +65,27 @@ const ServiceManagement = () => {
     });
 
     const handleUpdateBooking = (id, field, value) => {
-        setBookings(bookings.map(book =>
-            book.id === id ? { ...book, [field]: value } : book
-        ));
+        const updated = bookings.map(book => {
+            if (book.id === id) {
+                const newBook = { ...book, [field]: value };
+                if (field === 'provider' && value !== 'Pending Assignment' && value !== '') {
+                    newBook.status = 'Scheduled'; // or In Progress
+                }
+                return newBook;
+            }
+            return book;
+        });
+        setBookings(updated);
+        localStorage.setItem('all_service_bookings', JSON.stringify(updated));
     };
 
     const handleCancelBooking = (id) => {
         if (window.confirm('Are you sure you want to cancel this booking?')) {
-            setBookings(bookings.map(book =>
+            const updated = bookings.map(book =>
                 book.id === id ? { ...book, status: 'Cancelled' } : book
-            ));
+            );
+            setBookings(updated);
+            localStorage.setItem('all_service_bookings', JSON.stringify(updated));
         }
     };
 
@@ -231,15 +253,15 @@ const ServiceManagement = () => {
                     </div>
                 </div>
 
-                {/* Right Side: Recent Bookings */}
+                {/* Right Side: Service Requests */}
                 <div style={styles.card}>
-                    <h3 style={styles.cardTitle}>Recent Bookings</h3>
+                    <h3 style={styles.cardTitle}>Service Requests</h3>
                     <div style={styles.tableWrapper}>
                         <table style={styles.table}>
                             <thead>
                                 <tr style={styles.thRow}>
-                                    <th style={styles.th}>Booking</th>
-                                    <th style={styles.th}>Service & Team</th>
+                                    <th style={styles.th}>Request Info</th>
+                                    <th style={styles.th}>Assign Team</th>
                                     <th style={styles.th}>Date</th>
                                     <th style={styles.th}>Status</th>
                                     <th style={styles.th}>Actions</th>
@@ -250,21 +272,19 @@ const ServiceManagement = () => {
                                     <tr key={book.id} style={styles.tr}>
                                         <td style={styles.td}>
                                             <div style={{ fontWeight: '700' }}>{book.id}</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#666' }}>{book.customer}</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#666' }}>{book.buyerName}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#999' }}>{book.land || 'N/A'}</div>
                                         </td>
                                         <td style={styles.td}>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '8px' }}>
+                                                {book.service}
+                                            </div>
                                             <select
-                                                style={styles.inlineSelect}
-                                                value={book.service}
-                                                onChange={(e) => handleUpdateBooking(book.id, 'service', e.target.value)}
+                                                style={{ ...styles.inlineSelect, borderColor: (!book.provider || book.provider === 'Pending Assignment') ? '#ef4444' : '#eee', outline: 'none' }}
+                                                value={(!book.provider || book.provider === 'Pending Assignment') ? "" : book.provider}
+                                                onChange={(e) => handleUpdateBooking(book.id, 'provider', e.target.value)}
                                             >
-                                                {serviceTypes.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                            <select
-                                                style={styles.inlineSelect}
-                                                value={book.team}
-                                                onChange={(e) => handleUpdateBooking(book.id, 'team', e.target.value)}
-                                            >
+                                                <option value="" disabled>Select Team To Assign</option>
                                                 {crews.map(t => <option key={t.companyName} value={t.companyName}>{t.companyName}</option>)}
                                             </select>
                                         </td>
@@ -279,10 +299,10 @@ const ServiceManagement = () => {
                                         <td style={styles.td}>
                                             <span style={{
                                                 ...styles.status,
-                                                backgroundColor: book.status === 'Cancelled' ? '#fde8e8' : '#e1effe',
-                                                color: book.status === 'Cancelled' ? '#9b1c1c' : '#1e429f'
+                                                backgroundColor: book.status === 'Cancelled' ? '#fde8e8' : (!book.provider || book.provider === 'Pending Assignment') ? '#fef3c7' : '#e1effe',
+                                                color: book.status === 'Cancelled' ? '#9b1c1c' : (!book.provider || book.provider === 'Pending Assignment') ? '#92400e' : '#1e429f'
                                             }}>
-                                                {book.status}
+                                                {(!book.provider || book.provider === 'Pending Assignment') && book.status !== 'Cancelled' ? 'Pending Assignment' : book.status}
                                             </span>
                                         </td>
                                         <td style={styles.td}>

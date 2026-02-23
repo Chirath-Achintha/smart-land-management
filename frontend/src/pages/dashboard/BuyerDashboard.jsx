@@ -1,32 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+
+const API = 'http://127.0.0.1:8000';
 
 const BuyerDashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
-    // State for Profile Details
-    const [profile, setProfile] = useState({
-        name: 'John Doe',
-        email: user?.email || 'buyer@example.com',
-        phone: '+94 77 123 4567',
-        nic: '951234567V',
-        address: 'No 45, Flower Road, Colombo 07',
-    });
+    // Profile fetched from DB
+    const [profile, setProfile] = useState(null);
+    const [profileLoading, setProfileLoading] = useState(true);
 
     // State for UI controls
     const [isEditing, setIsEditing] = useState(false);
-    const [tempProfile, setTempProfile] = useState({ ...profile });
+    const [tempProfile, setTempProfile] = useState({});
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteVerification, setDeleteVerification] = useState('');
 
-    // Mock Bidding Details
-    const myBids = [
-        { id: 'BD-101', property: 'Beachfront Land in Galle', amount: '$45,000', status: 'Highest Bid', date: '2024-02-18' },
-        { id: 'BD-105', property: 'Cinnamon Hill, Kandy', amount: '$32,500', status: 'Outbid', date: '2024-02-10' },
-        { id: 'BD-112', property: 'Mount Breeze, Matara', amount: '$28,000', status: 'Winner', date: '2024-01-25' }
-    ];
+    // Fetch user from database using JWT token
+    useEffect(() => {
+        const token = localStorage.getItem('access_token');
+        if (!token) { setProfileLoading(false); return; }
+
+        fetch(`${API}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+            .then(r => r.json())
+            .then(data => {
+                const p = {
+                    name: data.full_name || '',
+                    email: data.email || '',
+                    nic: data.nic_number || '',
+                    address: data.address || '',
+                    role: (data.role || '').replace('_', ' '),
+                };
+                setProfile(p);
+                setTempProfile(p);
+            })
+            .catch(console.error)
+            .finally(() => setProfileLoading(false));
+    }, []);
+
+    // Fetch available lands from DB
+    const [availableLands, setAvailableLands] = useState([]);
+    useEffect(() => {
+        fetch('http://127.0.0.1:8000/lands/')
+            .then(r => r.json())
+            .then(data => setAvailableLands(Array.isArray(data) ? data : []))
+            .catch(() => setAvailableLands([]));
+    }, []);
+
+    // Fetch the buyer's bids from DB
+    const [myBids, setMyBids] = useState([]);
+    useEffect(() => {
+        const tok = localStorage.getItem('access_token');
+        if (!tok) return;
+        fetch('http://127.0.0.1:8000/bids/my-bids', {
+            headers: { 'Authorization': `Bearer ${tok}` }
+        })
+            .then(r => r.json())
+            .then(data => setMyBids(Array.isArray(data) ? data : []))
+            .catch(() => setMyBids([]));
+    }, []);
 
     // Mock Site Visit Schedules
     const myVisits = [
@@ -59,7 +95,9 @@ const BuyerDashboard = () => {
         <div style={S.container}>
             <header style={S.header}>
                 <h1 style={S.title}>Buyer Profile</h1>
-                <p style={S.subtitle}>Overview of your property activities and profile</p>
+                <p style={S.subtitle}>
+                    {profileLoading ? 'Loading...' : <>Welcome, <strong>{profile?.name}</strong>! Overview of your property activities and profile.</>}
+                </p>
             </header>
 
             <div style={S.grid}>
@@ -80,7 +118,7 @@ const BuyerDashboard = () => {
                     </div>
 
                     <div style={S.profileInfo}>
-                        {Object.keys(profile).map(key => (
+                        {profile && Object.keys(profile).map(key => (
                             <div key={key} style={S.profileItem}>
                                 <span style={S.label}>{key.replace('nic', 'NIC').toUpperCase()}</span>
                                 {isEditing ? (
@@ -101,22 +139,69 @@ const BuyerDashboard = () => {
                     </div>
                 </div>
 
-                {/* Bidding Summary */}
+                {/* Available Lands from DB */}
                 <div style={S.card}>
-                    <div style={S.cardTitle}>My Biddings</div>
+                    <div style={S.cardHeader}>
+                        <div style={S.cardTitle}>
+                            Available Land Listings
+                            <span style={{ marginLeft: '10px', background: '#1A1A1A', color: '#fff', fontSize: '0.7rem', fontWeight: '700', borderRadius: '20px', padding: '2px 10px' }}>
+                                {availableLands.length} Available
+                            </span>
+                        </div>
+                        <button style={S.editBtn} onClick={() => navigate('/lands')}>Browse All</button>
+                    </div>
                     <div style={S.list}>
-                        {myBids.map(bid => (
-                            <div key={bid.id} style={S.listItem}>
+                        {availableLands.length === 0 ? (
+                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>No listings available yet.</p>
+                        ) : availableLands.slice(0, 3).map(land => (
+                            <div key={land.id} style={S.listItem}>
+                                {land.image_url && (
+                                    <img src={land.image_url.split(',')[0]} alt={land.name}
+                                        style={{ width: '52px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                                )}
                                 <div style={S.listMain}>
-                                    <h4 style={S.itemTitle}>{bid.property}</h4>
-                                    <span style={S.itemSub}>{bid.id} • {bid.date}</span>
+                                    <h4 style={S.itemTitle}>{land.name}</h4>
+                                    <span style={S.itemSub}>{land.village}, {land.district} • {land.perches} perches</span>
                                 </div>
                                 <div style={S.listAction}>
-                                    <span style={S.amount}>{bid.amount}</span>
+                                    <span style={S.amount}>Rs. {(land.total_price / 1000000).toFixed(1)}M</span>
+                                    <span style={{ ...S.badge, backgroundColor: '#E8F5E9', color: '#4CAF50' }}>{land.land_type}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Bidding Summary */}
+                <div style={S.card}>
+                    <div style={S.cardHeader}>
+                        <div style={S.cardTitle}>
+                            My Biddings
+                            <span style={{ marginLeft: '10px', background: '#1A1A1A', color: '#fff', fontSize: '0.7rem', fontWeight: '700', borderRadius: '20px', padding: '2px 10px' }}>
+                                {myBids.length}
+                            </span>
+                        </div>
+                    </div>
+                    <div style={S.list}>
+                        {myBids.length === 0 ? (
+                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>
+                                You haven't placed any bids yet. <a href="/lands" style={{ color: '#1A1A1A', fontWeight: '700' }}>Browse listings →</a>
+                            </p>
+                        ) : myBids.map(bid => (
+                            <div key={bid.id} style={S.listItem}>
+                                <div style={S.listMain}>
+                                    <h4 style={S.itemTitle}>Land #{bid.land_id}</h4>
+                                    <span style={S.itemSub}>
+                                        Bid #{bid.id} · {bid.created_at ? new Date(bid.created_at).toLocaleDateString() : ''}
+                                    </span>
+                                    {bid.message && <span style={{ fontSize: '0.78rem', color: '#888', fontStyle: 'italic' }}>"{bid.message}"</span>}
+                                </div>
+                                <div style={S.listAction}>
+                                    <span style={S.amount}>Rs. {Number(bid.amount).toLocaleString()}</span>
                                     <span style={{
                                         ...S.badge,
-                                        backgroundColor: bid.status === 'Winner' ? '#E8F5E9' : bid.status === 'Outbid' ? '#FFEBEE' : '#E3F2FD',
-                                        color: bid.status === 'Winner' ? '#4CAF50' : bid.status === 'Outbid' ? '#F44336' : '#2196F3'
+                                        backgroundColor: bid.status === 'Accepted' ? '#E8F5E9' : bid.status === 'Rejected' ? '#FFEBEE' : '#E3F2FD',
+                                        color: bid.status === 'Accepted' ? '#4CAF50' : bid.status === 'Rejected' ? '#F44336' : '#1565c0'
                                     }}>
                                         {bid.status}
                                     </span>

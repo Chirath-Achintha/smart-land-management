@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const SELLER_ID = 'sunil_perera';
+const API = 'http://127.0.0.1:8000';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const SellerAvailabilityPage = () => {
@@ -9,34 +9,53 @@ const SellerAvailabilityPage = () => {
     const [slots, setSlots] = useState([]);
     const [slotDay, setSlotDay] = useState('Monday');
     const [slotTime, setSlotTime] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [error, setError] = useState('');
 
-    // Load all listings once
+    const token = localStorage.getItem('access_token');
+    const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
+    // Load seller's listings from DB
     useEffect(() => {
-        const raw = localStorage.getItem(`seller_listings_${SELLER_ID}`);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            setListings(parsed);
-            if (parsed.length > 0) {
-                setSelectedId(String(parsed[0].id));
-                setSlots(parsed[0].freeSlots || []);
-            }
-        }
+        fetch(`${API}/lands/my`, { headers: authHeaders })
+            .then(r => r.json())
+            .then(data => {
+                const lands = Array.isArray(data) ? data : [];
+                setListings(lands);
+                if (lands.length > 0) {
+                    setSelectedId(String(lands[0].id));
+                }
+                setLoading(false);
+            })
+            .catch(() => { setListings([]); setLoading(false); });
     }, []);
 
-    // When selected listing changes, load its slots
+    // Load slots for selected land from DB
+    useEffect(() => {
+        if (!selectedId) return;
+        fetch(`${API}/availability/land/${selectedId}`)
+            .then(r => r.json())
+            .then(data => setSlots(Array.isArray(data) ? data : []))
+            .catch(() => setSlots([]));
+        setSaved(false);
+    }, [selectedId]);
+
     const handleSelectListing = (id) => {
         setSelectedId(id);
-        const found = listings.find(l => String(l.id) === id);
-        setSlots(found?.freeSlots || []);
-        setSaved(false);
+        setError('');
     };
 
     const addSlot = () => {
-        if (!slotTime.trim()) return;
-        setSlots(prev => [...prev, { day: slotDay, time: slotTime.trim() }]);
+        if (!slotTime.trim()) { setError('Please enter a time range.'); return; }
+        // Prevent duplicate
+        const dup = slots.find(s => s.day === slotDay && s.time_slot === slotTime.trim());
+        if (dup) { setError('This slot already exists.'); return; }
+        setSlots(prev => [...prev, { day: slotDay, time_slot: slotTime.trim() }]);
         setSlotTime('');
         setSaved(false);
+        setError('');
     };
 
     const removeSlot = (idx) => {
@@ -44,13 +63,24 @@ const SellerAvailabilityPage = () => {
         setSaved(false);
     };
 
-    const saveSlots = () => {
-        const updated = listings.map(l =>
-            String(l.id) === selectedId ? { ...l, freeSlots: slots } : l
-        );
-        setListings(updated);
-        localStorage.setItem(`seller_listings_${SELLER_ID}`, JSON.stringify(updated));
-        setSaved(true);
+    const saveSlots = async () => {
+        setSaving(true); setSaved(false); setError('');
+        try {
+            const res = await fetch(`${API}/availability/land/${selectedId}`, {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify(slots),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                setError(err.detail || 'Failed to save.');
+            } else {
+                const updated = await res.json();
+                setSlots(Array.isArray(updated) ? updated : slots);
+                setSaved(true);
+            }
+        } catch { setError('Server error. Please try again.'); }
+        setSaving(false);
     };
 
     const selectedListing = listings.find(l => String(l.id) === selectedId);
@@ -62,11 +92,13 @@ const SellerAvailabilityPage = () => {
                 <p style={S.subtitle}>Set the days and times when buyers can visit your properties.</p>
             </div>
 
-            {listings.length === 0 ? (
-                <div style={S.empty}>No listings found. Add a listing first.</div>
+            {loading ? (
+                <div style={S.empty}>Loading listings…</div>
+            ) : listings.length === 0 ? (
+                <div style={S.empty}>No listings found. Add a listing from <strong>My Listings</strong> first.</div>
             ) : (
                 <div style={S.card}>
-                    {/* Listing Selector */}
+                    {/* Property Selector */}
                     <div style={S.selectorRow}>
                         <label style={S.sectionLabel}>Select Property</label>
                         <select value={selectedId} onChange={e => handleSelectListing(e.target.value)} style={S.select}>
@@ -83,8 +115,13 @@ const SellerAvailabilityPage = () => {
                     <div style={S.addSection}>
                         <div style={S.sectionLabel}>Add Availability Slot</div>
                         <p style={S.hint}>Choose a day and enter a time range (e.g. 09:00 AM – 12:00 PM)</p>
+                        {error && <div style={S.errMsg}>{error}</div>}
                         <div style={S.slotInputRow}>
-                            <select value={slotDay} onChange={e => setSlotDay(e.target.value)} style={{ ...S.input, flex: '0 0 160px' }}>
+                            <select
+                                value={slotDay}
+                                onChange={e => setSlotDay(e.target.value)}
+                                style={{ ...S.input, flex: '0 0 160px' }}
+                            >
                                 {DAYS.map(d => <option key={d}>{d}</option>)}
                             </select>
                             <input
@@ -105,15 +142,15 @@ const SellerAvailabilityPage = () => {
                             <div style={S.sectionLabel}>Scheduled Slots ({slots.length})</div>
                             <div style={S.slotGrid}>
                                 {DAYS.map(day => {
-                                    const daySlots = slots.map((s, i) => ({ ...s, idx: i })).filter(s => s.day === day);
+                                    const daySlots = slots.map((s, i) => ({ ...s, _idx: i })).filter(s => s.day === day);
                                     if (daySlots.length === 0) return null;
                                     return (
                                         <div key={day} style={S.dayGroup}>
                                             <div style={S.dayLabel}>{day}</div>
                                             {daySlots.map(slot => (
-                                                <div key={slot.idx} style={S.slotChip}>
-                                                    <span style={S.slotTime}>{slot.time}</span>
-                                                    <button type="button" style={S.removeBtn} onClick={() => removeSlot(slot.idx)}>&times;</button>
+                                                <div key={slot._idx} style={S.slotChip}>
+                                                    <span style={S.slotTime}>{slot.time_slot}</span>
+                                                    <button type="button" style={S.removeBtn} onClick={() => removeSlot(slot._idx)}>×</button>
                                                 </div>
                                             ))}
                                         </div>
@@ -125,11 +162,11 @@ const SellerAvailabilityPage = () => {
                         <p style={S.noSlots}>No availability slots added yet for this property.</p>
                     )}
 
-                    {/* Save Button */}
+                    {/* Footer */}
                     <div style={S.footer}>
-                        {saved && <span style={S.savedMsg}>Availability saved.</span>}
-                        <button className="btn-dark" style={S.saveBtn} onClick={saveSlots}>
-                            Save Availability
+                        {saved && <span style={S.savedMsg}>✓ Saved to database!</span>}
+                        <button className="btn-dark" style={S.saveBtn} onClick={saveSlots} disabled={saving}>
+                            {saving ? 'Saving…' : 'Save Availability'}
                         </button>
                     </div>
                 </div>
@@ -152,6 +189,7 @@ const S = {
     divider: { border: 'none', borderTop: '1px solid #f0ebe4', margin: '28px 0' },
     addSection: { marginBottom: '28px' },
     hint: { fontSize: '0.82rem', color: '#aaa', marginBottom: '12px', marginTop: '4px' },
+    errMsg: { background: '#fdecea', color: '#d32f2f', padding: '10px 14px', borderRadius: '8px', fontSize: '0.84rem', marginBottom: '12px' },
     slotInputRow: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' },
     input: { padding: '11px 14px', border: '1px solid #e5e0da', borderRadius: '8px', fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' },
     addBtn: { padding: '11px 22px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', flexShrink: 0 },
@@ -161,10 +199,10 @@ const S = {
     dayLabel: { width: '96px', fontSize: '0.82rem', fontWeight: '700', color: '#555', flexShrink: 0 },
     slotChip: { display: 'flex', alignItems: 'center', gap: '8px', background: '#f5f0ea', borderRadius: '8px', padding: '7px 12px', fontSize: '0.85rem' },
     slotTime: { color: '#333', fontWeight: '600' },
-    removeBtn: { background: 'none', border: 'none', color: '#bbb', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, padding: 0, fontWeight: '700', display: 'flex', alignItems: 'center' },
+    removeBtn: { background: 'none', border: 'none', color: '#bbb', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1, padding: 0, fontWeight: '700' },
     noSlots: { color: '#bbb', fontSize: '0.85rem', fontStyle: 'italic', marginBottom: '28px' },
     footer: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px', borderTop: '1px solid #f0ebe4', paddingTop: '24px' },
-    savedMsg: { fontSize: '0.85rem', color: '#2ecc71', fontWeight: '700' },
+    savedMsg: { fontSize: '0.85rem', color: '#27ae60', fontWeight: '700' },
     saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700', fontSize: '0.95rem' },
 };
 

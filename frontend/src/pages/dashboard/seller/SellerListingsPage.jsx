@@ -11,7 +11,7 @@ const STATUS_COLORS = {
 const EMPTY_FORM = {
     id: null, name: '', district: '', village: '', perches: '', pricePerPerch: '',
     type: 'Residential', status: 'Available', roadAccess: '',
-    electricity: false, water: false, img: '',
+    electricity: false, water: false, images: [],
     openForBidding: false, startingBid: '', biddingStart: '', biddingEnd: '',
 };
 
@@ -55,21 +55,27 @@ const SellerListingsPage = () => {
         setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
     };
 
-    const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => setForm(f => ({ ...f, img: ev.target.result }));
-        reader.readAsAsDataURL(file); // Fixed: readAsDataURL instead of readAsAsDataURL
+    const handleImageFiles = (e) => {
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
+
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                setForm(f => ({
+                    ...f,
+                    images: [...(f.images || []), ev.target.result]
+                }));
+            };
+            reader.readAsDataURL(file);
+        });
     };
 
-    // Wait, the line above was a typo in my thought but I'll fix it in the actual code
-    const handleImageFile = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => setForm(f => ({ ...f, img: ev.target.result }));
-        reader.readAsDataURL(file);
+    const removeImage = (index) => {
+        setForm(f => ({
+            ...f,
+            images: f.images.filter((_, i) => i !== index)
+        }));
     };
 
     const handleSubmit = (e) => {
@@ -126,7 +132,11 @@ const SellerListingsPage = () => {
                                     <tr key={l.id} style={{ ...S.tr, background: i % 2 === 0 ? '#fff' : '#fdfaf7' }}>
                                         <td style={S.td}>
                                             <div style={S.nameCell}>
-                                                {l.img && <img src={l.img} alt={l.name} style={S.thumbnail} />}
+                                                {(l.images && l.images.length > 0) ? (
+                                                    <img src={l.images[0]} alt={l.name} style={S.thumbnail} />
+                                                ) : (
+                                                    l.img && <img src={l.img} alt={l.name} style={S.thumbnail} />
+                                                )}
                                                 <span style={{ fontWeight: '700', color: '#1A1A1A' }}>{l.name}</span>
                                             </div>
                                         </td>
@@ -212,6 +222,22 @@ const SellerListingsPage = () => {
                                 </div>
                             </div>
 
+                            <div style={S.sectionDivider}>Property Images</div>
+                            <div style={S.imageSection}>
+                                <label style={S.imageUploadBtn}>
+                                    + Add Images
+                                    <input type="file" multiple accept="image/*" onChange={handleImageFiles} style={{ display: 'none' }} />
+                                </label>
+                                <div style={S.imageGrid}>
+                                    {form.images && form.images.map((img, idx) => (
+                                        <div key={idx} style={S.imageWrapper}>
+                                            <img src={img} alt={`Preview ${idx}`} style={S.imagePreview} />
+                                            <button type="button" style={S.removeImageBtn} onClick={() => removeImage(idx)}>✕</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div style={S.sectionDivider}>Bidding Config</div>
                             <div style={S.biddingSection}>
                                 <label style={S.checkLabel}>
@@ -285,7 +311,13 @@ const S = {
     formFooter: { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' },
     cancelBtn: { padding: '12px 24px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontWeight: '700' },
     saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700' },
-    confirmDelBtn: { padding: '12px 24px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }
+    confirmDelBtn: { padding: '12px 24px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' },
+    imageSection: { marginBottom: '24px' },
+    imageUploadBtn: { display: 'inline-block', padding: '10px 20px', background: '#f0f0f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', marginBottom: '12px', border: '1px dashed #ccc' },
+    imageGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '12px' },
+    imageWrapper: { position: 'relative', width: '100px', height: '80px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #eee' },
+    imagePreview: { width: '100%', height: '100%', objectFit: 'cover' },
+    removeImageBtn: { position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', cursor: 'pointer' }
 };
 
 export default SellerListingsPage;

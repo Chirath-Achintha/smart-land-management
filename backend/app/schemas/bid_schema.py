@@ -9,9 +9,6 @@ class BidCreate(BaseModel):
     amount: float
     message: Optional[str] = None
 
-class BidStatusUpdate(BaseModel):
-    status: str   # "Accepted" | "Rejected"
-
 # ── Response Schema ───────────────────────────────────────────────────────────
 
 class BidResponse(BaseModel):

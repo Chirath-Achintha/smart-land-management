@@ -199,12 +199,8 @@ const BuyerDashboard = () => {
                                 </div>
                                 <div style={S.listAction}>
                                     <span style={S.amount}>Rs. {Number(bid.amount).toLocaleString()}</span>
-                                    <span style={{
-                                        ...S.badge,
-                                        backgroundColor: bid.status === 'Accepted' ? '#E8F5E9' : bid.status === 'Rejected' ? '#FFEBEE' : '#E3F2FD',
-                                        color: bid.status === 'Accepted' ? '#4CAF50' : bid.status === 'Rejected' ? '#F44336' : '#1565c0'
-                                    }}>
-                                        {bid.status}
+                                    <span style={{ ...S.badge, backgroundColor: '#E8F5E9', color: '#4CAF50' }}>
+                                        Active
                                     </span>
                                 </div>
                             </div>

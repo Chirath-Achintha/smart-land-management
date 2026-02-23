@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { LANDS } from '../lands/landsData';
 
 const ServiceBookingPage = () => {
     const { user } = useAuth();
@@ -22,14 +23,32 @@ const ServiceBookingPage = () => {
         }
     ];
 
-    // Mock My Bookings
-    const [bookings, setBookings] = useState([
-        { id: 'B-7742', service: 'Land Development', date: '2024-02-28', startTime: '10:30 AM', status: 'In Progress', provider: 'TerraFirm Earthworks', price: '$5,200' }
-    ]);
+    // My Bookings
+    const [bookings, setBookings] = useState([]);
+
+    useEffect(() => {
+        const storedBookings = localStorage.getItem('all_service_bookings');
+        if (storedBookings) {
+            const parsed = JSON.parse(storedBookings);
+            // Optionally filter by user if user is logged in
+            if (user?.email) {
+                setBookings(parsed.filter(b => b.buyerEmail === user.email));
+            } else {
+                setBookings(parsed);
+            }
+        } else {
+            const defaultBookings = [
+                { id: 'B-7742', service: 'Land Development', land: 'Golden Valley Acres', date: '2024-02-28', startTime: '10:30 AM', status: 'In Progress', provider: 'TerraFirm Earthworks', price: '$5,200', buyerName: user?.name || 'Jane Doe', buyerEmail: user?.email || 'jane@example.com' }
+            ];
+            setBookings(defaultBookings);
+            localStorage.setItem('all_service_bookings', JSON.stringify(defaultBookings));
+        }
+    }, [user]);
 
     const [selectedService, setSelectedService] = useState(null);
     const [bookingDate, setBookingDate] = useState('');
     const [bookingTime, setBookingTime] = useState('');
+    const [selectedLand, setSelectedLand] = useState('');
     const [showForm, setShowForm] = useState(false);
 
     const handleBookClick = (service) => {
@@ -39,9 +58,14 @@ const ServiceBookingPage = () => {
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
+
+        const landDetails = LANDS.find(l => l.id.toString() === selectedLand);
+        const landName = landDetails ? landDetails.name : 'Unknown Land';
+
         const newBooking = {
             id: `B-${Math.floor(Math.random() * 9000) + 1000}`,
             service: selectedService.name,
+            land: landName,
             date: bookingDate,
             startTime: bookingTime,
             status: 'Scheduled',
@@ -50,22 +74,36 @@ const ServiceBookingPage = () => {
             buyerName: user?.name || 'Anonymous Buyer',
             buyerEmail: user?.email || 'anonymous@example.com'
         };
-        const updatedBookings = [newBooking, ...bookings];
-        setBookings(updatedBookings);
-
-        // Persist to all_service_bookings for Constructor Manager
+        // Persist to all_service_bookings
         const allBookings = JSON.parse(localStorage.getItem('all_service_bookings') || '[]');
-        localStorage.setItem('all_service_bookings', JSON.stringify([newBooking, ...allBookings]));
+        const updatedAll = [newBooking, ...allBookings];
+        localStorage.setItem('all_service_bookings', JSON.stringify(updatedAll));
+
+        // If user is logged in, show only theirs, else show all
+        if (user?.email) {
+            setBookings(updatedAll.filter(b => b.buyerEmail === user.email));
+        } else {
+            setBookings(updatedAll);
+        }
 
         setShowForm(false);
         setBookingDate('');
         setBookingTime('');
+        setSelectedLand('');
         alert(`Successfully booked ${selectedService.name}! We will assign a provider shortly.`);
     };
 
     const cancelBooking = (id) => {
         if (window.confirm('Are you sure you want to cancel this service booking?')) {
-            setBookings(bookings.map(b => b.id === id ? { ...b, status: 'Cancelled' } : b));
+            const allBookings = JSON.parse(localStorage.getItem('all_service_bookings') || '[]');
+            const updatedAll = allBookings.map(b => b.id === id ? { ...b, status: 'Cancelled' } : b);
+            localStorage.setItem('all_service_bookings', JSON.stringify(updatedAll));
+
+            if (user?.email) {
+                setBookings(updatedAll.filter(b => b.buyerEmail === user.email));
+            } else {
+                setBookings(updatedAll);
+            }
         }
     };
 
@@ -145,6 +183,10 @@ const ServiceBookingPage = () => {
                                             </div>
                                             <div style={S.bookingDetails}>
                                                 <div style={S.detailBit}>
+                                                    <span style={S.detailLabel}>Land</span>
+                                                    <span style={S.detailVal}>{b.land || 'N/A'}</span>
+                                                </div>
+                                                <div style={S.detailBit}>
                                                     <span style={S.detailLabel}>Date & Time</span>
                                                     <span style={S.detailVal}>{b.date} at {b.startTime}</span>
                                                 </div>
@@ -183,6 +225,20 @@ const ServiceBookingPage = () => {
                             <button style={S.closeBtn} onClick={() => setShowForm(false)}>✕</button>
                         </div>
                         <form onSubmit={handleFormSubmit} style={S.form}>
+                            <div style={S.inputGroup}>
+                                <label style={S.label}>Select Land</label>
+                                <select
+                                    style={S.input}
+                                    value={selectedLand}
+                                    onChange={(e) => setSelectedLand(e.target.value)}
+                                    required
+                                >
+                                    <option value="" disabled>-- Choose a Land --</option>
+                                    {LANDS.map(land => (
+                                        <option key={land.id} value={land.id.toString()}>{land.name} - {land.district}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div style={S.inputGroup}>
                                 <label style={S.label}>Select Date</label>
                                 <input

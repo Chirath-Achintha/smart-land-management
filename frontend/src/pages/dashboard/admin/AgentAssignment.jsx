@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const AgentAssignment = () => {
     // Requests Data
-    const [requests, setRequests] = useState([
-        { id: 'REQ001', buyer: 'John Doe', property: 'Green Valley Lot 4', status: 'Pending', assignedAgent: null },
-        { id: 'REQ002', buyer: 'Jane Smith', property: 'Ocean View Villa', status: 'Assigned', assignedAgent: 'Agent Mike' },
-        { id: 'REQ003', buyer: 'Robert Brown', property: 'Mountain Retreet', status: 'Pending', assignedAgent: null },
-    ]);
+    const [requests, setRequests] = useState([]);
+
+    useEffect(() => {
+        const storedReqs = localStorage.getItem('all_agent_requests');
+        if (storedReqs) {
+            setRequests(JSON.parse(storedReqs));
+        } else {
+            const seed = [
+                { id: 'REQ001', buyer: 'John Doe', property: 'Green Valley Lot 4', landId: 'LND-104', location: 'Kandy', seller: 'S. Perera', date: '2026-03-01', time: '10:00 AM', status: 'Pending', assignedAgent: '' },
+                { id: 'REQ002', buyer: 'Jane Smith', property: 'Ocean View Villa', landId: 'LND-102', location: 'Galle', seller: 'G. Silva', date: '2026-03-02', time: '11:00 AM', status: 'Pending', assignedAgent: '' },
+            ];
+            setRequests(seed);
+            localStorage.setItem('all_agent_requests', JSON.stringify(seed));
+        }
+    }, []);
 
     // Agents Data
     const [agentsList, setAgentsList] = useState([
-        { id: 1, name: 'Agent Mike', email: 'mike@smartland.com', status: 'Active', livingArea: 'Colombo', nic: '958473625V' },
-        { id: 2, name: 'Agent Sarah', email: 'sarah@smartland.com', status: 'Active', livingArea: 'Kandy', nic: '928473625V' },
+        { id: 'agent_001', name: 'Agent Mike', email: 'mike@smartland.com', status: 'Active', livingArea: 'Colombo', nic: '958473625V' },
+        { id: 'agent_002', name: 'Agent Sarah', email: 'sarah@smartland.com', status: 'Active', livingArea: 'Kandy', nic: '928473625V' },
     ]);
 
     // Form states
@@ -26,12 +36,42 @@ const AgentAssignment = () => {
         status: 'Active'
     });
 
-    const handleAssign = (requestId, agentName) => {
-        setRequests(requests.map(req =>
-            req.id === requestId
-                ? { ...req, assignedAgent: agentName, status: 'Assigned' }
-                : req
-        ));
+    const handleAssign = (requestId, agentId) => {
+        const assignedAgentObj = agentsList.find(a => a.id === agentId);
+
+        const updated = requests.map(req => {
+            if (req.id === requestId) {
+                const updatedReq = { ...req, assignedAgent: assignedAgentObj.name, assignedAgentId: agentId, status: 'Assigned' };
+
+                // Update specific agent's dashboard queue
+                const agentQueueRaw = localStorage.getItem(`agent_bookings_${agentId}`);
+                const agentQueue = agentQueueRaw ? JSON.parse(agentQueueRaw) : [];
+
+                // convert req format to agent booking format
+                const agentBooking = {
+                    id: updatedReq.id,
+                    landId: updatedReq.landId || 'N/A',
+                    buyer: updatedReq.buyer,
+                    land: updatedReq.property,
+                    location: updatedReq.location || 'N/A',
+                    seller: updatedReq.seller || 'N/A',
+                    date: updatedReq.date || 'TBD',
+                    time: updatedReq.time || 'TBD',
+                    status: 'Assigned'
+                };
+
+                // add to agent's queue if not already there
+                if (!agentQueue.find(b => b.id === agentBooking.id)) {
+                    localStorage.setItem(`agent_bookings_${agentId}`, JSON.stringify([agentBooking, ...agentQueue]));
+                }
+
+                return updatedReq;
+            }
+            return req;
+        });
+
+        setRequests(updated);
+        localStorage.setItem('all_agent_requests', JSON.stringify(updated));
     };
 
     // Agent CRUD
@@ -159,7 +199,7 @@ const AgentAssignment = () => {
 
                 {/* Right Side: Requests Assignment */}
                 <div style={styles.card}>
-                    <h3 style={styles.cardTitle}>Assignment Console</h3>
+                    <h3 style={styles.cardTitle}>Agent Request Console</h3>
                     <div style={styles.tableWrapper}>
                         <table style={styles.table}>
                             <thead>
@@ -181,22 +221,22 @@ const AgentAssignment = () => {
                                         <td style={styles.td}>
                                             <span style={{
                                                 ...styles.statusTag,
-                                                backgroundColor: req.status === 'Pending' ? '#fff3cd' : '#d4edda',
-                                                color: req.status === 'Pending' ? '#856404' : '#155724'
+                                                backgroundColor: (!req.assignedAgent || req.status === 'Pending') ? '#fff3cd' : '#d4edda',
+                                                color: (!req.assignedAgent || req.status === 'Pending') ? '#856404' : '#155724'
                                             }}>
-                                                {req.status}
+                                                {(!req.assignedAgent || req.status === 'Pending') ? 'Pending' : req.status}
                                             </span>
                                         </td>
                                         <td style={styles.td}>{req.assignedAgent || 'Unassigned'}</td>
                                         <td style={styles.td}>
                                             <select
-                                                style={styles.select}
-                                                value={req.assignedAgent || ''}
+                                                style={{ ...styles.select, borderColor: !req.assignedAgent ? '#ef4444' : '#ddd' }}
+                                                value={req.assignedAgentId || ''}
                                                 onChange={(e) => handleAssign(req.id, e.target.value)}
                                             >
                                                 <option value="" disabled>Assign To...</option>
                                                 {agentsList.map(a => (
-                                                    <option key={a.id} value={a.name}>{a.name}</option>
+                                                    <option key={a.id} value={a.id}>{a.name}</option>
                                                 ))}
                                             </select>
                                         </td>

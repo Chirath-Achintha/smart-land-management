@@ -244,6 +244,51 @@ const LandDetailPage = () => {
     const [showBidModal, setShowBidModal] = useState(false);
     const [showVisitModal, setShowVisitModal] = useState(false);
 
+    // ── Tab state ──────────────────────────────────────────────────────────────
+    const [activeTab, setActiveTab] = useState('property'); // 'property' | 'services'
+
+    // ── Service booking modal state ────────────────────────────────────────────
+    const [bookingService, setBookingService] = useState(null);   // null | { type, icon, desc, estimate }
+    const [bkgStep, setBkgStep] = useState(1);         // 1=form, 2=review, 3=done
+    const [bkgForm, setBkgForm] = useState({ preferred_date: '', preferred_time: '', notes: '' });
+    const [bkgErr, setBkgErr] = useState('');
+    const [bkgLoading, setBkgLoading] = useState(false);
+
+    const SERVICES = [
+        { type: 'Full Construction', icon: '🏗️', desc: 'Architectural design & complete building services.', estimate: 'Rs. 25,000,000+' },
+        { type: 'Land Development', icon: '🚜', desc: 'Clearance, leveling, and utility infrastructure.', estimate: 'Rs. 5,000,000+' },
+    ];
+
+    const openBookingModal = (svc) => {
+        setBookingService(svc);
+        setBkgStep(1);
+        setBkgForm({ preferred_date: '', preferred_time: '', notes: '' });
+        setBkgErr('');
+    };
+    const closeBookingModal = () => { setBookingService(null); setBkgStep(1); };
+
+    const handleBookingConfirm = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) { setBkgErr('Please log in first.'); return; }
+        setBkgLoading(true); setBkgErr('');
+        try {
+            const res = await fetch(`${API}/service-bookings/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    land_id: parseInt(id),
+                    service_type: bookingService.type,
+                    preferred_date: bkgForm.preferred_date,
+                    preferred_time: bkgForm.preferred_time,
+                    notes: bkgForm.notes || null,
+                }),
+            });
+            if (!res.ok) { const e = await res.json(); setBkgErr(e.detail || 'Failed. Try again.'); setBkgLoading(false); return; }
+            setBkgStep(3);
+        } catch { setBkgErr('Server error. Try again.'); }
+        setBkgLoading(false);
+    };
+
     const fetchBids = () => {
         fetch(`${API}/bids/land/${id}`)
             .then(r => r.json())
@@ -295,45 +340,105 @@ const LandDetailPage = () => {
                             <div style={S.location}><PinIcon /> {land.village}, {land.district} District</div>
                         </div>
 
-                        <div style={S.grid}>
-                            <div style={S.infoCard}>
-                                <span style={S.infoLabel}>Price Per Perch</span>
-                                <span style={S.infoValue}>Rs. {Number(land.price_per_perch).toLocaleString()}</span>
-                            </div>
-                            <div style={S.infoCard}>
-                                <span style={S.infoLabel}>Land Size</span>
-                                <span style={S.infoValue}>{land.perches} Perches</span>
-                            </div>
-                            <div style={S.infoCard}>
-                                <span style={S.infoLabel}>Status</span>
-                                <span style={{ ...S.infoValue, color: land.status === 'Available' ? '#27ae60' : '#e67e22' }}>
-                                    {land.status}
-                                </span>
-                            </div>
-                            <div style={S.infoCard}>
-                                <span style={S.infoLabel}>Bidding</span>
-                                <span style={{ ...S.infoValue, color: land.open_for_bidding ? '#27ae60' : '#bbb' }}>
-                                    {land.open_for_bidding ? 'Open' : 'Closed'}
-                                </span>
-                            </div>
+                        {/* ── Tab toggles ─────────────────────────────────────── */}
+                        <div style={S.tabRow}>
+                            <button
+                                style={{ ...S.tabBtn, ...(activeTab === 'property' ? S.tabActive : {}) }}
+                                onClick={() => setActiveTab('property')}
+                            >Property Details</button>
+                            <button
+                                style={{ ...S.tabBtn, ...(activeTab === 'services' ? S.tabActive : {}) }}
+                                onClick={() => setActiveTab('services')}
+                            >Construction Services</button>
                         </div>
 
-                        {/* Amenities */}
-                        <div style={{ marginBottom: '28px' }}>
-                            <h3 style={S.subTitle}>Infrastructure & Amenities</h3>
-                            {[
-                                ['🛣️ Road Access', land.road_access || '—'],
-                                ['🔌 Electricity', land.electricity ? 'Available' : 'Not Available'],
-                                ['💧 Water Facility', land.water ? 'Available' : 'Not Available'],
-                            ].map(([label, val]) => (
-                                <div key={label} style={S.amenityRow}>
-                                    <span style={{ color: '#555', fontSize: '0.88rem' }}>{label}</span>
-                                    <span style={{ fontWeight: '600', fontSize: '0.88rem' }}>{val}</span>
+                        {/* ── Property Details Tab ─────────────────────────────── */}
+                        {activeTab === 'property' && (
+                            <>
+                                <div style={S.grid}>
+                                    <div style={S.infoCard}>
+                                        <span style={S.infoLabel}>Price Per Perch</span>
+                                        <span style={S.infoValue}>Rs. {Number(land.price_per_perch).toLocaleString()}</span>
+                                    </div>
+                                    <div style={S.infoCard}>
+                                        <span style={S.infoLabel}>Land Size</span>
+                                        <span style={S.infoValue}>{land.perches} Perches</span>
+                                    </div>
+                                    <div style={S.infoCard}>
+                                        <span style={S.infoLabel}>Status</span>
+                                        <span style={{ ...S.infoValue, color: land.status === 'Available' ? '#27ae60' : '#e67e22' }}>
+                                            {land.status}
+                                        </span>
+                                    </div>
+                                    <div style={S.infoCard}>
+                                        <span style={S.infoLabel}>Bidding</span>
+                                        <span style={{ ...S.infoValue, color: land.open_for_bidding ? '#27ae60' : '#bbb' }}>
+                                            {land.open_for_bidding ? 'Open' : 'Closed'}
+                                        </span>
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
 
-                        {/* Action box */}
+                                {/* Amenities */}
+                                <div style={{ marginBottom: '8px' }}>
+                                    <h3 style={S.subTitle}>Infrastructure & Amenities</h3>
+                                    {[
+                                        ['🛣️ Road Access', land.road_access || '—'],
+                                        ['🔌 Electricity', land.electricity ? 'Available' : 'Not Available'],
+                                        ['💧 Water Facility', land.water ? 'Available' : 'Not Available'],
+                                    ].map(([label, val]) => (
+                                        <div key={label} style={S.amenityRow}>
+                                            <span style={{ color: '#555', fontSize: '0.88rem' }}>{label}</span>
+                                            <span style={{ fontWeight: '600', fontSize: '0.88rem' }}>{val}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Construction Services Promo Banner */}
+                                <div style={S.svcBanner} onClick={() => setActiveTab('services')}>
+                                    <div style={{ fontSize: '0.85rem', color: '#444', lineHeight: '1.5' }}>
+                                        <strong>Need construction on this land?</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1A52e8', textDecoration: 'underline', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                                            View Construction Services
+                                        </span>
+                                        <span style={{ fontSize: '0.8rem', color: '#1A52e8' }}>≡</span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* ── Construction Services Tab ────────────────────────── */}
+                        {activeTab === 'services' && (
+                            <div>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' }}>
+                                    Available Land Services
+                                </h3>
+                                <p style={{ fontSize: '0.82rem', color: '#666', lineHeight: '1.6', marginBottom: '20px' }}>
+                                    Enhance your land with our professional construction and development services.
+                                    Our automated matching system will assign the best local team for your project.
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                                    {SERVICES.map(svc => (
+                                        <div key={svc.type} style={S.svcRow}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
+                                                <span style={{ fontSize: '1.8rem' }}>{svc.icon}</span>
+                                                <div>
+                                                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1A1A1A' }}>{svc.type}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '2px' }}>{svc.desc}</div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                style={S.svcBookBtn}
+                                                onClick={() => openBookingModal(svc)}
+                                            >Book Now</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Action box (always visible) ───────────────────────── */}
                         <div style={S.actionBox}>
                             <h3 style={S.subTitle}>Interested in this Land?</h3>
                             <p style={{ fontSize: '0.85rem', color: '#555', lineHeight: 1.6, marginBottom: '20px' }}>
@@ -360,7 +465,7 @@ const LandDetailPage = () => {
                                 <p style={{ fontSize: '0.78rem', color: '#888', marginTop: '12px' }}>
                                     Starting bid: <strong>Rs. {Number(land.starting_bid).toLocaleString()}</strong>
                                     {land.bidding_end && <> · Closes {land.bidding_end}</>}
-                                    {highestBid && <> &nbsp;·&nbsp; Highest: <strong>Rs. {Number(highestBid).toLocaleString()}</strong></>}
+                                    {highestBid && <>&nbsp;·&nbsp; Highest: <strong>Rs. {Number(highestBid).toLocaleString()}</strong></>}
                                 </p>
                             )}
                             {!land.open_for_bidding && (
@@ -416,8 +521,139 @@ const LandDetailPage = () => {
 
             {showBidModal && <BidModal land={land} onClose={() => { setShowBidModal(false); fetchBids(); }} />}
             {showVisitModal && <VisitModal land={land} onClose={() => setShowVisitModal(false)} />}
+
+            {/* ── Service Booking Modal (Screenshot Redesign) ───────────── */}
+            {bookingService && (
+                <div style={BK.overlay} onClick={closeBookingModal}>
+                    <div style={BK.modal} onClick={e => e.stopPropagation()}>
+                        <button style={BK.closeX} onClick={closeBookingModal}>✕</button>
+
+                        <h2 style={BK.title}>Book Service</h2>
+
+                        {/* Step Progress Indicator */}
+                        <div style={BK.steps}>
+                            {[1, 2, 3].map(n => (
+                                <React.Fragment key={n}>
+                                    <div style={{
+                                        ...BK.stepDot,
+                                        background: bkgStep >= n ? '#1A1A1A' : '#f0f0f0',
+                                        color: bkgStep >= n ? '#fff' : '#aaa'
+                                    }}>{n}</div>
+                                    {n < 3 && <div style={{
+                                        ...BK.stepLine,
+                                        background: bkgStep > n ? '#1A1A1A' : '#f0f0f0'
+                                    }} />}
+                                </React.Fragment>
+                            ))}
+                        </div>
+
+                        {/* Step 1: Form */}
+                        {bkgStep === 1 && (
+                            <>
+                                <h3 style={BK.stepHeader}>Schedule Visit</h3>
+                                <div style={BK.formGroup}>
+                                    <label style={BK.label}>Preferred Date</label>
+                                    <input type="date" style={BK.input}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        value={bkgForm.preferred_date}
+                                        onChange={e => setBkgForm(p => ({ ...p, preferred_date: e.target.value }))}
+                                        placeholder="mm/dd/yyyy"
+                                    />
+                                </div>
+                                <div style={BK.formGroup}>
+                                    <label style={BK.label}>Preferred Time</label>
+                                    <input type="time" style={BK.input}
+                                        value={bkgForm.preferred_time}
+                                        onChange={e => setBkgForm(p => ({ ...p, preferred_time: e.target.value }))}
+                                    />
+                                </div>
+                                <div style={BK.formGroup}>
+                                    <label style={BK.label}>Notes (optional)</label>
+                                    <textarea style={{ ...BK.input, minHeight: '100px', resize: 'none' }}
+                                        placeholder="Any specific requirements..."
+                                        value={bkgForm.notes}
+                                        onChange={e => setBkgForm(p => ({ ...p, notes: e.target.value }))}
+                                    />
+                                </div>
+                                {bkgErr && <div style={BK.err}>{bkgErr}</div>}
+                                <div style={BK.btnRow}>
+                                    <button style={BK.cancelBtn} onClick={closeBookingModal}>Cancel</button>
+                                    <button className="btn-dark" style={BK.nextBtn}
+                                        disabled={!bkgForm.preferred_date || !bkgForm.preferred_time}
+                                        onClick={() => { if (!bkgForm.preferred_date || !bkgForm.preferred_time) return; setBkgStep(2); }}>
+                                        Next: Review →
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Step 2: Review */}
+                        {bkgStep === 2 && (
+                            <>
+                                <h3 style={BK.stepHeader}>Review Booking</h3>
+                                <div style={BK.reviewCard}>
+                                    <div style={BK.reviewRow}><span style={BK.reviewLbl}>Service</span> <span style={BK.reviewVal}>{bookingService.type}</span></div>
+                                    <div style={BK.reviewRow}><span style={BK.reviewLbl}>Land</span> <span style={BK.reviewVal}>{land.name}</span></div>
+                                    <div style={BK.reviewRow}><span style={BK.reviewLbl}>Date</span> <span style={BK.reviewVal}>{bkgForm.preferred_date}</span></div>
+                                    <div style={BK.reviewRow}><span style={BK.reviewLbl}>Time</span> <span style={BK.reviewVal}>{bkgForm.preferred_time}</span></div>
+                                    {bkgForm.notes && <div style={BK.reviewRow}><span style={BK.reviewLbl}>Notes</span> <span style={BK.reviewVal}>{bkgForm.notes}</span></div>}
+                                </div>
+                                <p style={BK.hint}>A constructor manager will be automatically assigned to review your request.</p>
+                                {bkgErr && <div style={BK.err}>{bkgErr}</div>}
+                                <div style={BK.btnRow}>
+                                    <button style={BK.cancelBtn} onClick={() => setBkgStep(1)}>Back</button>
+                                    <button className="btn-dark" style={BK.nextBtn}
+                                        disabled={bkgLoading} onClick={handleBookingConfirm}>
+                                        {bkgLoading ? 'Confirming...' : 'Confirm & Book'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Step 3: Success */}
+                        {bkgStep === 3 && (
+                            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>✅</div>
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '10px' }}>Booking Confirmed!</h2>
+                                <p style={{ color: '#666', marginBottom: '30px', lineHeight: '1.6' }}>
+                                    Your {bookingService.type} request has been submitted.
+                                    You can track it in your service dashboard.
+                                </p>
+                                <button className="btn-dark" style={{ width: '100%', padding: '16px' }}
+                                    onClick={() => { closeBookingModal(); navigate('/services'); }}>
+                                    Go to My Bookings
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
+};
+
+// ── Styles ──────────────────────────────────────────────────────────────────
+const BK = {
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' },
+    modal: { background: '#fff', borderRadius: '32px', padding: '48px', width: '100%', maxWidth: '520px', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.1)' },
+    closeX: { position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#ccc' },
+    title: { fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '30px' },
+    steps: { display: 'flex', alignItems: 'center', marginBottom: '40px', padding: '0 10px' },
+    stepDot: { width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.9rem' },
+    stepLine: { flex: 1, height: '2px', margin: '0 8px' },
+    stepHeader: { fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '24px' },
+    formGroup: { marginBottom: '20px' },
+    label: { display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#1A1A1A', marginBottom: '8px' },
+    input: { width: '100%', padding: '16px', borderRadius: '16px', border: 'none', background: '#F8F8F8', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' },
+    err: { color: '#d32f2f', fontSize: '0.85rem', marginBottom: '15px', textAlign: 'center' },
+    btnRow: { display: 'flex', gap: '12px', marginTop: '30px' },
+    cancelBtn: { flex: 1, padding: '16px', borderRadius: '14px', border: 'none', background: '#F5F5F5', color: '#1A1A1A', fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem' },
+    nextBtn: { flex: 2, padding: '16px', borderRadius: '14px', fontSize: '0.95rem' },
+    reviewCard: { background: '#F8F8F8', borderRadius: '20px', padding: '24px', marginBottom: '20px' },
+    reviewRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '12px' },
+    reviewLbl: { color: '#888', fontSize: '0.9rem', fontWeight: '600' },
+    reviewVal: { color: '#1A1A1A', fontSize: '0.9rem', fontWeight: '700' },
+    hint: { fontSize: '0.82rem', color: '#888', textAlign: 'center', lineHeight: '1.4' }
 };
 
 // ── Page Styles ───────────────────────────────────────────────────────────────
@@ -432,6 +668,15 @@ const S = {
     tag: { display: 'inline-block', background: '#FAF6F1', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#1A1A1A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' },
     title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '10px', lineHeight: 1.1 },
     location: { display: 'flex', alignItems: 'center', gap: '8px', color: '#555', fontWeight: '500' },
+    // ── Tab ──
+    tabRow: { display: 'flex', background: '#F5F5F5', borderRadius: '12px', padding: '4px', gap: '4px' },
+    tabBtn: { flex: 1, padding: '10px 14px', border: 'none', borderRadius: '9px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', background: 'transparent', color: '#888', transition: 'all 0.15s' },
+    tabActive: { background: '#fff', color: '#1A1A1A', fontWeight: '700', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
+    // ── Service rows ──
+    svcRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: '1px solid #EEE', gap: '12px' },
+    svcBookBtn: { padding: '10px 20px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
+    svcBanner: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#EEF2FF', borderRadius: '12px', padding: '16px 20px', cursor: 'pointer', gap: '12px' },
+    // ── Property ──
     grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' },
     infoCard: { background: '#F9F9F9', padding: '18px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '4px' },
     infoLabel: { fontSize: '0.72rem', color: '#777', fontWeight: '700', textTransform: 'uppercase' },

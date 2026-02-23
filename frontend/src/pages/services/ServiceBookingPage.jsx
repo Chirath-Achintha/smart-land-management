@@ -1,269 +1,181 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { LANDS } from '../lands/landsData';
+
+const API = 'http://127.0.0.1:8000';
+
+const STATUS_STYLE = {
+    Scheduled: { bg: '#E3F2FD', color: '#1565c0' },
+    'In Progress': { bg: '#FFF3E0', color: '#e65100' },
+    Completed: { bg: '#E8F5E9', color: '#2e7d32' },
+    Cancelled: { bg: '#FFEBEE', color: '#c62828' },
+};
 
 const ServiceBookingPage = () => {
-    const { user } = useAuth();
+    const token = localStorage.getItem('access_token');
+    const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
-    // Available Services
-    const SERVICES = [
-        {
-            id: 'S1',
-            name: 'Construction',
-            desc: 'Professional building and construction services tailored to your budget and design.',
-            icon: '🏗️',
-            basePrice: '$25,000+'
-        },
-        {
-            id: 'S2',
-            name: 'Land Development',
-            desc: 'Site clearance, leveling, and utility installation to prepare your land for building.',
-            icon: '🚜',
-            basePrice: '$5,000+'
-        }
-    ];
-
-    // My Bookings
+    /* ── state ── */
     const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [editTarget, setEditTarget] = useState(null);
+    const [editForm, setEditForm] = useState({});
+    const [submitting, setSubmitting] = useState(false);
+    const [deleteId, setDeleteId] = useState(null);
 
-    useEffect(() => {
-        const storedBookings = localStorage.getItem('all_service_bookings');
-        if (storedBookings) {
-            const parsed = JSON.parse(storedBookings);
-            // Optionally filter by user if user is logged in
-            if (user?.email) {
-                setBookings(parsed.filter(b => b.buyerEmail === user.email));
-            } else {
-                setBookings(parsed);
-            }
-        } else {
-            const defaultBookings = [
-                { id: 'B-7742', service: 'Land Development', land: 'Golden Valley Acres', date: '2024-02-28', startTime: '10:30 AM', status: 'In Progress', provider: 'TerraFirm Earthworks', price: '$5,200', buyerName: user?.name || 'Jane Doe', buyerEmail: user?.email || 'jane@example.com' }
-            ];
-            setBookings(defaultBookings);
-            localStorage.setItem('all_service_bookings', JSON.stringify(defaultBookings));
-        }
-    }, [user]);
-
-    const [selectedService, setSelectedService] = useState(null);
-    const [bookingDate, setBookingDate] = useState('');
-    const [bookingTime, setBookingTime] = useState('');
-    const [selectedLand, setSelectedLand] = useState('');
-    const [showForm, setShowForm] = useState(false);
-
-    const handleBookClick = (service) => {
-        setSelectedService(service);
-        setShowForm(true);
+    /* ── fetch buyer's bookings ── */
+    const fetchBookings = () => {
+        if (!token) { setLoading(false); return; }
+        fetch(`${API}/service-bookings/my`, { headers: authH })
+            .then(r => r.json())
+            .then(d => setBookings(Array.isArray(d) ? d : []))
+            .catch(() => setBookings([]))
+            .finally(() => setLoading(false));
     };
 
-    const handleFormSubmit = (e) => {
-        e.preventDefault();
+    useEffect(() => { fetchBookings(); }, []);
 
-        const landDetails = LANDS.find(l => l.id.toString() === selectedLand);
-        const landName = landDetails ? landDetails.name : 'Unknown Land';
-
-        const newBooking = {
-            id: `B-${Math.floor(Math.random() * 9000) + 1000}`,
-            service: selectedService.name,
-            land: landName,
-            date: bookingDate,
-            startTime: bookingTime,
-            status: 'Scheduled',
-            provider: 'Pending Assignment',
-            price: selectedService.basePrice,
-            buyerName: user?.name || 'Anonymous Buyer',
-            buyerEmail: user?.email || 'anonymous@example.com'
-        };
-        // Persist to all_service_bookings
-        const allBookings = JSON.parse(localStorage.getItem('all_service_bookings') || '[]');
-        const updatedAll = [newBooking, ...allBookings];
-        localStorage.setItem('all_service_bookings', JSON.stringify(updatedAll));
-
-        // If user is logged in, show only theirs, else show all
-        if (user?.email) {
-            setBookings(updatedAll.filter(b => b.buyerEmail === user.email));
-        } else {
-            setBookings(updatedAll);
-        }
-
-        setShowForm(false);
-        setBookingDate('');
-        setBookingTime('');
-        setSelectedLand('');
-        alert(`Successfully booked ${selectedService.name}! We will assign a provider shortly.`);
+    /* ── edit booking ── */
+    const openEdit = (b) => {
+        setEditTarget(b);
+        setEditForm({ preferred_date: b.preferred_date, preferred_time: b.preferred_time, notes: b.notes || '' });
+    };
+    const saveEdit = async () => {
+        setSubmitting(true);
+        try {
+            const res = await fetch(`${API}/service-bookings/${editTarget.id}`, {
+                method: 'PUT', headers: authH, body: JSON.stringify(editForm),
+            });
+            if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); setSubmitting(false); return; }
+            const updated = await res.json();
+            setBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
+            setEditTarget(null);
+        } catch { alert('Server error'); }
+        setSubmitting(false);
     };
 
-    const cancelBooking = (id) => {
-        if (window.confirm('Are you sure you want to cancel this service booking?')) {
-            const allBookings = JSON.parse(localStorage.getItem('all_service_bookings') || '[]');
-            const updatedAll = allBookings.map(b => b.id === id ? { ...b, status: 'Cancelled' } : b);
-            localStorage.setItem('all_service_bookings', JSON.stringify(updatedAll));
-
-            if (user?.email) {
-                setBookings(updatedAll.filter(b => b.buyerEmail === user.email));
-            } else {
-                setBookings(updatedAll);
-            }
-        }
-    };
-
-    const getStatusStyle = (status) => {
-        switch (status) {
-            case 'Scheduled': return { color: '#2196F3', bg: '#E3F2FD' };
-            case 'In Progress': return { color: '#FF9800', bg: '#FFF3E0' };
-            case 'Completed': return { color: '#4CAF50', bg: '#E8F5E9' };
-            case 'Cancelled': return { color: '#F44336', bg: '#FFEBEE' };
-            default: return { color: '#777', bg: '#EEE' };
-        }
+    /* ── delete (cancel) booking ── */
+    const confirmDelete = async () => {
+        try {
+            await fetch(`${API}/service-bookings/${deleteId}`, { method: 'DELETE', headers: authH });
+            setBookings(prev => prev.filter(b => b.id !== deleteId));
+        } catch { alert('Delete failed'); }
+        setDeleteId(null);
     };
 
     return (
         <div style={S.root}>
             <div style={S.container}>
                 <header style={S.header}>
-                    <h1 style={S.pageTitle}>Services & Development</h1>
-                    <p style={S.subtitle}>Professional solutions for your land and dream home journey</p>
+                    <h1 style={S.pageTitle}>My Service Requests</h1>
+                    <p style={S.subtitle}>
+                        Track and manage your construction &amp; development service bookings.
+                        To book a new service, browse a land listing and click the <strong>Construction Services</strong> tab.
+                    </p>
                 </header>
 
-                {/* Tabs / Layout */}
-                <div style={S.layout}>
-
-                    {/* Browse Services */}
-                    <section style={S.section}>
-                        <h2 style={S.sectionTitle}>Available Services</h2>
-                        <div style={S.serviceGrid}>
-                            {SERVICES.map(s => (
-                                <div key={s.id} style={S.serviceCard}>
-                                    <div style={S.serviceIcon}>{s.icon}</div>
-                                    <h3 style={S.serviceName}>{s.name}</h3>
-                                    <p style={S.serviceDesc}>{s.desc}</p>
-                                    <div style={S.serviceFooter}>
-                                        <span style={S.priceLabel}>Starting from {s.basePrice}</span>
-                                        <button
-                                            style={S.bookBtn}
-                                            onClick={() => handleBookClick(s)}
-                                        >
-                                            Book Now
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                {/* ── My Bookings list ── */}
+                <section>
+                    {!token ? (
+                        <div style={S.empty}>
+                            Please <a href="/login" style={{ color: '#1A1A1A', fontWeight: '700' }}>log in</a> to view your bookings.
                         </div>
-                    </section>
-
-                    {/* My Bookings */}
-                    <section style={S.section}>
-                        <h2 style={S.sectionTitle}>My Service Bookings</h2>
-                        {!user ? (
-                            <div style={S.loginNotice}>
-                                <p>Please login to track your bookings.</p>
-                                <a href="/login" style={S.loginBtn}>Login</a>
+                    ) : loading ? (
+                        <div style={S.empty}>Loading…</div>
+                    ) : bookings.length === 0 ? (
+                        <div style={S.empty}>
+                            <div style={{ fontSize: '3.5rem', marginBottom: '16px' }}>📋</div>
+                            <div style={{ fontWeight: '700', color: '#333', fontSize: '1.1rem', marginBottom: '8px' }}>No service requests yet</div>
+                            <div style={{ fontSize: '0.9rem', color: '#999', maxWidth: '380px', margin: '0 auto' }}>
+                                Browse a land listing and click "Book Now" on the <strong>Construction Services</strong> tab to get started.
                             </div>
-                        ) : (
-                            <div style={S.bookingList}>
-                                {bookings.length === 0 ? (
-                                    <p style={S.empty}>You haven't booked any services yet.</p>
-                                ) : (
-                                    bookings.map(b => (
-                                        <div key={b.id} style={S.bookingItem}>
-                                            <div style={S.bookingHeader}>
-                                                <div>
-                                                    <h3 style={S.bookingService}>{b.service}</h3>
-                                                    <p style={S.bookingId}>Booking ID: {b.id}</p>
-                                                </div>
-                                                <span
-                                                    style={{
-                                                        ...S.statusBadge,
-                                                        color: getStatusStyle(b.status).color,
-                                                        backgroundColor: getStatusStyle(b.status).bg
-                                                    }}
-                                                >
-                                                    {b.status}
-                                                </span>
+                            <a href="/lands" style={{ display: 'inline-block', marginTop: '24px', padding: '12px 28px', background: '#1A1A1A', color: '#fff', borderRadius: '12px', fontWeight: '700', textDecoration: 'none', fontSize: '0.9rem' }}>
+                                Browse Lands →
+                            </a>
+                        </div>
+                    ) : (
+                        <div style={S.bookingList}>
+                            {bookings.map(b => {
+                                const sc = STATUS_STYLE[b.status] || STATUS_STYLE.Scheduled;
+                                const canEdit = b.status === 'Scheduled';
+                                return (
+                                    <div key={b.id} style={S.bookingCard}>
+                                        <div style={S.bCardTop}>
+                                            <div>
+                                                <h3 style={S.bService}>{b.service_type}</h3>
+                                                <p style={S.bId}>
+                                                    Booking #{b.id}
+                                                    {b.land_name ? ` · ${b.land_name}` : ''}
+                                                </p>
                                             </div>
-                                            <div style={S.bookingDetails}>
-                                                <div style={S.detailBit}>
-                                                    <span style={S.detailLabel}>Land</span>
-                                                    <span style={S.detailVal}>{b.land || 'N/A'}</span>
-                                                </div>
-                                                <div style={S.detailBit}>
-                                                    <span style={S.detailLabel}>Date & Time</span>
-                                                    <span style={S.detailVal}>{b.date} at {b.startTime}</span>
-                                                </div>
-                                                <div style={S.detailBit}>
-                                                    <span style={S.detailLabel}>Service Provider</span>
-                                                    <span style={S.detailVal}>{b.provider}</span>
-                                                </div>
-                                                <div style={S.detailBit}>
-                                                    <span style={S.detailLabel}>Estimated Cost</span>
-                                                    <span style={S.detailVal}>{b.price}</span>
-                                                </div>
-                                            </div>
-                                            {b.status === 'Scheduled' && (
-                                                <button
-                                                    style={S.cancelBtn}
-                                                    onClick={() => cancelBooking(b.id)}
-                                                >
-                                                    Cancel Booking
-                                                </button>
-                                            )}
+                                            <span style={{ ...S.badge, background: sc.bg, color: sc.color }}>{b.status}</span>
                                         </div>
-                                    ))
-                                )}
-                            </div>
-                        )}
-                    </section>
-                </div>
+                                        <div style={S.bGrid}>
+                                            <div style={S.bCell}><span style={S.bLabel}>📅 Date</span><span style={S.bVal}>{b.preferred_date}</span></div>
+                                            <div style={S.bCell}><span style={S.bLabel}>🕐 Time</span><span style={S.bVal}>{b.preferred_time}</span></div>
+                                            <div style={S.bCell}><span style={S.bLabel}>📋 Status</span><span style={S.bVal}>{b.status}</span></div>
+                                        </div>
+                                        {b.notes && <p style={S.bNotes}>"{b.notes}"</p>}
+                                        <p style={S.bDate}>Submitted: {new Date(b.created_at).toLocaleString('en-LK', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                                        {canEdit && (
+                                            <div style={S.bActions}>
+                                                <button style={S.editBtn} onClick={() => openEdit(b)}>Edit Request</button>
+                                                <button style={S.deleteBtn} onClick={() => setDeleteId(b.id)}>Cancel Request</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
             </div>
 
-            {/* Booking Modal/Overlay */}
-            {showForm && (
-                <div style={S.modalOverlay}>
+            {/* ═══ Edit Modal ═══ */}
+            {editTarget && (
+                <div style={S.overlay}>
                     <div style={S.modal}>
-                        <div style={S.modalHeader}>
-                            <h2>Book {selectedService?.name}</h2>
-                            <button style={S.closeBtn} onClick={() => setShowForm(false)}>✕</button>
+                        <button style={S.closeX} onClick={() => setEditTarget(null)}>✕</button>
+                        <h2 style={S.modalTitle}>Edit Booking #{editTarget.id}</h2>
+                        <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '20px' }}>{editTarget.service_type}</p>
+                        <div style={S.formGroup}>
+                            <label style={S.lbl}>Preferred Date</label>
+                            <input type="date" style={S.inp} value={editForm.preferred_date}
+                                onChange={e => setEditForm({ ...editForm, preferred_date: e.target.value })} />
                         </div>
-                        <form onSubmit={handleFormSubmit} style={S.form}>
-                            <div style={S.inputGroup}>
-                                <label style={S.label}>Select Land</label>
-                                <select
-                                    style={S.input}
-                                    value={selectedLand}
-                                    onChange={(e) => setSelectedLand(e.target.value)}
-                                    required
-                                >
-                                    <option value="" disabled>-- Choose a Land --</option>
-                                    {LANDS.map(land => (
-                                        <option key={land.id} value={land.id.toString()}>{land.name} - {land.district}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div style={S.inputGroup}>
-                                <label style={S.label}>Select Date</label>
-                                <input
-                                    type="date"
-                                    style={S.input}
-                                    value={bookingDate}
-                                    onChange={(e) => setBookingDate(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div style={S.inputGroup}>
-                                <label style={S.label}>Preferred Time</label>
-                                <input
-                                    type="time"
-                                    style={S.input}
-                                    value={bookingTime}
-                                    onChange={(e) => setBookingTime(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div style={S.noticeBox}>
-                                <p>Our team will review your request and assign a qualified provider within 24 hours.</p>
-                            </div>
-                            <button type="submit" style={S.confirmBtn}>Confirm Booking</button>
-                        </form>
+                        <div style={S.formGroup}>
+                            <label style={S.lbl}>Preferred Time</label>
+                            <input type="time" style={S.inp} value={editForm.preferred_time}
+                                onChange={e => setEditForm({ ...editForm, preferred_time: e.target.value })} />
+                        </div>
+                        <div style={S.formGroup}>
+                            <label style={S.lbl}>Notes (optional)</label>
+                            <textarea style={{ ...S.inp, height: '80px', resize: 'vertical' }} value={editForm.notes}
+                                onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
+                        </div>
+                        <div style={S.modalBtns}>
+                            <button style={S.backBtn} onClick={() => setEditTarget(null)}>Cancel</button>
+                            <button style={S.nextBtn} disabled={submitting} onClick={saveEdit}>
+                                {submitting ? 'Saving…' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ Cancel Confirm Modal ═══ */}
+            {deleteId && (
+                <div style={S.overlay}>
+                    <div style={{ ...S.modal, textAlign: 'center' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>⚠️</div>
+                        <h2 style={S.modalTitle}>Cancel this Booking?</h2>
+                        <p style={{ color: '#666', marginBottom: '28px', fontSize: '0.9rem' }}>
+                            This will permanently remove your service request and cannot be undone.
+                        </p>
+                        <div style={S.modalBtns}>
+                            <button style={S.backBtn} onClick={() => setDeleteId(null)}>Go Back</button>
+                            <button style={{ ...S.nextBtn, background: '#c62828' }} onClick={confirmDelete}>
+                                Yes, Cancel Request
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -272,53 +184,40 @@ const ServiceBookingPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100vh', padding: '120px 20px 60px' },
-    container: { maxWidth: '1200px', margin: '0 auto' },
-    header: { textAlign: 'center', marginBottom: '60px' },
-    pageTitle: { fontSize: '2.8rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '16px' },
-    subtitle: { fontSize: '1.2rem', color: '#666' },
-    layout: { display: 'flex', flexDirection: 'column', gap: '80px' },
-    section: { display: 'flex', flexDirection: 'column', gap: '32px' },
-    sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A' },
+    root: { background: '#FAF6F1', minHeight: '100vh', padding: '100px 20px 60px', fontFamily: "'DM Sans', sans-serif" },
+    container: { maxWidth: '900px', margin: '0 auto' },
+    header: { textAlign: 'center', marginBottom: '48px' },
+    pageTitle: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '10px' },
+    subtitle: { fontSize: '1rem', color: '#666', lineHeight: '1.6', maxWidth: '600px', margin: '0 auto' },
 
-    // Services Grid
-    serviceGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' },
-    serviceCard: { background: '#fff', padding: '32px', borderRadius: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.02)', border: '1px solid #F0F0F0', display: 'flex', flexDirection: 'column', gap: '16px', transition: 'transform 0.2s' },
-    serviceIcon: { fontSize: '2.5rem' },
-    serviceName: { fontSize: '1.4rem', fontWeight: '800', color: '#1A1A1A' },
-    serviceDesc: { fontSize: '0.95rem', color: '#666', lineHeight: '1.6', flex: 1 },
-    serviceFooter: { display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' },
-    priceLabel: { fontSize: '0.85rem', fontWeight: '700', color: '#888' },
-    bookBtn: { padding: '12px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', textAlign: 'center' },
-
-    // Bookings List
     bookingList: { display: 'flex', flexDirection: 'column', gap: '20px' },
-    bookingItem: { background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #F0F0F0', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' },
-    bookingHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' },
-    bookingService: { fontSize: '1.25rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '4px' },
-    bookingId: { fontSize: '0.8rem', color: '#AAA', fontWeight: '600' },
-    statusBadge: { padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '700' },
-    bookingDetails: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '24px' },
-    detailBit: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    detailLabel: { fontSize: '0.75rem', fontWeight: '700', color: '#AAA', textTransform: 'uppercase' },
-    detailVal: { fontSize: '1rem', fontWeight: '700', color: '#333' },
-    cancelBtn: { padding: '10px 20px', background: 'transparent', color: '#F44336', border: '1px solid #F44336', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start' },
+    bookingCard: { background: '#fff', borderRadius: '20px', padding: '28px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' },
+    bCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' },
+    bService: { fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    bId: { fontSize: '0.78rem', color: '#AAA', margin: '4px 0 0', fontWeight: '600' },
+    badge: { padding: '5px 14px', borderRadius: '20px', fontWeight: '700', fontSize: '0.78rem' },
+    bGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '14px', marginBottom: '16px' },
+    bCell: { background: '#FAF6F1', borderRadius: '10px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '4px' },
+    bLabel: { fontSize: '0.72rem', color: '#999', fontWeight: '700' },
+    bVal: { fontSize: '0.95rem', fontWeight: '700', color: '#1A1A1A' },
+    bNotes: { fontStyle: 'italic', color: '#666', fontSize: '0.88rem', backgroundColor: '#FAF6F1', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px' },
+    bDate: { fontSize: '0.75rem', color: '#CCC', marginBottom: '16px' },
+    bActions: { display: 'flex', gap: '12px' },
+    editBtn: { padding: '9px 20px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem' },
+    deleteBtn: { padding: '9px 20px', background: 'transparent', color: '#c62828', border: '1.5px solid #ef9a9a', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem' },
 
-    // Modal
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modal: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' },
-    modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' },
-    closeBtn: { background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#AAA' },
-    form: { display: 'flex', flexDirection: 'column', gap: '24px' },
-    inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
-    label: { fontSize: '0.9rem', fontWeight: '700', color: '#1A1A1A' },
-    input: { padding: '14px', borderRadius: '12px', border: '1px solid #EEE', background: '#F9F9F9', fontSize: '1rem', outline: 'none' },
-    noticeBox: { padding: '16px', background: '#F5F5F5', borderRadius: '12px', borderLeft: '4px solid #1A1A1A' },
-    confirmBtn: { padding: '16px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '1.1rem', cursor: 'pointer', marginTop: '8px' },
+    empty: { textAlign: 'center', padding: '80px 40px', color: '#AAA', background: '#fff', borderRadius: '20px', lineHeight: '1.6' },
 
-    empty: { textAlign: 'center', padding: '40px', color: '#AAA', fontStyle: 'italic' },
-    loginNotice: { textAlign: 'center', padding: '60px', background: '#fff', borderRadius: '24px' },
-    loginBtn: { display: 'inline-block', marginTop: '16px', padding: '10px 30px', background: '#1A1A1A', color: '#fff', textDecoration: 'none', borderRadius: '10px', fontWeight: '700' }
+    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+    modal: { background: '#fff', borderRadius: '28px', padding: '40px', width: '100%', maxWidth: '480px', boxShadow: '0 24px 60px rgba(0,0,0,0.15)', position: 'relative' },
+    closeX: { position: 'absolute', top: '16px', right: '20px', background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#AAA' },
+    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
+    formGroup: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' },
+    lbl: { fontSize: '0.88rem', fontWeight: '700', color: '#333' },
+    inp: { padding: '13px', borderRadius: '10px', border: '1px solid #EEE', background: '#F9F9F9', fontSize: '0.95rem', outline: 'none', width: '100%', boxSizing: 'border-box' },
+    modalBtns: { display: 'flex', gap: '12px', marginTop: '8px' },
+    backBtn: { flex: 1, padding: '13px', background: '#F5F5F5', color: '#333', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' },
+    nextBtn: { flex: 2, padding: '13px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' },
 };
 
 export default ServiceBookingPage;

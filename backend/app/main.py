@@ -8,14 +8,14 @@ from app.models.land_model import Land
 from app.models.bid_model import Bid
 from app.models.availability_model import Availability
 from app.models.visit_model import Visit
-from app.models.service_booking_model import ServiceBooking
+from app.models.inquiry_model import Inquiry
 
-from app.routes.auth_routes             import router as auth_router
-from app.routes.land_routes             import router as land_router
-from app.routes.bid_routes              import router as bid_router
-from app.routes.availability_routes     import router as availability_router
-from app.routes.visit_routes            import router as visit_router
-from app.routes.service_booking_routes  import router as service_booking_router
+from app.routes.auth_routes         import router as auth_router
+from app.routes.land_routes         import router as land_router
+from app.routes.bid_routes          import router as bid_router
+from app.routes.availability_routes import router as availability_router
+from app.routes.visit_routes        import router as visit_router
+from app.routes.inquiry_routes      import router as inquiry_router
 
 # Auto-create all tables on startup
 Base.metadata.create_all(bind=engine)
@@ -26,11 +26,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS - allow all for development
+# CORS configuration
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -41,7 +47,7 @@ app.include_router(land_router)
 app.include_router(bid_router)
 app.include_router(availability_router)
 app.include_router(visit_router)
-app.include_router(service_booking_router)
+app.include_router(inquiry_router)
 
 @app.get("/")
 async def health_check():
@@ -53,4 +59,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../apiConfig';
 
+const API = API_BASE_URL;
 const SELLER_ID = 'sunil_perera';
-
-const API = 'http://127.0.0.1:8000';
 
 function getSeedListings() {
     return [
@@ -173,6 +173,9 @@ const SellerDashboard = () => {
                             </button>
                             <button style={{ ...S.actionBtn, ...S.outlineBtn }} onClick={() => navigate('/dashboard/seller/availability')}>
                                 Set Availability
+                            </button>
+                            <button style={{ ...S.actionBtn, ...S.outlineBtn }} onClick={() => navigate('/dashboard/seller/visits')}>
+                                View Visit Requests
                             </button>
                         </div>
                     </div>

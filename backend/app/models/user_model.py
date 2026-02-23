@@ -8,6 +8,8 @@ class UserRole(str, enum.Enum):
     buyer = "buyer"
     seller = "seller"
     constructor_manager = "constructor_manager"
+    admin = "admin"
+    agent = "agent"
 
 class User(Base):
     __tablename__ = "users"
@@ -27,5 +29,4 @@ class User(Base):
     bids         = relationship("Bid",          back_populates="buyer")
     availability = relationship("Availability", back_populates="seller")
     visits       = relationship("Visit",        back_populates="buyer")
-    service_bookings_as_buyer       = relationship("ServiceBooking", foreign_keys="ServiceBooking.buyer_id",       back_populates="buyer")
-    service_bookings_as_constructor = relationship("ServiceBooking", foreign_keys="ServiceBooking.constructor_id", back_populates="constructor")
+    inquiries    = relationship("Inquiry",      back_populates="buyer")

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 const BuyerDashboard = () => {
     const { user, logout } = useAuth();
@@ -45,7 +46,7 @@ const BuyerDashboard = () => {
     // Fetch available lands from DB
     const [availableLands, setAvailableLands] = useState([]);
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/lands/')
+        fetch(`${API_BASE_URL}/lands/`)
             .then(r => r.json())
             .then(data => setAvailableLands(Array.isArray(data) ? data : []))
             .catch(() => setAvailableLands([]));
@@ -56,7 +57,7 @@ const BuyerDashboard = () => {
     useEffect(() => {
         const tok = localStorage.getItem('access_token');
         if (!tok) return;
-        fetch('http://127.0.0.1:8000/bids/my-bids', {
+        fetch(`${API_BASE_URL}/bids/my-bids`, {
             headers: { 'Authorization': `Bearer ${tok}` }
         })
             .then(r => r.json())
@@ -64,45 +65,18 @@ const BuyerDashboard = () => {
             .catch(() => setMyBids([]));
     }, []);
 
-    // Fetch buyer's site visit requests from DB
+    // Fetch real visits from DB
     const [myVisits, setMyVisits] = useState([]);
-    const [visitsLoading, setVisitsLoading] = useState(true);
-
-    // Fetch buyer's service bookings from DB
-    const [myServiceBkgs, setMyServiceBkgs] = useState([]);
-    const [serviceBkgsLoading, setServiceBkgsLoading] = useState(true);
-
     useEffect(() => {
         const tok = localStorage.getItem('access_token');
-        if (!tok) { setVisitsLoading(false); setServiceBkgsLoading(false); return; }
-        const h = { Authorization: `Bearer ${tok}` };
-
-        // Site visits
-        fetch(`${API}/visits/my-requests`, { headers: h })
+        if (!tok) return;
+        fetch(`${API}/visits/my-requests`, {
+            headers: { 'Authorization': `Bearer ${tok}` }
+        })
             .then(r => r.json())
-            .then(d => setMyVisits(Array.isArray(d) ? d : []))
-            .catch(() => setMyVisits([]))
-            .finally(() => setVisitsLoading(false));
-
-        // Service bookings
-        fetch(`${API}/service-bookings/my`, { headers: h })
-            .then(r => r.json())
-            .then(d => setMyServiceBkgs(Array.isArray(d) ? d : []))
-            .catch(() => setMyServiceBkgs([]))
-            .finally(() => setServiceBkgsLoading(false));
+            .then(data => setMyVisits(Array.isArray(data) ? data : []))
+            .catch(() => setMyVisits([]));
     }, []);
-
-    const VISIT_STATUS_COLOR = {
-        Pending: { bg: '#FFF3E0', c: '#e65100' },
-        Accepted: { bg: '#E8F5E9', c: '#2e7d32' },
-        Rejected: { bg: '#FFEBEE', c: '#c62828' },
-    };
-    const BKG_STATUS_COLOR = {
-        Scheduled: { bg: '#E3F2FD', c: '#1565c0' },
-        'In Progress': { bg: '#FFF3E0', c: '#e65100' },
-        Completed: { bg: '#E8F5E9', c: '#2e7d32' },
-        Cancelled: { bg: '#FFEBEE', c: '#c62828' },
-    };
 
     const handleEditToggle = () => {
         setTempProfile({ ...profile });
@@ -232,12 +206,8 @@ const BuyerDashboard = () => {
                                 </div>
                                 <div style={S.listAction}>
                                     <span style={S.amount}>Rs. {Number(bid.amount).toLocaleString()}</span>
-                                    <span style={{
-                                        ...S.badge,
-                                        backgroundColor: bid.status === 'Accepted' ? '#E8F5E9' : bid.status === 'Rejected' ? '#FFEBEE' : '#E3F2FD',
-                                        color: bid.status === 'Accepted' ? '#4CAF50' : bid.status === 'Rejected' ? '#F44336' : '#1565c0'
-                                    }}>
-                                        {bid.status}
+                                    <span style={{ ...S.badge, backgroundColor: '#E8F5E9', color: '#4CAF50' }}>
+                                        Active
                                     </span>
                                 </div>
                             </div>
@@ -245,69 +215,30 @@ const BuyerDashboard = () => {
                     </div>
                 </div>
 
-                {/* Site Visits Card */}
+                {/* Visits Summary */}
                 <div style={S.card}>
-                    <div style={S.cardHeader}>
-                        <div style={S.cardTitle}>
-                            My Site Visits
-                            <span style={{ marginLeft: '10px', background: '#1A1A1A', color: '#fff', fontSize: '0.7rem', fontWeight: '700', borderRadius: '20px', padding: '2px 10px' }}>
-                                {myVisits.length}
-                            </span>
-                        </div>
-                        <button style={S.editBtn} onClick={() => navigate('/lands')}>Browse Lands</button>
-                    </div>
+                    <div style={S.cardTitle}>Site Visits</div>
                     <div style={S.list}>
-                        {visitsLoading ? (
-                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>Loading…</p>
-                        ) : myVisits.length === 0 ? (
-                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>
-                                No site visits yet. <a href="/lands" style={{ color: '#1A1A1A', fontWeight: '700' }}>Browse lands →</a>
-                            </p>
-                        ) : myVisits.slice(0, 4).map(visit => {
-                            const sc = VISIT_STATUS_COLOR[visit.status] || { bg: '#F5F5F5', c: '#888' };
-                            return (
-                                <div key={visit.id} style={S.listItem}>
-                                    <div style={S.listMain}>
-                                        <h4 style={S.itemTitle}>{visit.land_name || `Land #${visit.land_id}`}</h4>
-                                        <span style={S.itemSub}>{visit.visit_date} at {visit.visit_time} · {visit.visit_type}</span>
-                                    </div>
-                                    <span style={{ ...S.badge, backgroundColor: sc.bg, color: sc.c }}>{visit.status}</span>
+                        {myVisits.length === 0 ? (
+                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>No visits scheduled yet.</p>
+                        ) : myVisits.map(visit => (
+                            <div key={visit.id} style={S.listItem}>
+                                <div style={S.listMain}>
+                                    <h4 style={S.itemTitle}>{visit.land_name || `Land #${visit.land_id}`}</h4>
+                                    <span style={S.itemSub}>{visit.visit_date} at {visit.visit_time}</span>
+                                    <span style={{ fontSize: '0.72rem', color: '#666', fontWeight: '700' }}>{visit.visit_type} Visit</span>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Service Bookings Card */}
-                <div style={S.card}>
-                    <div style={S.cardHeader}>
-                        <div style={S.cardTitle}>
-                            My Service Bookings
-                            <span style={{ marginLeft: '10px', background: '#1A1A1A', color: '#fff', fontSize: '0.7rem', fontWeight: '700', borderRadius: '20px', padding: '2px 10px' }}>
-                                {myServiceBkgs.length}
-                            </span>
-                        </div>
-                        <button style={S.editBtn} onClick={() => navigate('/services')}>View All</button>
-                    </div>
-                    <div style={S.list}>
-                        {serviceBkgsLoading ? (
-                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>Loading…</p>
-                        ) : myServiceBkgs.length === 0 ? (
-                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>
-                                No service bookings yet. <a href="/services" style={{ color: '#1A1A1A', fontWeight: '700' }}>Book a service →</a>
-                            </p>
-                        ) : myServiceBkgs.slice(0, 4).map(bkg => {
-                            const sc = BKG_STATUS_COLOR[bkg.status] || { bg: '#F5F5F5', c: '#888' };
-                            return (
-                                <div key={bkg.id} style={S.listItem}>
-                                    <div style={S.listMain}>
-                                        <h4 style={S.itemTitle}>{bkg.service_type}</h4>
-                                        <span style={S.itemSub}>{bkg.preferred_date} at {bkg.preferred_time}</span>
-                                    </div>
-                                    <span style={{ ...S.badge, backgroundColor: sc.bg, color: sc.c }}>{bkg.status}</span>
+                                <div style={S.listAction}>
+                                    <span style={{
+                                        ...S.badge,
+                                        backgroundColor: visit.status === 'Accepted' ? '#E8F5E9' : visit.status === 'Rejected' ? '#FFEBEE' : '#F5F5F5',
+                                        color: visit.status === 'Accepted' ? '#4CAF50' : visit.status === 'Rejected' ? '#F44336' : '#999'
+                                    }}>
+                                        {visit.status}
+                                    </span>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

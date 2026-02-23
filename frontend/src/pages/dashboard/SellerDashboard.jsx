@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../apiConfig';
 
+const API = API_BASE_URL;
 const SELLER_ID = 'sunil_perera';
-
-const API = 'http://127.0.0.1:8000';
 
 function getSeedListings() {
     return [

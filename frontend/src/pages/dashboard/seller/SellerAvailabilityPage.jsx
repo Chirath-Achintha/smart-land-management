@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const SellerAvailabilityPage = () => {

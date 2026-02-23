@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 const STATUS_COLORS = {
     Pending: { bg: '#fff8e1', color: '#e65100', border: '#ffe082' },

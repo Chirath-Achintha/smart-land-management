@@ -37,6 +37,7 @@ import SellerListingsPage from '../pages/dashboard/seller/SellerListingsPage';
 import SellerBidsPage from '../pages/dashboard/seller/SellerBidsPage';
 import SellerBiddingPage from '../pages/dashboard/seller/SellerBiddingPage';
 import SellerAvailabilityPage from '../pages/dashboard/seller/SellerAvailabilityPage';
+import SellerVisitsPage from '../pages/dashboard/seller/SellerVisitsPage';
 
 // Agent Sub-pages
 import AgentClientsPage from '../pages/dashboard/agent/AgentClientsPage';
@@ -91,6 +92,7 @@ const AppRoutes = () => {
                     <Route path="/dashboard/seller/bids" element={<SellerBidsPage />} />
                     <Route path="/dashboard/seller/bidding" element={<SellerBiddingPage />} />
                     <Route path="/dashboard/seller/availability" element={<SellerAvailabilityPage />} />
+                    <Route path="/dashboard/seller/visits" element={<SellerVisitsPage />} />
 
                     {/* Admin Specific Routes */}
                     <Route path="/dashboard/admin/agents" element={<AgentAssignment />} />

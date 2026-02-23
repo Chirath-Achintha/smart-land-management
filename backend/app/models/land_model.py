@@ -46,7 +46,8 @@ class Land(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    seller       = relationship("User", back_populates="lands")
-    bids         = relationship("Bid",  back_populates="land",  cascade="all, delete-orphan")
-    availability = relationship("Availability", back_populates="land", cascade="all, delete-orphan")
-    visits       = relationship("Visit", back_populates="land", cascade="all, delete-orphan")
+    seller           = relationship("User", back_populates="lands")
+    bids             = relationship("Bid",  back_populates="land",  cascade="all, delete-orphan")
+    availability     = relationship("Availability", back_populates="land", cascade="all, delete-orphan")
+    visits           = relationship("Visit", back_populates="land", cascade="all, delete-orphan")
+    service_bookings = relationship("ServiceBooking", back_populates="land")

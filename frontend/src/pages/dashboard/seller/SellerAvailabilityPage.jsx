@@ -72,7 +72,28 @@ const SellerAvailabilityPage = () => {
         setSaved(false);
     };
 
-    const removeSlot = (idx) => {
+    const removeSlot = async (idx) => {
+        const slotToRemove = slots[idx];
+
+        // If it's an existing slot from DB, delete it immediately from DB
+        if (slotToRemove.id) {
+            try {
+                const res = await fetch(`${API}/availability/${slotToRemove.id}`, {
+                    method: 'DELETE',
+                    headers: authHeaders,
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    setError(err.detail || 'Failed to delete slot from database.');
+                    return;
+                }
+            } catch {
+                setError('Server error while deleting slot.');
+                return;
+            }
+        }
+
+        // Remove from local state
         setSlots(prev => prev.filter((_, i) => i !== idx));
         setSaved(false);
     };

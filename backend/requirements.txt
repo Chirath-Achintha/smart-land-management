@@ -20,7 +20,6 @@ python-multipart==0.0.9         # Support for form data and file uploads
 python-dotenv==1.0.1            # Loads environment variables from .env file
 email-validator==2.1.0.post1    # Email validation for Pydantic models
 slowapi==0.1.9                  # Rate limiting for FastAPI endpoints
-cors-headers==0.1.0             # Middleware for Cross-Origin Resource Sharing (CORS)
 
 # Testing & HTTP Client
 httpx==0.26.0                   # Modern HTTP client for testing and external calls

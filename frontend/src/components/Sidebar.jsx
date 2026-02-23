@@ -17,7 +17,6 @@ const NAV = {
     agent: [
         { to: '/dashboard', label: 'Overview' },
         { to: '/dashboard/clients', label: 'My Clients' },
-        { to: '/dashboard/service-requests', label: 'Service Requests' },
     ],
     admin: [
         { to: '/dashboard', label: 'Dashboard Overview' },

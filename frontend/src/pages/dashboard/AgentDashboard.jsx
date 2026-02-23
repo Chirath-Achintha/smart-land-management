@@ -39,6 +39,9 @@ const AgentDashboard = () => {
     const [activeReport, setActiveReport] = useState(null);
     const [reportNotes, setReportNotes] = useState('');
 
+    // Profile Modal State
+    const [showProfileModal, setShowProfileModal] = useState(false);
+
     useEffect(() => {
         const raw = localStorage.getItem(`agent_bookings_${AGENT_ID}`);
         const loaded = raw ? JSON.parse(raw) : getSeedBookings();
@@ -118,15 +121,19 @@ const AgentDashboard = () => {
             <div style={S.header}>
                 <div>
                     <h1 style={S.title}>Agent Dashboard</h1>
+                    {assignedCount > 0 && (
+                        <div style={S.notifBadge}>
+                            <span style={S.notifPulse}></span>
+                            You have {assignedCount} new assignments waiting!
+                        </div>
+                    )}
                 </div>
-                {assignedCount > 0 && (
-                    <div style={S.notifBadge}>
-                        <span style={S.notifPulse}></span>
-                        You have {assignedCount} new assignments waiting!
-                    </div>
-                )}
-            </div>
 
+                {/* Profile Pic Top Right */}
+                <div style={S.profilePicWrapper} onClick={() => setShowProfileModal(true)}>
+                    <div style={S.profileInitials}>{profile.name.charAt(0)}</div>
+                </div>
+            </div>
 
             <div style={S.dashboardContent}>
                 <div style={S.mainColumn}>
@@ -210,18 +217,23 @@ const AgentDashboard = () => {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div style={S.sideColumn}>
-                    {/* Profile Card */}
-                    <div style={S.sectionCard}>
+            {/* Profile Modal */}
+            {showProfileModal && (
+                <div style={S.modalOverlay}>
+                    <div style={S.modalLarge}>
                         <div style={S.cardHeader}>
                             <h2 style={S.sectionTitle}>My Profile</h2>
                             {!isEditing ? (
-                                <button style={S.editBtn} onClick={handleEditToggle}>Edit</button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button style={S.editBtn} onClick={handleEditToggle}>Edit</button>
+                                    <button style={S.cancelBtn} onClick={() => setShowProfileModal(false)}>Close</button>
+                                </div>
                             ) : (
                                 <div style={S.editActions}>
                                     <button style={S.saveBtn} onClick={handleSave}>Save</button>
-                                    <button style={S.cancelBtn} onClick={() => setIsEditing(false)}>Cancel</button>
+                                    <button style={S.cancelBtn} onClick={() => setIsEditing(false)}>Cancel Editing</button>
                                 </div>
                             )}
                         </div>
@@ -248,7 +260,7 @@ const AgentDashboard = () => {
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Report Submission Modal */}
             {showReportModal && (
@@ -317,9 +329,11 @@ const S = {
     activeTab: { background: '#1A1A1A', color: '#fff', border: '1px solid #1A1A1A' },
     count: { background: '#3498db', color: '#fff', padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem' },
 
-    dashboardContent: { display: 'grid', gridTemplateColumns: '1.4fr 0.6fr', gap: '32px' },
-    mainColumn: { display: 'flex', flexDirection: 'column', gap: '20px' },
-    sideColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
+    profilePicWrapper: { cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    profileInitials: { width: '48px', height: '48px', background: '#3498db', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: '800', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' },
+
+    dashboardContent: { display: 'flex', flexDirection: 'column', gap: '32px' },
+    mainColumn: { display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' },
 
     sectionCard: { background: '#fff', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #F0F0F0', paddingBottom: '16px' },

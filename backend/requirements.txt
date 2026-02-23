@@ -4,12 +4,13 @@ uvicorn[standard]==0.27.1       # The ASGI server to run the FastAPI application
 
 # Data Validation & Settings
 pydantic==2.6.1                 # Data validation and settings management
-pydantic-settings==2.1.0        # Pydantic settings management
+pydantic-settings==2.1.0        # Pydantic settings management (reads .env)
 
 # Database & ORM
-sqlalchemy==2.0.27              # SQL Toolkit and Object-Relational Mapper (ORM)
+sqlalchemy==2.0.27              # SQL Toolkit and ORM
 alembic==1.13.1                 # Database migrations tool for SQLAlchemy
-psycopg2-binary==2.9.9          # PostgreSQL database adapter
+pymysql==1.1.0                  # MySQL driver for SQLAlchemy (replaces psycopg2)
+cryptography==42.0.2            # Required by pymysql for secure connections
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0 # JSON Web Token (JWT) implementation

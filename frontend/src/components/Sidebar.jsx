@@ -12,7 +12,8 @@ const NAV = {
         { to: '/dashboard/seller/listings', label: 'My Listings' },
         { to: '/dashboard/seller/bids', label: 'Bids Overview' },
         { to: '/dashboard/seller/bidding', label: 'Bidding Setup' },
-        { to: '/dashboard/seller/availability', label: 'Site Visits' },
+        { to: '/dashboard/seller/availability', label: 'Visit Availability' },
+        { to: '/dashboard/seller/visits', label: 'Visit Requests' },
     ],
     agent: [
         { to: '/dashboard', label: 'Overview' },

@@ -3,54 +3,105 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { LANDS } from './landsData';
 import { PinIcon } from '../landing/LandingIcons';
 
+const API = 'http://127.0.0.1:8000';
+
 const ScheduleVisitPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const land = LANDS.find(l => l.id === parseInt(id));
 
-    const [visitType, setVisitType] = useState('self'); // 'self' or 'agent'
+    const [land, setLand] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [availability, setAvailability] = useState([]);
+    const [loadingSlots, setLoadingSlots] = useState(true);
+
+    const [visitType, setVisitType] = useState('Self'); // 'Self' or 'Agent'
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState('');
     const [requestAgent, setRequestAgent] = useState(false);
-    const [showBookingModal, setShowBookingModal] = useState(false);
+    const [error, setError] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    // Fetch Land Details
+    useEffect(() => {
+        fetch(`${API}/lands/${id}`)
+            .then(r => r.json())
+            .then(data => { setLand(data); setLoading(false); })
+            .catch(() => { setLand(null); setLoading(false); });
+    }, [id]);
+
+    // Fetch Availability
+    useEffect(() => {
+        if (!id) return;
+        fetch(`${API}/availability/land/${id}`)
+            .then(r => r.json())
+            .then(data => { setAvailability(Array.isArray(data) ? data : []); setLoadingSlots(false); })
+            .catch(() => { setAvailability([]); setLoadingSlots(false); });
+    }, [id]);
+
+    // Reset time when date changes
+    useEffect(() => {
+        setSelectedTime('');
+    }, [selectedDate]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
 
-    if (!land) {
-        return (
-            <div className="lands-root" style={{ textAlign: 'center', padding: '100px 20px' }}>
-                <h2>Land not found</h2>
-                <button className="btn-dark" onClick={() => navigate('/lands')}>Back to Listings</button>
-            </div>
-        );
+    // Filter slots for selected date
+    const getSlotsForDate = () => {
+        if (!selectedDate) return [];
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const d = new Date(selectedDate + 'T00:00:00');
+        const dayName = dayNames[d.getDay()];
+        return availability.filter(a => a.day === dayName);
+    };
+
+    const dailySlots = getSlotsForDate();
+
+    if (loading) {
+        return <div style={{ textAlign: 'center', padding: '100px', fontSize: '1.2rem', color: '#666' }}>Loading land details...</div>;
     }
 
-    const handleBooking = (e) => {
+    const handleBooking = async (e) => {
         e.preventDefault();
+        setError('');
+        setSubmitting(true);
 
-        if (visitType === 'agent') {
-            const newAgentBooking = {
-                id: `BK-${Math.floor(Math.random() * 9000) + 1000}`,
-                landId: `LND-${land.id}`,
-                buyer: 'Anonymous Buyer',
-                land: land.name,
-                location: `${land.village}, ${land.district}`,
-                seller: land.owner.name,
-                date: selectedDate,
-                time: selectedTime,
-                status: 'Assigned'
-            };
-
-            const AGENT_ID = 'agent_001';
-            const raw = localStorage.getItem(`agent_bookings_${AGENT_ID}`);
-            const bookings = raw ? JSON.parse(raw) : [];
-            localStorage.setItem(`agent_bookings_${AGENT_ID}`, JSON.stringify([newAgentBooking, ...bookings]));
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            setError('Please log in to book a visit.');
+            setSubmitting(false);
+            return;
         }
 
-        alert(`Visit Scheduled Successfully!\nType: ${visitType === 'self' ? 'Self Visit' : 'Agent Visit'}\nDate: ${selectedDate}\nTime: ${selectedTime}\n${visitType === 'agent' && requestAgent ? 'Agent Requested: Yes' : ''}`);
-        navigate(`/lands/${land.id}`);
+        try {
+            const res = await fetch(`${API}/visits/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    land_id: land.id,
+                    visit_type: visitType,
+                    visit_date: selectedDate,
+                    visit_time: selectedTime,
+                    message: visitType === 'Agent' && requestAgent ? 'Agent requested' : ''
+                }),
+            });
+
+            if (res.ok) {
+                alert(`Visit Scheduled Successfully!\nType: ${visitType} Visit\nDate: ${selectedDate}\nTime: ${selectedTime}`);
+                navigate(`/lands/${land.id}`);
+            } else {
+                const err = await res.json();
+                setError(err.detail || 'Failed to book visit.');
+            }
+        } catch {
+            setError('Server error. Please try again later.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -65,31 +116,21 @@ const ScheduleVisitPage = () => {
                     {/* Left Side: Land & Owner Info */}
                     <div style={S.infoSection}>
                         <div style={S.card}>
-                            <img src={land.img} alt={land.name} style={S.landImg} />
+                            <img src={land.image_url ? land.image_url.split(',')[0] : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80'} alt={land.name} style={S.landImg} />
                             <div style={S.cardBody}>
                                 <h1 style={S.title}>{land.name}</h1>
                                 <p style={S.location}><PinIcon /> {land.village}, {land.district}</p>
 
                                 <div style={S.divider} />
 
-                                <h3 style={S.sectionTitle}>Owner Details</h3>
-                                <div style={S.ownerBox}>
-                                    <div style={S.avatar}>{land.owner.name.charAt(0)}</div>
-                                    <div>
-                                        <p style={S.ownerName}>{land.owner.name}</p>
-                                        <p style={S.ownerRole}>{land.owner.role}</p>
-                                        <p style={S.ownerPhone}>{land.owner.phone}</p>
-                                    </div>
-                                </div>
-
-                                <div style={S.divider} />
-
                                 <h3 style={S.sectionTitle}>Owner's Availability</h3>
                                 <div style={S.slotsGrid}>
-                                    {land.owner.freeSlots.map((slot, idx) => (
+                                    {availability.length === 0 ? (
+                                        <p style={{ color: '#999', fontSize: '0.9rem' }}>No availability slots listed yet.</p>
+                                    ) : availability.map((slot, idx) => (
                                         <div key={idx} style={S.slotCard}>
                                             <span style={S.slotDay}>{slot.day}</span>
-                                            <span style={S.slotTime}>{slot.time}</span>
+                                            <span style={S.slotTime}>{slot.time_slot}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -106,18 +147,20 @@ const ScheduleVisitPage = () => {
 
                                 <div style={S.typeToggle}>
                                     <button
-                                        style={visitType === 'self' ? S.activeToggle : S.inactiveToggle}
-                                        onClick={() => setVisitType('self')}
+                                        style={visitType === 'Self' ? S.activeToggle : S.inactiveToggle}
+                                        onClick={() => setVisitType('Self')}
                                     >
                                         Self Visit
                                     </button>
                                     <button
-                                        style={visitType === 'agent' ? S.activeToggle : S.inactiveToggle}
-                                        onClick={() => setVisitType('agent')}
+                                        style={visitType === 'Agent' ? S.activeToggle : S.inactiveToggle}
+                                        onClick={() => setVisitType('Agent')}
                                     >
                                         Agent Visit
                                     </button>
                                 </div>
+
+                                {error && <div style={{ color: '#F44336', background: '#FFEBEE', padding: '10px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem' }}>{error}</div>}
 
                                 <form onSubmit={handleBooking} style={S.form}>
                                     <div style={S.inputGroup}>
@@ -132,14 +175,19 @@ const ScheduleVisitPage = () => {
                                     </div>
 
                                     <div style={S.inputGroup}>
-                                        <label style={S.label}>Select Time</label>
-                                        <input
-                                            type="time"
+                                        <label style={S.label}>Select Time Slot</label>
+                                        <select
                                             required
                                             style={S.input}
                                             value={selectedTime}
                                             onChange={(e) => setSelectedTime(e.target.value)}
-                                        />
+                                            disabled={!selectedDate || dailySlots.length === 0}
+                                        >
+                                            <option value="">{selectedDate ? (dailySlots.length > 0 ? '-- Select a Time Slot --' : 'No slots available for this day') : '-- Select a date first --'}</option>
+                                            {dailySlots.map(s => (
+                                                <option key={s.id} value={s.time_slot}>{s.time_slot}</option>
+                                            ))}
+                                        </select>
                                     </div>
 
                                     {visitType === 'agent' && (
@@ -156,8 +204,8 @@ const ScheduleVisitPage = () => {
                                         </div>
                                     )}
 
-                                    <button type="submit" style={S.submitBtn}>
-                                        {visitType === 'self' ? 'Confirm Self Visit' : 'Request Agent Visit'}
+                                    <button type="submit" style={S.submitBtn} disabled={submitting}>
+                                        {submitting ? 'Processing...' : (visitType === 'Self' ? 'Confirm Self Visit' : 'Request Agent Visit')}
                                     </button>
                                 </form>
 

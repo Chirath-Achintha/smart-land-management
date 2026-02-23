@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 const BuyerDashboard = () => {
     const { user, logout } = useAuth();
@@ -45,7 +46,7 @@ const BuyerDashboard = () => {
     // Fetch available lands from DB
     const [availableLands, setAvailableLands] = useState([]);
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/lands/')
+        fetch(`${API_BASE_URL}/lands/`)
             .then(r => r.json())
             .then(data => setAvailableLands(Array.isArray(data) ? data : []))
             .catch(() => setAvailableLands([]));
@@ -56,7 +57,7 @@ const BuyerDashboard = () => {
     useEffect(() => {
         const tok = localStorage.getItem('access_token');
         if (!tok) return;
-        fetch('http://127.0.0.1:8000/bids/my-bids', {
+        fetch(`${API_BASE_URL}/bids/my-bids`, {
             headers: { 'Authorization': `Bearer ${tok}` }
         })
             .then(r => r.json())
@@ -64,11 +65,18 @@ const BuyerDashboard = () => {
             .catch(() => setMyBids([]));
     }, []);
 
-    // Mock Site Visit Schedules
-    const myVisits = [
-        { id: 'VST-201', property: 'Highland Park, Nuwara Eliya', date: '2024-03-05', time: '10:30 AM', status: 'Confirmed', agent: 'Sarath Perera' },
-        { id: 'VST-198', property: 'Green Valley, Gampaha', date: '2024-02-22', time: '02:00 PM', status: 'Completed', agent: 'Sunil Silva' }
-    ];
+    // Fetch real visits from DB
+    const [myVisits, setMyVisits] = useState([]);
+    useEffect(() => {
+        const tok = localStorage.getItem('access_token');
+        if (!tok) return;
+        fetch(`${API}/visits/my-requests`, {
+            headers: { 'Authorization': `Bearer ${tok}` }
+        })
+            .then(r => r.json())
+            .then(data => setMyVisits(Array.isArray(data) ? data : []))
+            .catch(() => setMyVisits([]));
+    }, []);
 
     const handleEditToggle = () => {
         setTempProfile({ ...profile });
@@ -215,18 +223,20 @@ const BuyerDashboard = () => {
                 <div style={S.card}>
                     <div style={S.cardTitle}>Site Visits</div>
                     <div style={S.list}>
-                        {myVisits.map(visit => (
+                        {myVisits.length === 0 ? (
+                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>No visits scheduled yet.</p>
+                        ) : myVisits.map(visit => (
                             <div key={visit.id} style={S.listItem}>
                                 <div style={S.listMain}>
-                                    <h4 style={S.itemTitle}>{visit.property}</h4>
-                                    <span style={S.itemSub}>{visit.date} at {visit.time}</span>
+                                    <h4 style={S.itemTitle}>{visit.land_name || `Land #${visit.land_id}`}</h4>
+                                    <span style={S.itemSub}>{visit.visit_date} at {visit.visit_time}</span>
+                                    <span style={{ fontSize: '0.72rem', color: '#666', fontWeight: '700' }}>{visit.visit_type} Visit</span>
                                 </div>
                                 <div style={S.listAction}>
-                                    <span style={S.itemAgent}>with {visit.agent}</span>
                                     <span style={{
                                         ...S.badge,
-                                        backgroundColor: visit.status === 'Completed' ? '#F5F5F5' : '#E8F5E9',
-                                        color: visit.status === 'Completed' ? '#999' : '#4CAF50'
+                                        backgroundColor: visit.status === 'Accepted' ? '#E8F5E9' : visit.status === 'Rejected' ? '#FFEBEE' : '#F5F5F5',
+                                        color: visit.status === 'Accepted' ? '#4CAF50' : visit.status === 'Rejected' ? '#F44336' : '#999'
                                     }}>
                                         {visit.status}
                                     </span>

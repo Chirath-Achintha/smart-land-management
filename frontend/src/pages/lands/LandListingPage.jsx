@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LandListingPage.css';
+import API_BASE_URL from '../../apiConfig';
 import { PinIcon } from '../landing/LandingIcons';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 const LandListingPage = () => {
     const navigate = useNavigate();

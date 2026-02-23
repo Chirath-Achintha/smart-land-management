@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PinIcon } from '../landing/LandingIcons';
 import './LandListingPage.css';
+import API_BASE_URL from '../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 // ── Bid Modal ──────────────────────────────────────────────────────────────────
 const BidModal = ({ land, onClose }) => {
@@ -92,6 +93,22 @@ const VisitModal = ({ land, onClose }) => {
             .then(data => { setAvailability(Array.isArray(data) ? data : []); setLoadingSlots(false); })
             .catch(() => { setAvailability([]); setLoadingSlots(false); });
     }, [land.id]);
+
+    // Reset time when date changes
+    useEffect(() => {
+        setTime('');
+    }, [date]);
+
+    // Filter slots for selected date
+    const getSlotsForDate = () => {
+        if (!date) return [];
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const d = new Date(date + 'T00:00:00');
+        const dayName = dayNames[d.getDay()];
+        return availability.filter(a => a.day === dayName);
+    };
+
+    const dailySlots = getSlotsForDate();
 
     const [error, setError] = useState('');
 
@@ -209,10 +226,19 @@ const VisitModal = ({ land, onClose }) => {
                                     style={VS.input} required />
                             </div>
                             <div>
-                                <label style={VS.label}>Select Time</label>
-                                <input type="time" value={time}
+                                <label style={VS.label}>Select Time Slot</label>
+                                <select
+                                    value={time}
                                     onChange={e => setTime(e.target.value)}
-                                    style={VS.input} required />
+                                    style={VS.input}
+                                    required
+                                    disabled={!date || dailySlots.length === 0}
+                                >
+                                    <option value="">{date ? (dailySlots.length > 0 ? '-- Select a Time Slot --' : 'No slots available for this day') : '-- Select a date first --'}</option>
+                                    {dailySlots.map(s => (
+                                        <option key={s.id} value={s.time_slot}>{s.time_slot}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <button type="submit" className="btn-dark"

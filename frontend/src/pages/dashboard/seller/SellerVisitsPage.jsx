@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 const STATUS_COLORS = {
     Pending: { bg: '#fff8e1', color: '#e65100', border: '#ffe082' },
@@ -109,7 +110,13 @@ const SellerVisitsPage = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                                             <div>
                                                 <div style={S.buyerName}>{visit.buyer_name || 'Buyer'}</div>
-                                                <div style={S.visitType}>{visit.visit_type} Visit</div>
+                                                <span style={{
+                                                    ...S.typeBadge,
+                                                    background: visit.visit_type === 'Self' ? '#e3f2fd' : '#f3e5f5',
+                                                    color: visit.visit_type === 'Self' ? '#1565c0' : '#7b1fa2'
+                                                }}>
+                                                    {visit.visit_type === 'Self' ? '🏠 Self Visit' : '👔 Agent Visit'}
+                                                </span>
                                             </div>
                                             <span style={{ ...S.badge, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
                                                 {visit.status}
@@ -180,6 +187,7 @@ const S = {
     cards: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' },
     card: { background: '#fff', borderRadius: '18px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' },
     buyerName: { fontWeight: '800', fontSize: '1.05rem', color: '#1A1A1A' },
+    typeBadge: { fontSize: '0.7rem', fontWeight: '800', padding: '3px 10px', borderRadius: '12px', display: 'inline-block', marginTop: '6px', textTransform: 'uppercase', letterSpacing: '0.02em' },
     visitType: { fontSize: '0.78rem', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '3px' },
     badge: { padding: '5px 14px', borderRadius: '20px', fontWeight: '700', fontSize: '0.78rem' },
     infoGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' },

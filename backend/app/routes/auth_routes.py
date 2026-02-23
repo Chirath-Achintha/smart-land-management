@@ -8,20 +8,23 @@ from app.models.user_model import User
 from app.schemas.user_schema import UserRegister, UserLogin, UserResponse, Token
 from app.core.config import settings
 
-from passlib.context import CryptContext
+import bcrypt
 from jose import jwt, JWTError
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 bearer_scheme = HTTPBearer()
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing context removed in favor of direct bcrypt usage
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    # Hash a password using bcrypt
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    # Verify a plain password against a hashed one
+    return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()

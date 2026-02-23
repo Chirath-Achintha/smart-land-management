@@ -9,7 +9,8 @@ const SellerAvailabilityPage = () => {
     const [selectedId, setSelectedId] = useState('');
     const [slots, setSlots] = useState([]);
     const [slotDay, setSlotDay] = useState('Monday');
-    const [slotTime, setSlotTime] = useState('');
+    const [startTime, setStartTime] = useState('09:00');
+    const [endTime, setEndTime] = useState('17:00');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -48,15 +49,27 @@ const SellerAvailabilityPage = () => {
         setError('');
     };
 
+    const formatTimeStr = (t24) => {
+        if (!t24) return '';
+        const [h, m] = t24.split(':');
+        let hrs = parseInt(h);
+        const ampm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = hrs % 12 || 12;
+        return `${String(hrs).padStart(2, '0')}:${m} ${ampm}`;
+    };
+
     const addSlot = () => {
-        if (!slotTime.trim()) { setError('Please enter a time range.'); return; }
+        if (!startTime || !endTime) { setError('Please select both start and end times.'); return; }
+
+        const timeRange = `${formatTimeStr(startTime)} – ${formatTimeStr(endTime)}`;
+
         // Prevent duplicate
-        const dup = slots.find(s => s.day === slotDay && s.time_slot === slotTime.trim());
+        const dup = slots.find(s => s.day === slotDay && s.time_slot === timeRange);
         if (dup) { setError('This slot already exists.'); return; }
-        setSlots(prev => [...prev, { day: slotDay, time_slot: slotTime.trim() }]);
-        setSlotTime('');
-        setSaved(false);
+
+        setSlots(prev => [...prev, { day: slotDay, time_slot: timeRange }]);
         setError('');
+        setSaved(false);
     };
 
     const removeSlot = (idx) => {
@@ -126,12 +139,17 @@ const SellerAvailabilityPage = () => {
                                 {DAYS.map(d => <option key={d}>{d}</option>)}
                             </select>
                             <input
-                                type="text"
-                                placeholder="e.g. 09:00 AM – 12:00 PM"
-                                value={slotTime}
-                                onChange={e => setSlotTime(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSlot())}
-                                style={{ ...S.input, flex: 1 }}
+                                type="time"
+                                value={startTime}
+                                onChange={e => setStartTime(e.target.value)}
+                                style={{ ...S.input, flex: '1 1 120px' }}
+                            />
+                            <span style={{ color: '#888', fontWeight: 'bold' }}>to</span>
+                            <input
+                                type="time"
+                                value={endTime}
+                                onChange={e => setEndTime(e.target.value)}
+                                style={{ ...S.input, flex: '1 1 120px' }}
                             />
                             <button type="button" style={S.addBtn} onClick={addSlot}>Add Slot</button>
                         </div>

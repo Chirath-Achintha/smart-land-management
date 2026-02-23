@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 const BuyerDashboard = () => {
     const { user, logout } = useAuth();
@@ -45,7 +46,7 @@ const BuyerDashboard = () => {
     // Fetch available lands from DB
     const [availableLands, setAvailableLands] = useState([]);
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/lands/')
+        fetch(`${API_BASE_URL}/lands/`)
             .then(r => r.json())
             .then(data => setAvailableLands(Array.isArray(data) ? data : []))
             .catch(() => setAvailableLands([]));
@@ -56,7 +57,7 @@ const BuyerDashboard = () => {
     useEffect(() => {
         const tok = localStorage.getItem('access_token');
         if (!tok) return;
-        fetch('http://127.0.0.1:8000/bids/my-bids', {
+        fetch(`${API_BASE_URL}/bids/my-bids`, {
             headers: { 'Authorization': `Bearer ${tok}` }
         })
             .then(r => r.json())

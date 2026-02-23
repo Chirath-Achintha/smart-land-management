@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PinIcon } from '../landing/LandingIcons';
 import './LandListingPage.css';
+import API_BASE_URL from '../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 // ── Bid Modal ──────────────────────────────────────────────────────────────────
 const BidModal = ({ land, onClose }) => {

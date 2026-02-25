@@ -1,32 +1,5 @@
 import React from 'react';
 
-export const PROPERTIES = [
-  {
-    id: 1,
-    img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=700&q=80",
-    location: "San Francisco, California",
-    rooms: 4,
-    sqft: "3,500",
-    price: "$2,500,000",
-  },
-  {
-    id: 2,
-    img: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=700&q=80",
-    location: "Beverly Hills, California",
-    rooms: 3,
-    sqft: "1,500",
-    price: "$850,000",
-  },
-  {
-    id: 3,
-    img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=700&q=80",
-    location: "Palo Alto, California",
-    rooms: 6,
-    sqft: "4,000",
-    price: "$3,700,000",
-  },
-];
-
 export const WHY_CARDS = [
   {
     id: 1,

@@ -8,16 +8,17 @@ const MainLayout = () => {
     const { user } = useAuth();
     const location = useLocation();
 
-    // Hide header/footer if role is admin and we are in a dashboard route
-    const isAdminDashboard = user?.role === 'admin' && location.pathname.startsWith('/dashboard');
+    // Hide header/footer if role is admin or seller and we are in a dashboard route
+    const isDashboard = location.pathname.startsWith('/dashboard');
+    const hideHeaderFooter = (user?.role === 'admin' || user?.role === 'seller') && isDashboard;
 
     return (
         <div style={styles.container}>
-            {!isAdminDashboard && <Header />}
+            {!hideHeaderFooter && <Header />}
             <div style={styles.mainContent}>
                 <Outlet />
             </div>
-            {!isAdminDashboard && <GlobalFooter />}
+            {!hideHeaderFooter && <GlobalFooter />}
         </div>
     );
 };

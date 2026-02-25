@@ -43,15 +43,6 @@ const BuyerDashboard = () => {
             .finally(() => setProfileLoading(false));
     }, []);
 
-    // Fetch available lands from DB
-    const [availableLands, setAvailableLands] = useState([]);
-    useEffect(() => {
-        fetch(`${API_BASE_URL}/lands/`)
-            .then(r => r.json())
-            .then(data => setAvailableLands(Array.isArray(data) ? data : []))
-            .catch(() => setAvailableLands([]));
-    }, []);
-
     // Fetch the buyer's bids from DB
     const [myBids, setMyBids] = useState([]);
     useEffect(() => {
@@ -147,38 +138,6 @@ const BuyerDashboard = () => {
                     </div>
                 </div>
 
-                {/* Available Lands from DB */}
-                <div style={S.card}>
-                    <div style={S.cardHeader}>
-                        <div style={S.cardTitle}>
-                            Available Land Listings
-                            <span style={{ marginLeft: '10px', background: '#1A1A1A', color: '#fff', fontSize: '0.7rem', fontWeight: '700', borderRadius: '20px', padding: '2px 10px' }}>
-                                {availableLands.length} Available
-                            </span>
-                        </div>
-                        <button style={S.editBtn} onClick={() => navigate('/lands')}>Browse All</button>
-                    </div>
-                    <div style={S.list}>
-                        {availableLands.length === 0 ? (
-                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>No listings available yet.</p>
-                        ) : availableLands.slice(0, 3).map(land => (
-                            <div key={land.id} style={S.listItem}>
-                                {land.image_url && (
-                                    <img src={land.image_url.split(',')[0]} alt={land.name}
-                                        style={{ width: '52px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
-                                )}
-                                <div style={S.listMain}>
-                                    <h4 style={S.itemTitle}>{land.name}</h4>
-                                    <span style={S.itemSub}>{land.village}, {land.district} • {land.perches} perches</span>
-                                </div>
-                                <div style={S.listAction}>
-                                    <span style={S.amount}>Rs. {(land.total_price / 1000000).toFixed(1)}M</span>
-                                    <span style={{ ...S.badge, backgroundColor: '#E8F5E9', color: '#4CAF50' }}>{land.land_type}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
 
                 {/* Bidding Summary */}
                 <div style={S.card}>

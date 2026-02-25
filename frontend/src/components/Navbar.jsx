@@ -1,7 +1,16 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = ({ role }) => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <nav style={styles.navbar}>
       <div style={styles.logo}>
@@ -9,7 +18,7 @@ const Navbar = ({ role }) => {
       </div>
       <div>
         <span style={styles.roleText}>Role: {role}</span>
-        <button style={styles.logoutBtn} onClick={() => alert('Logout clicked')}>Logout</button>
+        <button style={styles.logoutBtn} onClick={handleLogout}>Logout</button>
       </div>
     </nav>
   );

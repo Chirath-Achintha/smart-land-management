@@ -14,7 +14,24 @@ class LandType(str, Enum):
     Mixed = "Mixed"
     Commercial = "Commercial"
 
-# ── Request Schemas ───────────────────────────────────────────────────────────
+# ── Bidding Setup Schemas ──────────────────────────────────────────────────
+
+class BiddingSetupBase(BaseModel):
+    open_for_bidding: bool = False
+    starting_bid: Optional[float] = None
+    bidding_end: Optional[str] = None
+
+class BiddingSetupCreate(BiddingSetupBase):
+    pass
+
+class BiddingSetupResponse(BiddingSetupBase):
+    id: int
+    land_id: int
+
+    class Config:
+        from_attributes = True
+
+# ── Land Request Schemas ───────────────────────────────────────────────────────────
 
 class LandCreate(BaseModel):
     name: str
@@ -27,10 +44,7 @@ class LandCreate(BaseModel):
     road_access: Optional[str] = None
     electricity: bool = False
     water: bool = False
-    image_url: Optional[str] = None          # URL string or comma-separated URLs
-    open_for_bidding: bool = False
-    starting_bid: Optional[float] = None
-    bidding_end: Optional[str] = None
+    image_url: Optional[str] = None
 
 class LandUpdate(BaseModel):
     name: Optional[str] = None
@@ -44,9 +58,6 @@ class LandUpdate(BaseModel):
     electricity: Optional[bool] = None
     water: Optional[bool] = None
     image_url: Optional[str] = None
-    open_for_bidding: Optional[bool] = None
-    starting_bid: Optional[float] = None
-    bidding_end: Optional[str] = None
 
 # ── Response Schema ───────────────────────────────────────────────────────────
 
@@ -65,10 +76,15 @@ class LandResponse(BaseModel):
     electricity: bool
     water: bool
     image_url: Optional[str]
-    open_for_bidding: bool
-    starting_bid: Optional[float]
-    bidding_end: Optional[str]
     created_at: Optional[datetime]
+    
+    # Bidding fields (flattened for compatibility)
+    open_for_bidding: bool = False
+    starting_bid: Optional[float] = None
+    bidding_end: Optional[str] = None
+
+    # Nested bidding setup (optional)
+    bidding_setup: Optional[BiddingSetupBase] = None
 
     class Config:
         from_attributes = True

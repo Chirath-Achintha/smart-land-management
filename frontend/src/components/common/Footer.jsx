@@ -1,5 +1,5 @@
 import React from 'react';
-import { DwelloLogo } from '../../pages/landing/LandingIcons';
+import { BrandLogo } from '../../pages/landing/LandingIcons';
 import '../../pages/landing/LandingPage.css';
 
 const GlobalFooter = () => {
@@ -7,10 +7,10 @@ const GlobalFooter = () => {
         <footer className="landing-footer" id="contact">
             <div className="footer-inner">
                 <div className="nav-logo" style={{ color: 'white' }}>
-                    <DwelloLogo />
-                    <span className="nav-logo-text">Dwello</span>
+                    <BrandLogo />
+                    <span className="nav-logo-text">Smart Land Management</span>
                 </div>
-                <p className="footer-text">© 2026 Dwello. All rights reserved.</p>
+                <p className="footer-text">© 2026 Smart Land Management. All rights reserved.</p>
                 <div className="footer-links">
                     {["Privacy", "Terms", "Contact"].map((l) => (
                         <a key={l} href="#" className="footer-link">{l}</a>

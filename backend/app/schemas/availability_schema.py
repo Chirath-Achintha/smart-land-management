@@ -2,23 +2,22 @@ from pydantic import BaseModel
 from typing import List
 
 
-class AvailabilityCreate(BaseModel):
-    land_id:   int
+# ── Land-Specific Availability ──────────────────────────────────────────────
+
+class AvailabilityBase(BaseModel):
     day:       str
     time_slot: str
 
+class AvailabilityCreate(AvailabilityBase):
+    pass
 
-class AvailabilityResponse(BaseModel):
+class AvailabilityResponse(AvailabilityBase):
     id:        int
     land_id:   int
     seller_id: int
-    day:       str
-    time_slot: str
 
     class Config:
         from_attributes = True
 
-
-class BulkAvailabilityCreate(BaseModel):
-    land_id: int
-    slots: List[dict]   # [{"day": "Monday", "time_slot": "09:00 AM – 12:00 PM"}, ...]
+class AvailabilityBulkCreate(BaseModel):
+    slots: List[AvailabilityBase]

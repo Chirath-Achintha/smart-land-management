@@ -25,7 +25,12 @@ const SellerVisitsPage = () => {
         setLoading(true);
         fetch(`${API}/visits/my-lands`, { headers: authHeaders })
             .then(r => r.json())
-            .then(data => { setVisits(Array.isArray(data) ? data : []); setLoading(false); })
+            .then(data => {
+                // Sellers only see Self Visits
+                const selfVisits = Array.isArray(data) ? data.filter(v => v.visit_type === 'self_visit') : [];
+                setVisits(selfVisits);
+                setLoading(false);
+            })
             .catch(() => { setVisits([]); setLoading(false); });
     };
 
@@ -106,57 +111,56 @@ const SellerVisitsPage = () => {
                                 const sc = STATUS_COLORS[visit.status] || STATUS_COLORS.Pending;
                                 return (
                                     <div key={visit.id} style={S.card}>
-                                        {/* Status badge */}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                        {/* Header: Buyer Name + Status */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                                             <div>
                                                 <div style={S.buyerName}>{visit.buyer_name || 'Buyer'}</div>
-                                                <span style={{
-                                                    ...S.typeBadge,
-                                                    background: visit.visit_type === 'Self' ? '#e3f2fd' : '#f3e5f5',
-                                                    color: visit.visit_type === 'Self' ? '#1565c0' : '#7b1fa2'
-                                                }}>
-                                                    {visit.visit_type === 'Self' ? '🏠 Self Visit' : '👔 Agent Visit'}
-                                                </span>
+                                                <div style={{ ...S.typeLabel, color: visit.visit_type === 'self_visit' ? '#1565c0' : '#7b1fa2' }}>
+                                                    {visit.visit_type === 'self_visit' ? 'Personal Visit' : 'Agent Scheduled'}
+                                                </div>
                                             </div>
-                                            <span style={{ ...S.badge, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                                                {visit.status}
+                                            <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>
+                                                {visit.status.toUpperCase()}
                                             </span>
                                         </div>
 
-                                        {/* Date & Time */}
-                                        <div style={S.infoGrid}>
-                                            <div style={S.infoItem}>
-                                                <span style={S.infoLabel}>📅 Date</span>
-                                                <span style={S.infoVal}>{visit.visit_date}</span>
+                                        {/* Visit Details: Minimalist Rows */}
+                                        <div style={S.detailsArea}>
+                                            <div style={S.detailRow}>
+                                                <span style={S.detailKey}>SCHEDULED DATE</span>
+                                                <span style={S.detailVal}>{new Date(visit.visit_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
                                             </div>
-                                            <div style={S.infoItem}>
-                                                <span style={S.infoLabel}>🕐 Time</span>
-                                                <span style={S.infoVal}>{visit.visit_time}</span>
+                                            <div style={S.detailRow}>
+                                                <span style={S.detailKey}>TIME SLOT</span>
+                                                <span style={S.detailVal}>{visit.visit_time}</span>
                                             </div>
                                         </div>
 
                                         {visit.message && (
-                                            <div style={S.msgBox}>"{visit.message}"</div>
+                                            <div style={S.messageWrapper}>
+                                                <div style={S.messageKey}>Message from Buyer</div>
+                                                <div style={S.messageContent}>{visit.message}</div>
+                                            </div>
                                         )}
 
-                                        <div style={S.submitted}>
-                                            Submitted: {new Date(visit.created_at).toLocaleString('en-LK', { dateStyle: 'medium', timeStyle: 'short' })}
+                                        <div style={S.timestamp}>
+                                            Request received {new Date(visit.created_at).toLocaleDateString()}
                                         </div>
 
-                                        {/* Accept / Reject buttons — only for Pending */}
+                                        {/* Actions */}
                                         {visit.status === 'Pending' && (
-                                            <div style={S.btnRow}>
+                                            <div style={S.actionGrid}>
                                                 <button
-                                                    style={S.acceptBtn}
+                                                    style={S.primaryBtn}
                                                     disabled={updating === visit.id}
                                                     onClick={() => updateStatus(visit.id, 'Accepted')}>
-                                                    {updating === visit.id ? '…' : '✓ Accept'}
+                                                    {updating === visit.id ? 'Processing...' : 'Accept Request'}
                                                 </button>
                                                 <button
-                                                    style={S.rejectBtn}
+                                                    style={S.secondaryBtn}
                                                     disabled={updating === visit.id}
                                                     onClick={() => updateStatus(visit.id, 'Rejected')}>
-                                                    {updating === visit.id ? '…' : '✕ Reject'}
+                                                    {updating === visit.id ? '...' : 'Decline'}
                                                 </button>
                                             </div>
                                         )}
@@ -174,31 +178,38 @@ const SellerVisitsPage = () => {
 const S = {
     root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
-    subtitle: { color: '#777', fontSize: '0.95rem' },
-    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '0.9rem' },
-    errBox: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem' },
-    filterRow: { display: 'flex', gap: '10px', marginBottom: '32px', flexWrap: 'wrap' },
-    filterBtn: { padding: '9px 20px', borderRadius: '20px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.15s' },
-    filterCount: { background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '1px 8px', fontSize: '0.75rem' },
-    empty: { textAlign: 'center', color: '#aaa', padding: '80px 20px', fontSize: '1rem' },
-    landGroup: { marginBottom: '36px' },
-    landGroupTitle: { fontSize: '1.1rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '16px', paddingBottom: '10px', borderBottom: '2px solid #f0ebe4' },
-    cards: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' },
-    card: { background: '#fff', borderRadius: '18px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' },
-    buyerName: { fontWeight: '800', fontSize: '1.05rem', color: '#1A1A1A' },
-    typeBadge: { fontSize: '0.7rem', fontWeight: '800', padding: '3px 10px', borderRadius: '12px', display: 'inline-block', marginTop: '6px', textTransform: 'uppercase', letterSpacing: '0.02em' },
-    visitType: { fontSize: '0.78rem', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '3px' },
-    badge: { padding: '5px 14px', borderRadius: '20px', fontWeight: '700', fontSize: '0.78rem' },
-    infoGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' },
-    infoItem: { background: '#FAF6F1', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px' },
-    infoLabel: { fontSize: '0.72rem', color: '#888', fontWeight: '700' },
-    infoVal: { fontSize: '0.95rem', fontWeight: '700', color: '#1A1A1A' },
-    msgBox: { background: '#f5f0ea', borderRadius: '8px', padding: '10px 12px', fontSize: '0.85rem', color: '#555', fontStyle: 'italic', marginBottom: '12px' },
-    submitted: { fontSize: '0.75rem', color: '#bbb', marginBottom: '16px' },
-    btnRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
-    acceptBtn: { padding: '10px', background: '#e8f5e9', color: '#2e7d32', border: '1.5px solid #a5d6a7', borderRadius: '10px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
-    rejectBtn: { padding: '10px', background: '#fdecea', color: '#c62828', border: '1.5px solid #ef9a9a', borderRadius: '10px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
+    title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px', letterSpacing: '-0.02em' },
+    subtitle: { color: '#777', fontSize: '1rem', fontWeight: '500' },
+    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
+    errBox: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem', border: '1px solid #ef9a9a' },
+    filterRow: { display: 'flex', gap: '12px', marginBottom: '40px', flexWrap: 'wrap' },
+    filterBtn: { padding: '10px 24px', borderRadius: '30px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' },
+    filterCount: { background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '1px 8px', fontSize: '0.7rem' },
+    empty: { textAlign: 'center', color: '#aaa', padding: '100px 20px', fontSize: '1.1rem', fontWeight: '500' },
+    landGroup: { marginBottom: '48px' },
+    landGroupTitle: { fontSize: '1.25rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '20px', paddingLeft: '4px' },
+    cards: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' },
+
+    // Bespoke Card Styles
+    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 8px 32px rgba(26, 26, 26, 0.04)', border: '1px solid #F0EBE4', transition: 'transform 0.2s', position: 'relative' },
+    buyerName: { fontWeight: '800', fontSize: '1.2rem', color: '#1A1A1A', marginBottom: '2px' },
+    typeLabel: { fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    statusLabel: { padding: '4px 12px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '900', letterSpacing: '0.08em' },
+
+    detailsArea: { marginTop: '24px', borderTop: '1px solid #F0EBE4', paddingTop: '20px' },
+    detailRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
+    detailKey: { fontSize: '0.68rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.08em' },
+    detailVal: { fontSize: '0.92rem', fontWeight: '700', color: '#1A1A1A' },
+
+    messageWrapper: { marginTop: '16px', background: '#F9F7F5', borderRadius: '16px', padding: '16px 20px' },
+    messageKey: { fontSize: '0.65rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' },
+    messageContent: { fontSize: '0.88rem', color: '#444', lineHeight: '1.5', fontWeight: '500' },
+
+    timestamp: { fontSize: '0.72rem', color: '#BBB', marginTop: '24px', fontWeight: '600' },
+
+    actionGrid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px', marginTop: '24px' },
+    primaryBtn: { padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' },
+    secondaryBtn: { padding: '14px', background: '#fff', color: '#C62828', border: '1.5px solid #FDECEA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' },
 };
 
 export default SellerVisitsPage;

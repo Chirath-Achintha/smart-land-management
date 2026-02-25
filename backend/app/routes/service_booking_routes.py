@@ -21,7 +21,16 @@ def _build_response(b: ServiceBooking, db: Session) -> ServiceBookingResponse:
     buyer = db.query(User).filter(User.id == b.buyer_id).first()
     land  = db.query(Land).filter(Land.id == b.land_id).first() if b.land_id else None
     return ServiceBookingResponse(
-        **{c.name: getattr(b, c.name) for c in b.__table__.columns},
+        id=b.id,
+        buyer_id=b.buyer_id,
+        land_id=b.land_id,
+        constructor_id=b.constructor_id,
+        service_type=b.service_type,
+        preferred_date=b.preferred_date,
+        preferred_time=b.preferred_time,
+        notes=b.notes,
+        status=b.status,
+        created_at=b.created_at,
         buyer_name=buyer.full_name if buyer else None,
         land_name=land.name if land else None,
     )

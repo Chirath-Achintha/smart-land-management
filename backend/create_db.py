@@ -4,7 +4,7 @@ try:
     connection = pymysql.connect(
         host='localhost',
         user='root',
-        password='sql123'
+        password='1234'
     )
     with connection.cursor() as cursor:
         cursor.execute("CREATE DATABASE IF NOT EXISTS land_management_sys")

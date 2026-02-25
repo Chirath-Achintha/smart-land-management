@@ -12,13 +12,13 @@ class BidStatus(str, enum.Enum):
 class Bid(Base):
     __tablename__ = "bids"
 
-    id         = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    land_id    = Column(Integer, ForeignKey("lands.id", ondelete="CASCADE"), nullable=False, index=True)
-    buyer_id   = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id         = Column('bid_id', Integer, primary_key=True, index=True, autoincrement=True)
+    land_id    = Column(Integer, ForeignKey("lands.listing_id", ondelete="CASCADE"), nullable=False, index=True)
+    buyer_id   = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
     amount     = Column(Float, nullable=False)
     message    = Column(Text, nullable=True)
-    status     = Column(Enum(BidStatus), nullable=False, default=BidStatus.pending)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    status     = Column('bid_status', Enum(BidStatus), nullable=False, default=BidStatus.pending)
+    created_at = Column('timestamp', DateTime(timezone=True), server_default=func.now())
 
     # Relationships
     land  = relationship("Land",  back_populates="bids")

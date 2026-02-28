@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../apiConfig';
 
 const Login = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Get the redirect path from state, or default based on role
+    const from = location.state?.from;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -37,7 +41,10 @@ const Login = () => {
             // Login via AuthContext using role from backend
             login(data.user.role);
 
-            if (data.user.role === 'buyer') {
+            // Redirect to 'from' path if it exists, otherwise use default role-based path
+            if (from) {
+                navigate(from);
+            } else if (data.user.role === 'buyer') {
                 navigate('/');
             } else {
                 navigate('/dashboard');
@@ -53,6 +60,12 @@ const Login = () => {
         <div>
             <h2 style={styles.title}>Welcome Back</h2>
             <p style={styles.subtitle}>Login to access your dashboard</p>
+
+            {from && (
+                <div style={styles.infoBox}>
+                    If you want to access these features, you must login first.
+                </div>
+            )}
 
             {error && <p style={styles.error}>{error}</p>}
 
@@ -98,6 +111,7 @@ const Login = () => {
 const styles = {
     title: { textAlign: 'center', marginBottom: '10px', fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A' },
     subtitle: { textAlign: 'center', color: '#555', marginBottom: '32px', fontSize: '0.9rem' },
+    infoBox: { backgroundColor: '#E8F5E9', color: '#2E7D32', border: '1px solid #A5D6A7', borderRadius: '12px', padding: '12px 16px', marginBottom: '24px', fontSize: '0.9rem', textAlign: 'center', fontWeight: '600' },
     error: { color: '#d32f2f', backgroundColor: '#fdecea', border: '1px solid #d32f2f', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.875rem' },
     form: { display: 'flex', flexDirection: 'column' },
     formGroup: { marginBottom: '20px', display: 'flex', flexDirection: 'column' },

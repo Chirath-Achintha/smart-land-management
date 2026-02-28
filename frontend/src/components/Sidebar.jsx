@@ -41,12 +41,12 @@ const Sidebar = ({ role }) => {
 
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate('/');
     };
 
     return (
         <aside style={styles.sidebar}>
-            <div style={styles.brand}>Smart Land</div>
+            <div style={styles.brand}>Smart Land Management</div>
             <div style={styles.roleTag}>{(role || 'User').toUpperCase()}</div>
             <ul style={styles.list}>
                 {links.map((link, idx) => {
@@ -79,14 +79,14 @@ const Sidebar = ({ role }) => {
 };
 
 const styles = {
-    sidebar: { width: '240px', backgroundColor: '#FAF6F1', padding: '28px 16px', minHeight: '100vh', borderRight: '1px solid #ede8e1', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' },
-    brand: { fontSize: '1.1rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px', paddingLeft: '4px', letterSpacing: '-0.02em' },
-    roleTag: { fontSize: '0.65rem', fontWeight: '700', letterSpacing: '0.1em', color: '#bbb', marginBottom: '28px', paddingLeft: '4px', textTransform: 'uppercase' },
+    sidebar: { width: '240px', backgroundColor: 'var(--sage-bg)', padding: '28px 16px', minHeight: '100vh', borderRight: '1px solid rgba(85, 107, 47, 0.1)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' },
+    brand: { fontSize: '1.1rem', fontWeight: '800', color: 'var(--sage-primary)', marginBottom: '6px', paddingLeft: '4px', letterSpacing: '-0.02em' },
+    roleTag: { fontSize: '0.65rem', fontWeight: '700', letterSpacing: '0.1em', color: 'var(--sage-text-light)', marginBottom: '28px', paddingLeft: '4px', textTransform: 'uppercase' },
     list: { listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 },
     listItem: {},
     link: { textDecoration: 'none', display: 'block', padding: '10px 14px', borderRadius: '8px', border: '1px solid transparent', fontSize: '0.875rem', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.18s' },
-    bottomSection: { borderTop: '1px solid #ede8e1', paddingTop: '20px', marginTop: '16px' },
-    logoutBtn: { width: '100%', padding: '11px 14px', background: '#fff', color: '#e74c3c', border: '1px solid #e5ddd8', borderRadius: '8px', fontSize: '0.875rem', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left', transition: 'background 0.15s' },
+    bottomSection: { borderTop: '1px solid rgba(85, 107, 47, 0.1)', paddingTop: '20px', marginTop: '16px' },
+    logoutBtn: { width: '100%', padding: '11px 14px', background: 'var(--sage-card)', color: '#e74c3c', border: '1px solid rgba(85, 107, 47, 0.1)', borderRadius: '8px', fontSize: '0.875rem', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left', transition: 'background 0.15s' },
 };
 
 export default Sidebar;

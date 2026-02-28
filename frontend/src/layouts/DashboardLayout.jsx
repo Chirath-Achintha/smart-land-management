@@ -15,7 +15,7 @@ const DashboardLayout = ({ role }) => {
 
 const styles = {
     layout: { display: 'flex', minHeight: '100vh', width: '100%' },
-    main: { flex: 1, backgroundColor: '#FAF6F1', overflowY: 'auto' },
+    main: { flex: 1, backgroundColor: 'var(--sage-bg)', overflowY: 'auto' },
 };
 
 export default DashboardLayout;

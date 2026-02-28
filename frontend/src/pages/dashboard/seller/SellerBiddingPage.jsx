@@ -231,8 +231,17 @@ const SellerBiddingPage = () => {
 
                         {/* ── Save Footer ── */}
                         <div style={S.footer}>
-                            {error && <span style={S.errMsg}>{error}</span>}
-                            {saved && <span style={S.savedMsg}>✓ Saved to database!</span>}
+                            {saved && (
+                                <div style={S.successToast}>
+                                    <div style={S.toastIcon}>✓</div>
+                                    <div>
+                                        <div style={S.toastTitle}>Settings Applied Successfully</div>
+                                        <div style={S.toastDesc}>
+                                            <strong>{selectedListing?.name}</strong> is now {form.open_for_bidding ? 'LIVE' : 'CLOSED'} for bidding.
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <button type="submit" className="btn-dark" style={S.saveBtn} disabled={saving}>
                                 {saving ? 'Saving…' : 'Save Settings'}
                             </button>
@@ -277,9 +286,12 @@ const S = {
     quickPending: { background: '#eaf4fb', color: '#1565c0', border: '1px solid #90caf9' },
     quickClosed: { background: '#f5f0ea', color: '#aaa', border: '1px solid #ddd' },
     footer: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px', borderTop: '1px solid #f0ebe4', paddingTop: '24px' },
-    savedMsg: { fontSize: '0.85rem', color: '#27ae60', fontWeight: '700' },
     errMsg: { fontSize: '0.85rem', color: '#d32f2f', fontWeight: '600' },
     saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700', fontSize: '0.95rem' },
+    successToast: { position: 'absolute', bottom: '80px', right: '36px', background: '#fff', border: '1px solid #27ae60', borderRadius: '12px', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 8px 30px rgba(39, 174, 96, 0.15)', animation: 'slideUp 0.4s ease-out', zIndex: 100 },
+    toastIcon: { background: '#27ae60', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.9rem' },
+    toastTitle: { fontWeight: '800', fontSize: '0.9rem', color: '#1A1A1A', marginBottom: '2px' },
+    toastDesc: { fontSize: '0.82rem', color: '#666' },
 };
 
 export default SellerBiddingPage;

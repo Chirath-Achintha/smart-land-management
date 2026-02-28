@@ -66,10 +66,25 @@ const AppRoutes = () => {
             <Route element={<MainLayout />}>
                 {/* Landing Page */}
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/lands" element={<LandListingPage />} />
-                <Route path="/lands/:id" element={<LandDetailPage />} />
-                <Route path="/bidding/:id" element={<BiddingPage />} />
-                <Route path="/schedule-visit/:id" element={<ScheduleVisitPage />} />
+
+                {/* Protected Land Routes - Sellers blocked */}
+                <Route
+                    path="/lands"
+                    element={role === 'seller' ? <Navigate to="/dashboard" replace /> : <LandListingPage />}
+                />
+                <Route
+                    path="/lands/:id"
+                    element={role === 'seller' ? <Navigate to="/dashboard" replace /> : <LandDetailPage />}
+                />
+                <Route
+                    path="/bidding/:id"
+                    element={role === 'seller' ? <Navigate to="/dashboard" replace /> : <BiddingPage />}
+                />
+                <Route
+                    path="/schedule-visit/:id"
+                    element={role === 'seller' ? <Navigate to="/dashboard" replace /> : <ScheduleVisitPage />}
+                />
+
                 <Route path="/inquiry" element={<InquiryPage />} />
                 <Route path="/services" element={<ServiceBookingPage />} />
 

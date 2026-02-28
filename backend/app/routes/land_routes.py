@@ -5,7 +5,8 @@ from typing import List
 from app.database.connection import get_db
 from app.models.land_model import Land
 from app.models.user_model import User
-from app.schemas.land_schema import LandCreate, LandUpdate, LandResponse
+from app.models.bidding_setup_model import BiddingSetup
+from app.schemas.land_schema import LandCreate, LandUpdate, LandResponse, BiddingSetupBase
 from app.routes.auth_routes import get_current_user
 
 router = APIRouter(prefix="/lands", tags=["Lands"])
@@ -33,13 +34,17 @@ def create_land(
         electricity=data.electricity,
         water=data.water,
         image_url=data.image_url,
-        open_for_bidding=data.open_for_bidding,
-        starting_bid=data.starting_bid,
-        bidding_end=data.bidding_end,
     )
     db.add(land)
     db.commit()
     db.refresh(land)
+    
+    # Initialize empty bidding setup for the land
+    bidding = BiddingSetup(land_id=land.id)
+    db.add(bidding)
+    db.commit()
+    db.refresh(land)
+    
     return land
 
 
@@ -71,7 +76,7 @@ def get_land(land_id: int, db: Session = Depends(get_db)):
 @router.put("/{land_id}", response_model=LandResponse)
 def update_land(
     land_id: int,
-    data: LandUpdate,
+    data: dict, # Using dict to handle mixed fields flexibly during transition
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -79,11 +84,25 @@ def update_land(
     if not land:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
 
-    for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(land, field, value)
+    # Split fields into Land and BiddingSetup
+    bidding_fields = ['open_for_bidding', 'starting_bid', 'bidding_end']
+    
+    for field, value in data.items():
+        if field in bidding_fields:
+            if land.bidding_setup:
+                setattr(land.bidding_setup, field, value)
+            else:
+                # Fallback if somehow missing
+                new_bidding = BiddingSetup(land_id=land.id, **{field: value})
+                db.add(new_bidding)
+        elif hasattr(land, field):
+            setattr(land, field, value)
 
-    if data.perches is not None or data.price_per_perch is not None:
-        land.total_price = (data.perches or land.perches) * (data.price_per_perch or land.price_per_perch)
+    # Recalculate total price if perches/price_per_perch changed
+    if 'perches' in data or 'price_per_perch' in data:
+        p = data.get('perches', land.perches)
+        ppp = data.get('price_per_perch', land.price_per_perch)
+        land.total_price = p * ppp
 
     db.commit()
     db.refresh(land)

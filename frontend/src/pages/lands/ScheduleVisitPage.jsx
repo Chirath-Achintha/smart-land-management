@@ -14,7 +14,7 @@ const ScheduleVisitPage = () => {
     const [availability, setAvailability] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(true);
 
-    const [visitType, setVisitType] = useState('Self'); // 'Self' or 'Agent'
+    const [visitType, setVisitType] = useState('self_visit'); // 'self_visit' or 'agent_visit'
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState('');
     const [requestAgent, setRequestAgent] = useState(false);
@@ -86,12 +86,12 @@ const ScheduleVisitPage = () => {
                     visit_type: visitType,
                     visit_date: selectedDate,
                     visit_time: selectedTime,
-                    message: visitType === 'Agent' && requestAgent ? 'Agent requested' : ''
+                    message: visitType === 'agent_visit' && requestAgent ? 'Agent requested' : ''
                 }),
             });
 
             if (res.ok) {
-                alert(`Visit Scheduled Successfully!\nType: ${visitType} Visit\nDate: ${selectedDate}\nTime: ${selectedTime}`);
+                alert(`Visit Scheduled Successfully!\nType: ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit\nDate: ${selectedDate}\nTime: ${selectedTime}`);
                 navigate(`/lands/${land.id}`);
             } else {
                 const err = await res.json();
@@ -147,14 +147,14 @@ const ScheduleVisitPage = () => {
 
                                 <div style={S.typeToggle}>
                                     <button
-                                        style={visitType === 'Self' ? S.activeToggle : S.inactiveToggle}
-                                        onClick={() => setVisitType('Self')}
+                                        style={visitType === 'self_visit' ? S.activeToggle : S.inactiveToggle}
+                                        onClick={() => setVisitType('self_visit')}
                                     >
                                         Self Visit
                                     </button>
                                     <button
-                                        style={visitType === 'Agent' ? S.activeToggle : S.inactiveToggle}
-                                        onClick={() => setVisitType('Agent')}
+                                        style={visitType === 'agent_visit' ? S.activeToggle : S.inactiveToggle}
+                                        onClick={() => setVisitType('agent_visit')}
                                     >
                                         Agent Visit
                                     </button>
@@ -190,7 +190,7 @@ const ScheduleVisitPage = () => {
                                         </select>
                                     </div>
 
-                                    {visitType === 'agent' && (
+                                    {visitType === 'agent_visit' && (
                                         <div style={S.agentOption}>
                                             <label style={S.checkboxLabel}>
                                                 <input
@@ -205,7 +205,7 @@ const ScheduleVisitPage = () => {
                                     )}
 
                                     <button type="submit" style={S.submitBtn} disabled={submitting}>
-                                        {submitting ? 'Processing...' : (visitType === 'Self' ? 'Confirm Self Visit' : 'Request Agent Visit')}
+                                        {submitting ? 'Processing...' : (visitType === 'self_visit' ? 'Confirm Self Visit' : 'Request Agent Visit')}
                                     </button>
                                 </form>
 

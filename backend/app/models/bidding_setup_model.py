@@ -10,7 +10,8 @@ class BiddingSetup(Base):
     
     open_for_bidding = Column(Boolean, default=False)
     starting_bid = Column(Float, nullable=True)
-    bidding_end = Column(String(20), nullable=True)
+    bidding_start = Column(String(40), nullable=True)   # ISO datetime for scheduled start
+    bidding_end = Column(String(40), nullable=True)     # ISO datetime for auto-end
 
     # Relationship
     land = relationship("Land", back_populates="bidding_setup")

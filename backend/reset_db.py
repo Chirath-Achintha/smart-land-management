@@ -11,10 +11,20 @@ from app.models.service_booking_model import ServiceBooking
 from app.models.bidding_setup_model import BiddingSetup
 
 def reset_database():
-    print("Dropping all tables...")
-    Base.metadata.drop_all(bind=engine)
-    print("Recreating all tables from ER-aligned models...")
-    Base.metadata.create_all(bind=engine)
+    from sqlalchemy import text
+    with engine.connect() as connection:
+        print("Disabling foreign key checks...")
+        connection.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+        
+        print("Dropping all tables...")
+        Base.metadata.drop_all(bind=connection)
+        
+        print("Recreating all tables from ER-aligned models...")
+        Base.metadata.create_all(bind=connection)
+        
+        print("Re-enabling foreign key checks...")
+        connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+        connection.commit()
     print("Database reset complete.")
 
 if __name__ == "__main__":

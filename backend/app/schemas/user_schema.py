@@ -7,6 +7,8 @@ class UserRole(str, Enum):
     buyer = "buyer"
     seller = "seller"
     constructor_manager = "constructor_manager"
+    admin = "admin"
+    agent = "agent"
 
 # ---- Request Schemas ----
 

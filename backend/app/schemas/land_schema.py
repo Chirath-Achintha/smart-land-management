@@ -19,6 +19,7 @@ class LandType(str, Enum):
 class BiddingSetupBase(BaseModel):
     open_for_bidding: bool = False
     starting_bid: Optional[float] = None
+    bidding_start: Optional[str] = None
     bidding_end: Optional[str] = None
 
 class BiddingSetupCreate(BiddingSetupBase):
@@ -81,6 +82,7 @@ class LandResponse(BaseModel):
     # Bidding fields (flattened for compatibility)
     open_for_bidding: bool = False
     starting_bid: Optional[float] = None
+    bidding_start: Optional[str] = None
     bidding_end: Optional[str] = None
 
     # Nested bidding setup (optional)

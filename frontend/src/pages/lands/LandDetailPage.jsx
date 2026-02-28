@@ -3,76 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { PinIcon } from '../landing/LandingIcons';
 import './LandListingPage.css';
 
-const API = 'http://127.0.0.1:8000';
+import API_BASE_URL from '../../apiConfig';
 
-// ── Bid Modal ──────────────────────────────────────────────────────────────────
-const BidModal = ({ land, onClose }) => {
-    const [amount, setAmount] = useState('');
-    const [message, setMessage] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(''); setSuccess('');
-        const token = localStorage.getItem('access_token');
-        if (!token) { setError('Please log in to place a bid.'); return; }
-        if (!amount || parseFloat(amount) <= 0) { setError('Enter a valid bid amount.'); return; }
-        setSubmitting(true);
-        try {
-            const res = await fetch(`${API}/bids/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ land_id: land.id, amount: parseFloat(amount), message }),
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                setError(err.detail || 'Failed to place bid.');
-            } else {
-                setSuccess('🎉 Bid placed successfully!');
-                setTimeout(onClose, 1800);
-            }
-        } catch { setError('Server error. Try again.'); }
-        setSubmitting(false);
-    };
-
-    return (
-        <div style={MO.overlay} onClick={onClose}>
-            <div style={MO.modal} onClick={e => e.stopPropagation()}>
-                <button style={MO.closeBtn} onClick={onClose}>✕</button>
-                <h2 style={MO.title}>Place a Bid</h2>
-                <p style={MO.landName}>{land.name}</p>
-                <p style={MO.sub}>{land.village}, {land.district} · {land.perches} perches</p>
-                {land.starting_bid && (
-                    <div style={MO.hint}>
-                        Starting bid: <strong>Rs. {Number(land.starting_bid).toLocaleString()}</strong>
-                        {land.bidding_end && <> &nbsp;·&nbsp; Closes <strong>{land.bidding_end}</strong></>}
-                    </div>
-                )}
-                {error && <div style={MO.err}>{error}</div>}
-                {success && <div style={MO.ok}>{success}</div>}
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <div>
-                        <label style={MO.label}>Your Bid Amount (Rs.) *</label>
-                        <input type="number" min={land.starting_bid || 1} value={amount}
-                            onChange={e => setAmount(e.target.value)}
-                            style={MO.input} placeholder="e.g. 6500000" required />
-                    </div>
-                    <div>
-                        <label style={MO.label}>Message to Seller (optional)</label>
-                        <textarea value={message} onChange={e => setMessage(e.target.value)}
-                            style={{ ...MO.input, resize: 'vertical', minHeight: '72px' }}
-                            placeholder="Why are you interested in this land?" />
-                    </div>
-                    <button type="submit" className="btn-dark" style={{ padding: '14px' }} disabled={submitting}>
-                        {submitting ? 'Submitting…' : 'Submit Bid'}
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
-};
+const API = API_BASE_URL;
 
 // ── Visit Modal (two-panel layout) ─────────────────────────────────────────────
 const VisitModal = ({ land, onClose }) => {
@@ -264,7 +197,6 @@ const LandDetailPage = () => {
     const [land, setLand] = useState(null);
     const [bids, setBids] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showBidModal, setShowBidModal] = useState(false);
     const [showVisitModal, setShowVisitModal] = useState(false);
 
     // ── Tab state ──────────────────────────────────────────────────────────────
@@ -474,7 +406,7 @@ const LandDetailPage = () => {
                                         opacity: land.open_for_bidding ? 1 : 0.45,
                                         cursor: land.open_for_bidding ? 'pointer' : 'not-allowed',
                                     }}
-                                    onClick={() => land.open_for_bidding && setShowBidModal(true)}
+                                    onClick={() => land.open_for_bidding && navigate(`/bidding/${id}`)}
                                     title={land.open_for_bidding ? '' : 'Bidding is currently closed'}>
                                     Place a Bid
                                 </button>
@@ -542,7 +474,6 @@ const LandDetailPage = () => {
                 )}
             </div>
 
-            {showBidModal && <BidModal land={land} onClose={() => { setShowBidModal(false); fetchBids(); }} />}
             {showVisitModal && <VisitModal land={land} onClose={() => setShowVisitModal(false)} />}
 
             {/* ── Service Booking Modal (Redesigned) ────────────────────────── */}
@@ -684,19 +615,7 @@ const S = {
 };
 
 // ── Bid Modal Styles ──────────────────────────────────────────────────────────
-const MO = {
-    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' },
-    modal: { background: '#fff', borderRadius: '20px', padding: '36px', width: '100%', maxWidth: '480px', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
-    closeBtn: { position: 'absolute', top: '16px', right: '20px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#999' },
-    title: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '4px' },
-    landName: { fontWeight: '700', fontSize: '1rem', color: '#333', marginBottom: '4px' },
-    sub: { fontSize: '0.85rem', color: '#888', marginBottom: '12px' },
-    hint: { background: '#FAF6F1', borderRadius: '8px', padding: '10px 14px', fontSize: '0.85rem', color: '#555', marginBottom: '14px' },
-    label: { display: 'block', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888', marginBottom: '6px' },
-    input: { padding: '12px 14px', border: '1.5px solid #e5e0da', borderRadius: '10px', outline: 'none', fontSize: '0.95rem', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' },
-    err: { background: '#fdecea', color: '#d32f2f', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '10px' },
-    ok: { background: '#eafaf1', color: '#27ae60', padding: '12px 16px', borderRadius: '10px', fontWeight: '700', textAlign: 'center', fontSize: '0.95rem' },
-};
+const MO = {};
 
 // ── Visit Modal Styles ────────────────────────────────────────────────────────
 const VS = {

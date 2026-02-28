@@ -53,6 +53,10 @@ class Land(Base):
         return self.bidding_setup.starting_bid if self.bidding_setup else None
 
     @property
+    def bidding_start(self):
+        return self.bidding_setup.bidding_start if self.bidding_setup else None
+
+    @property
     def bidding_end(self):
         return self.bidding_setup.bidding_end if self.bidding_setup else None
 

@@ -3,10 +3,41 @@ import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
 
+/* ── helpers ── */
+const pad = (n) => String(n).padStart(2, '0');
+
+const formatDateTime = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleString('en-LK', { dateStyle: 'medium', timeStyle: 'short' });
+};
+
+const isoNow = () => new Date().toISOString();
+
+const addDuration = (fromIso, hours, minutes) => {
+    const d = new Date(fromIso);
+    d.setHours(d.getHours() + parseInt(hours || 0));
+    d.setMinutes(d.getMinutes() + parseInt(minutes || 0));
+    return d.toISOString();
+};
+
+const isAfterNow = (iso) => iso && new Date(iso) > new Date();
+const isBeforeNow = (iso) => iso && new Date(iso) <= new Date();
+
 const SellerBiddingPage = () => {
     const [listings, setListings] = useState([]);
     const [selectedId, setSelectedId] = useState('');
-    const [form, setForm] = useState({ open_for_bidding: false, starting_bid: '', bidding_end: '' });
+    const [form, setForm] = useState({
+        open_for_bidding: false,
+        starting_bid: '',
+        bidding_start: '',   // ISO string — empty = start immediately
+        bidding_end: '',     // ISO string — computed from start + duration
+        durationHours: '1',
+        durationMins: '0',
+        useSchedule: false,
+        scheduleDate: '',    // "YYYY-MM-DD"
+        scheduleTime: '',    // "HH:MM"
+    });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -15,7 +46,6 @@ const SellerBiddingPage = () => {
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
-    // ── Load seller's listings from DB
     const fetchListings = () => {
         setLoading(true);
         fetch(`${API}/lands/my`, { headers: authHeaders })
@@ -24,9 +54,8 @@ const SellerBiddingPage = () => {
                 const lands = Array.isArray(data) ? data : [];
                 setListings(lands);
                 if (lands.length > 0 && !selectedId) {
-                    const first = lands[0];
-                    setSelectedId(String(first.id));
-                    setForm(extractForm(first));
+                    setSelectedId(String(lands[0].id));
+                    setForm(extractForm(lands[0]));
                 }
                 setLoading(false);
             })
@@ -35,11 +64,42 @@ const SellerBiddingPage = () => {
 
     useEffect(() => { fetchListings(); }, []);
 
-    const extractForm = (land) => ({
-        open_for_bidding: land.open_for_bidding || false,
-        starting_bid: land.starting_bid || '',
-        bidding_end: land.bidding_end || '',
-    });
+    /* Reconstruct form state from a land object */
+    const extractForm = (land) => {
+        const bStart = land.bidding_start || '';
+        const bEnd = land.bidding_end || '';
+
+        // Estimate stored duration from start→end if both exist
+        let hours = '1', mins = '0';
+        if (bStart && bEnd) {
+            const diffMs = new Date(bEnd) - new Date(bStart);
+            if (diffMs > 0) {
+                hours = String(Math.floor(diffMs / 3600000));
+                mins = String(Math.floor((diffMs % 3600000) / 60000));
+            }
+        }
+
+        // Schedule fields
+        let useSchedule = false, scheduleDate = '', scheduleTime = '';
+        if (bStart && isAfterNow(bStart)) {
+            useSchedule = true;
+            const d = new Date(bStart);
+            scheduleDate = d.toISOString().split('T')[0];
+            scheduleTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        return {
+            open_for_bidding: land.open_for_bidding || false,
+            starting_bid: land.starting_bid || '',
+            bidding_start: bStart,
+            bidding_end: bEnd,
+            durationHours: hours,
+            durationMins: mins,
+            useSchedule,
+            scheduleDate,
+            scheduleTime,
+        };
+    };
 
     const handleSelectListing = (id) => {
         setSelectedId(id);
@@ -56,16 +116,44 @@ const SellerBiddingPage = () => {
         setError('');
     };
 
+    /* Validate & compute bidding_start / bidding_end before saving */
     const handleSave = async (e) => {
         e.preventDefault();
-        setSaving(true);
-        setError('');
-        setSaved(false);
+        setSaving(true); setError(''); setSaved(false);
+
+        const hours = parseInt(form.durationHours || 0);
+        const mins = parseInt(form.durationMins || 0);
+
+        if (form.open_for_bidding && hours === 0 && mins === 0) {
+            setError('Please set a bidding duration of at least 1 minute.');
+            setSaving(false); return;
+        }
+
+        let startIso = '';
+        let endIso = '';
+
+        if (form.open_for_bidding) {
+            if (form.useSchedule) {
+                if (!form.scheduleDate || !form.scheduleTime) {
+                    setError('Please enter both a schedule date and time.');
+                    setSaving(false); return;
+                }
+                startIso = new Date(`${form.scheduleDate}T${form.scheduleTime}:00`).toISOString();
+                if (new Date(startIso) <= new Date()) {
+                    setError('Scheduled start time must be in the future.');
+                    setSaving(false); return;
+                }
+            } else {
+                startIso = isoNow();   // start immediately
+            }
+            endIso = addDuration(startIso, hours, mins);
+        }
 
         const payload = {
             open_for_bidding: form.open_for_bidding,
             starting_bid: form.starting_bid ? parseFloat(form.starting_bid) : null,
-            bidding_end: form.bidding_end || null,
+            bidding_start: startIso || null,
+            bidding_end: endIso || null,
         };
 
         try {
@@ -79,7 +167,6 @@ const SellerBiddingPage = () => {
                 setError(err.detail || 'Failed to save');
             } else {
                 setSaved(true);
-                // Refresh list to show updated status
                 fetchListings();
             }
         } catch {
@@ -89,14 +176,39 @@ const SellerBiddingPage = () => {
     };
 
     const selectedListing = listings.find(l => String(l.id) === selectedId);
-    const today = new Date().toISOString().split('T')[0];
-    const isLive = form.open_for_bidding && form.bidding_end >= today;
+
+    /* Status helpers for quick list */
+    const getStatus = (land) => {
+        if (!land.open_for_bidding) return 'closed';
+        const now = new Date();
+        const start = land.bidding_start ? new Date(land.bidding_start) : null;
+        const end = land.bidding_end ? new Date(land.bidding_end) : null;
+        if (end && end <= now) return 'ended';
+        if (start && start > now) return 'scheduled';
+        return 'live';
+    };
+
+    /* Duration display helper */
+    const fmtDuration = (h, m) => {
+        const hp = parseInt(h || 0), mp = parseInt(m || 0);
+        if (hp === 0 && mp === 0) return '—';
+        const parts = [];
+        if (hp) parts.push(`${hp}h`);
+        if (mp) parts.push(`${mp}m`);
+        return parts.join(' ');
+    };
+
+    /* Min datetime for schedule input — now + 1 min */
+    const minDateTime = (() => {
+        const d = new Date(Date.now() + 60000);
+        return `${d.toISOString().split('T')[0]}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    })();
 
     return (
         <div style={S.root}>
             <div style={S.header}>
                 <h1 style={S.title}>Bidding Setup</h1>
-                <p style={S.subtitle}>Configure which lands are open for bidding, set starting prices and closing dates.</p>
+                <p style={S.subtitle}>Configure which lands are open for bidding, set starting prices and auction duration.</p>
             </div>
 
             {loading ? (
@@ -110,11 +222,7 @@ const SellerBiddingPage = () => {
                         {/* ── Land Selector ── */}
                         <div style={S.sectionLabel}>Select Land</div>
                         <div style={S.selectorRow}>
-                            <select
-                                value={selectedId}
-                                onChange={e => handleSelectListing(e.target.value)}
-                                style={S.select}
-                            >
+                            <select value={selectedId} onChange={e => handleSelectListing(e.target.value)} style={S.select}>
                                 {listings.map(l => (
                                     <option key={l.id} value={String(l.id)}>{l.name}</option>
                                 ))}
@@ -122,7 +230,6 @@ const SellerBiddingPage = () => {
                             {selectedListing && (
                                 <span style={S.locationTag}>{selectedListing.village}, {selectedListing.district}</span>
                             )}
-                            {isLive && <span style={S.liveBadge}>LIVE</span>}
                         </div>
 
                         <hr style={S.divider} />
@@ -130,19 +237,11 @@ const SellerBiddingPage = () => {
                         {/* ── Bidding Toggle ── */}
                         <div style={S.sectionLabel}>Bidding Status</div>
                         <label style={S.toggleRow}>
-                            <input
-                                type="checkbox"
-                                name="open_for_bidding"
-                                checked={form.open_for_bidding}
-                                onChange={handleChange}
-                                style={{ display: 'none' }}
-                            />
+                            <input type="checkbox" name="open_for_bidding" checked={form.open_for_bidding} onChange={handleChange} style={{ display: 'none' }} />
                             <div style={{ ...S.toggleTrack, background: form.open_for_bidding ? '#1A1A1A' : '#ddd' }}>
                                 <div style={{ ...S.toggleThumb, transform: form.open_for_bidding ? 'translateX(22px)' : 'translateX(2px)' }} />
                             </div>
-                            <span style={S.toggleLabel}>
-                                {form.open_for_bidding ? 'Open for Bidding' : 'Bidding Closed'}
-                            </span>
+                            <span style={S.toggleLabel}>{form.open_for_bidding ? 'Open for Bidding' : 'Bidding Closed'}</span>
                         </label>
 
                         {/* ── Bidding Details (when open) ── */}
@@ -150,38 +249,153 @@ const SellerBiddingPage = () => {
                             <>
                                 <hr style={S.divider} />
                                 <div style={S.sectionLabel}>Bidding Details</div>
-                                <div style={S.fieldsGrid}>
-                                    <div style={S.formGroup}>
-                                        <label style={S.label}>Starting Bid Price (Rs.) *</label>
-                                        <input
-                                            name="starting_bid"
-                                            type="number"
-                                            min="1"
-                                            value={form.starting_bid}
-                                            onChange={handleChange}
-                                            style={S.input}
-                                            placeholder="e.g. 5000000"
-                                            required
-                                        />
+
+                                {/* Starting bid */}
+                                <div style={{ ...S.formGroup, marginBottom: '20px' }}>
+                                    <label style={S.label}>Starting Bid Price (Rs.) *</label>
+                                    <input
+                                        name="starting_bid"
+                                        type="number"
+                                        min="1"
+                                        value={form.starting_bid}
+                                        onChange={handleChange}
+                                        style={S.input}
+                                        placeholder="e.g. 5000000"
+                                        required
+                                    />
+                                </div>
+
+                                {/* ── Duration Selector ── */}
+                                <div style={S.durationBox}>
+                                    <div style={S.durationHeader}>
+                                        <span style={S.durationIcon}>⏱</span>
+                                        <div>
+                                            <div style={S.durationTitle}>Auction Duration</div>
+                                            <div style={S.durationSub}>Bid will automatically close after this time</div>
+                                        </div>
                                     </div>
-                                    <div style={S.formGroup}>
-                                        <label style={S.label}>Bidding End Date *</label>
-                                        <input
-                                            name="bidding_end"
-                                            type="date"
-                                            value={form.bidding_end}
-                                            min={today}
-                                            onChange={handleChange}
-                                            style={S.input}
-                                            required
-                                        />
+                                    <div style={S.durationControls}>
+                                        <div style={S.durationUnit}>
+                                            <label style={S.label}>Hours</label>
+                                            <div style={S.spinnerWrap}>
+                                                <button type="button" style={S.spinBtn} onClick={() => setForm(f => ({ ...f, durationHours: String(Math.max(0, parseInt(f.durationHours || 0) - 1)) }))}>−</button>
+                                                <input
+                                                    name="durationHours"
+                                                    type="number"
+                                                    min="0"
+                                                    max="999"
+                                                    value={form.durationHours}
+                                                    onChange={handleChange}
+                                                    style={S.spinInput}
+                                                />
+                                                <button type="button" style={S.spinBtn} onClick={() => setForm(f => ({ ...f, durationHours: String(parseInt(f.durationHours || 0) + 1) }))}>+</button>
+                                            </div>
+                                        </div>
+                                        <div style={{ ...S.durationUnit, alignSelf: 'flex-end', paddingBottom: '10px', fontSize: '1.4rem', color: '#ccc', fontWeight: '300' }}>:</div>
+                                        <div style={S.durationUnit}>
+                                            <label style={S.label}>Minutes</label>
+                                            <div style={S.spinnerWrap}>
+                                                <button type="button" style={S.spinBtn} onClick={() => setForm(f => ({ ...f, durationMins: String(Math.max(0, parseInt(f.durationMins || 0) - 1)) }))}>−</button>
+                                                <input
+                                                    name="durationMins"
+                                                    type="number"
+                                                    min="0"
+                                                    max="59"
+                                                    value={form.durationMins}
+                                                    onChange={handleChange}
+                                                    style={S.spinInput}
+                                                />
+                                                <button type="button" style={S.spinBtn} onClick={() => setForm(f => ({ ...f, durationMins: String(Math.min(59, parseInt(f.durationMins || 0) + 1)) }))}>+</button>
+                                            </div>
+                                        </div>
+                                        <div style={S.durationPreview}>
+                                            <div style={S.durationPreviewLabel}>Duration</div>
+                                            <div style={S.durationPreviewVal}>{fmtDuration(form.durationHours, form.durationMins)}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Quick presets */}
+                                    <div style={S.presets}>
+                                        {[
+                                            { label: '30 min', h: 0, m: 30 },
+                                            { label: '1 hr', h: 1, m: 0 },
+                                            { label: '3 hrs', h: 3, m: 0 },
+                                            { label: '6 hrs', h: 6, m: 0 },
+                                            { label: '12 hrs', h: 12, m: 0 },
+                                            { label: '24 hrs', h: 24, m: 0 },
+                                            { label: '3 days', h: 72, m: 0 },
+                                        ].map(p => (
+                                            <button
+                                                key={p.label}
+                                                type="button"
+                                                style={{
+                                                    ...S.presetBtn,
+                                                    ...(String(form.durationHours) === String(p.h) && String(form.durationMins) === String(p.m) ? S.presetBtnActive : {})
+                                                }}
+                                                onClick={() => setForm(f => ({ ...f, durationHours: String(p.h), durationMins: String(p.m) }))}
+                                            >
+                                                {p.label}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
-                                {form.bidding_end && form.starting_bid && (
-                                    <div style={S.periodSummary}>
-                                        Bidding closes on <strong>{form.bidding_end}</strong> &nbsp;·&nbsp;
-                                        Starting at <strong>Rs. {Number(form.starting_bid).toLocaleString()}</strong>
+                                <hr style={S.divider} />
+
+                                {/* ── Schedule Start ── */}
+                                <div style={S.scheduleBox}>
+                                    <label style={S.toggleRow}>
+                                        <input type="checkbox" name="useSchedule" checked={form.useSchedule} onChange={handleChange} style={{ display: 'none' }} />
+                                        <div style={{ ...S.toggleTrack, background: form.useSchedule ? '#1A1A1A' : '#ddd' }}>
+                                            <div style={{ ...S.toggleThumb, transform: form.useSchedule ? 'translateX(22px)' : 'translateX(2px)' }} />
+                                        </div>
+                                        <div>
+                                            <div style={S.toggleLabel}>Schedule Start</div>
+                                            <div style={{ fontSize: '0.78rem', color: '#aaa', marginTop: '2px' }}>
+                                                {form.useSchedule ? 'Bid will start automatically at the scheduled time' : 'Bid starts immediately when you save'}
+                                            </div>
+                                        </div>
+                                    </label>
+
+                                    {form.useSchedule && (
+                                        <div style={S.scheduleInputRow}>
+                                            <div style={S.formGroup}>
+                                                <label style={S.label}>Start Date &amp; Time</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    name="scheduleDate"
+                                                    min={minDateTime}
+                                                    value={form.scheduleDate && form.scheduleTime ? `${form.scheduleDate}T${form.scheduleTime}` : ''}
+                                                    onChange={(e) => {
+                                                        const [date, time] = e.target.value.split('T');
+                                                        setForm(f => ({ ...f, scheduleDate: date || '', scheduleTime: time || '' }));
+                                                    }}
+                                                    style={S.input}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Summary */}
+                                {form.starting_bid && (parseInt(form.durationHours || 0) > 0 || parseInt(form.durationMins || 0) > 0) && (
+                                    <div style={S.summaryBox}>
+                                        <div style={S.summaryRow}>
+                                            <span style={S.summaryIcon}>💰</span>
+                                            Starting at <strong>Rs. {Number(form.starting_bid).toLocaleString()}</strong>
+                                        </div>
+                                        <div style={S.summaryRow}>
+                                            <span style={S.summaryIcon}>{form.useSchedule ? '📅' : '🚀'}</span>
+                                            {form.useSchedule && form.scheduleDate && form.scheduleTime
+                                                ? <>Starts on <strong>{new Date(`${form.scheduleDate}T${form.scheduleTime}`).toLocaleString('en-LK', { dateStyle: 'medium', timeStyle: 'short' })}</strong></>
+                                                : <>Starts <strong>immediately</strong> on save</>
+                                            }
+                                        </div>
+                                        <div style={S.summaryRow}>
+                                            <span style={S.summaryIcon}>⏱</span>
+                                            Runs for <strong>{fmtDuration(form.durationHours, form.durationMins)}</strong>, then auto-closes
+                                        </div>
                                     </div>
                                 )}
                             </>
@@ -192,8 +406,7 @@ const SellerBiddingPage = () => {
                         <div style={S.sectionLabel}>All Listings — Bidding Status</div>
                         <div style={S.quickList}>
                             {listings.map(l => {
-                                const open = l.open_for_bidding;
-                                const live = open && l.bidding_end >= today;
+                                const status = getStatus(l);
                                 return (
                                     <div
                                         key={l.id}
@@ -211,17 +424,23 @@ const SellerBiddingPage = () => {
                                             </span>
                                         </div>
                                         <div style={S.quickRight}>
-                                            {open && l.starting_bid && (
+                                            {l.open_for_bidding && l.starting_bid && (
                                                 <span style={S.quickPrice}>Rs. {Number(l.starting_bid).toLocaleString()}</span>
                                             )}
-                                            {open && l.bidding_end && (
-                                                <span style={S.quickDate}>ends {l.bidding_end}</span>
+                                            {l.bidding_end && (
+                                                <span style={S.quickDate}>ends {formatDateTime(l.bidding_end)}</span>
                                             )}
                                             <span style={{
                                                 ...S.quickBadge,
-                                                ...(live ? S.quickOpen : (open ? S.quickPending : S.quickClosed))
+                                                ...(status === 'live' ? S.quickOpen
+                                                    : status === 'scheduled' ? S.quickPending
+                                                        : status === 'ended' ? S.quickEnded
+                                                            : S.quickClosed)
                                             }}>
-                                                {live ? '● Live' : open ? '○ Scheduled' : 'Closed'}
+                                                {status === 'live' ? '● Live'
+                                                    : status === 'scheduled' ? '○ Scheduled'
+                                                        : status === 'ended' ? '✓ Ended'
+                                                            : 'Closed'}
                                             </span>
                                         </div>
                                     </div>
@@ -231,13 +450,14 @@ const SellerBiddingPage = () => {
 
                         {/* ── Save Footer ── */}
                         <div style={S.footer}>
+                            {error && <div style={S.errMsg}>{error}</div>}
                             {saved && (
                                 <div style={S.successToast}>
                                     <div style={S.toastIcon}>✓</div>
                                     <div>
-                                        <div style={S.toastTitle}>Settings Applied Successfully</div>
+                                        <div style={S.toastTitle}>Settings Saved</div>
                                         <div style={S.toastDesc}>
-                                            <strong>{selectedListing?.name}</strong> is now {form.open_for_bidding ? 'LIVE' : 'CLOSED'} for bidding.
+                                            <strong>{selectedListing?.name}</strong> is {form.open_for_bidding ? (form.useSchedule ? 'scheduled' : 'LIVE') : 'CLOSED'}.
                                         </div>
                                     </div>
                                 </div>
@@ -264,34 +484,63 @@ const S = {
     selectorRow: { display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' },
     select: { padding: '11px 14px', border: '1px solid #e5e0da', borderRadius: '8px', fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif", outline: 'none', cursor: 'pointer', background: '#fff', minWidth: '240px' },
     locationTag: { fontSize: '0.8rem', color: '#999', background: '#f5f0ea', padding: '5px 12px', borderRadius: '20px', fontWeight: '600' },
-    liveBadge: { fontSize: '0.7rem', fontWeight: '800', color: '#fff', background: '#e74c3c', padding: '4px 10px', borderRadius: '20px', letterSpacing: '0.07em' },
     divider: { border: 'none', borderTop: '1px solid #f0ebe4', margin: '24px 0' },
     toggleRow: { display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none', marginBottom: '4px' },
     toggleTrack: { width: '46px', height: '24px', borderRadius: '12px', position: 'relative', transition: 'background 0.2s', flexShrink: 0 },
     toggleThumb: { position: 'absolute', top: '3px', width: '18px', height: '18px', background: '#fff', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'transform 0.2s' },
     toggleLabel: { fontSize: '0.9rem', fontWeight: '700', color: '#333' },
-    fieldsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' },
     formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
-    label: { fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' },
+    label: { fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' },
     input: { padding: '12px 14px', border: '1px solid #e5e0da', borderRadius: '8px', fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif", outline: 'none', width: '100%', boxSizing: 'border-box' },
-    periodSummary: { background: '#f5f0ea', borderRadius: '8px', padding: '12px 16px', fontSize: '0.85rem', color: '#555', lineHeight: 1.6, marginBottom: '8px' },
+
+    // Duration
+    durationBox: { background: '#f9f6f2', border: '1px solid #ede8e2', borderRadius: '12px', padding: '20px 24px', marginBottom: '4px' },
+    durationHeader: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' },
+    durationIcon: { fontSize: '1.4rem' },
+    durationTitle: { fontWeight: '700', color: '#1A1A1A', fontSize: '0.92rem' },
+    durationSub: { fontSize: '0.75rem', color: '#aaa', marginTop: '2px' },
+    durationControls: { display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' },
+    durationUnit: { display: 'flex', flexDirection: 'column', gap: '6px' },
+    spinnerWrap: { display: 'flex', alignItems: 'center', border: '1px solid #e5e0da', borderRadius: '8px', overflow: 'hidden', background: '#fff' },
+    spinBtn: { border: 'none', background: '#f5f0ea', color: '#555', fontWeight: '700', fontSize: '1.1rem', padding: '8px 14px', cursor: 'pointer', lineHeight: 1, userSelect: 'none' },
+    spinInput: { border: 'none', outline: 'none', textAlign: 'center', width: '54px', fontSize: '1.05rem', fontWeight: '700', color: '#1A1A1A', fontFamily: "'DM Sans', sans-serif", padding: '8px 4px' },
+    durationPreview: { marginLeft: 'auto', textAlign: 'right', paddingLeft: '16px', borderLeft: '1px solid #ede8e2' },
+    durationPreviewLabel: { fontSize: '0.68rem', color: '#bbb', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' },
+    durationPreviewVal: { fontSize: '1.6rem', fontWeight: '800', color: '#1A1A1A', letterSpacing: '-0.5px' },
+    presets: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
+    presetBtn: { padding: '5px 13px', border: '1px solid #e5e0da', borderRadius: '20px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', background: '#fff', color: '#555', transition: 'all 0.15s' },
+    presetBtnActive: { background: '#1A1A1A', color: '#fff', border: '1px solid #1A1A1A' },
+
+    // Schedule
+    scheduleBox: { background: '#f5f8ff', border: '1px solid #dde8ff', borderRadius: '12px', padding: '20px 24px', marginBottom: '4px' },
+    scheduleInputRow: { marginTop: '16px', maxWidth: '320px' },
+
+    // Summary
+    summaryBox: { background: '#eafaf1', border: '1px solid #c3e8d4', borderRadius: '10px', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' },
+    summaryRow: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.86rem', color: '#2c6e49' },
+    summaryIcon: { fontSize: '1rem' },
+
+    // Quick list
     quickList: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' },
     quickRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', cursor: 'pointer', transition: 'background 0.15s' },
     quickName: { fontWeight: '700', fontSize: '0.88rem', color: '#1A1A1A' },
-    quickRight: { display: 'flex', alignItems: 'center', gap: '10px' },
+    quickRight: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' },
     quickPrice: { fontSize: '0.8rem', fontWeight: '700', color: '#555' },
-    quickDate: { fontSize: '0.75rem', color: '#bbb' },
+    quickDate: { fontSize: '0.72rem', color: '#bbb' },
     quickBadge: { fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '20px' },
     quickOpen: { background: '#eafaf1', color: '#27ae60', border: '1px solid #27ae60' },
     quickPending: { background: '#eaf4fb', color: '#1565c0', border: '1px solid #90caf9' },
+    quickEnded: { background: '#f5f5f5', color: '#777', border: '1px solid #ccc' },
     quickClosed: { background: '#f5f0ea', color: '#aaa', border: '1px solid #ddd' },
-    footer: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px', borderTop: '1px solid #f0ebe4', paddingTop: '24px' },
+
+    // Footer
+    footer: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px', borderTop: '1px solid #f0ebe4', paddingTop: '24px', flexWrap: 'wrap' },
     errMsg: { fontSize: '0.85rem', color: '#d32f2f', fontWeight: '600' },
     saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700', fontSize: '0.95rem' },
-    successToast: { position: 'absolute', bottom: '80px', right: '36px', background: '#fff', border: '1px solid #27ae60', borderRadius: '12px', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 8px 30px rgba(39, 174, 96, 0.15)', animation: 'slideUp 0.4s ease-out', zIndex: 100 },
-    toastIcon: { background: '#27ae60', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.9rem' },
-    toastTitle: { fontWeight: '800', fontSize: '0.9rem', color: '#1A1A1A', marginBottom: '2px' },
-    toastDesc: { fontSize: '0.82rem', color: '#666' },
+    successToast: { background: '#fff', border: '1px solid #27ae60', borderRadius: '12px', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 4px 16px rgba(39,174,96,0.15)' },
+    toastIcon: { background: '#27ae60', color: '#fff', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.85rem' },
+    toastTitle: { fontWeight: '800', fontSize: '0.88rem', color: '#1A1A1A', marginBottom: '2px' },
+    toastDesc: { fontSize: '0.8rem', color: '#666' },
 };
 
 export default SellerBiddingPage;

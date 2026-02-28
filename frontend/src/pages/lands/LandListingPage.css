@@ -1,5 +1,47 @@
-.lands-root {
+:root {
+    --primary: #4A5D23;
+    --primary-hover: #3A4D13;
+    --accent: #E67E22;
+    --text-dark: #1A1A1A;
+    --text-medium: #555555;
+    --text-light: #888888;
+    --card-bg: #FFFFFF;
+    --root-bg: #FAF6F1;
+    --border: #EDE8E1;
+}
+
+.btn-dark {
+    background: var(--text-dark);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
     font-family: 'DM Sans', sans-serif;
+}
+
+.btn-dark:hover {
+    background: #333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-dark:active {
+    transform: translateY(0);
+}
+
+.btn-dark:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.lands-root {
+    font-family: 'DM Sans', 'Outfit', sans-serif;
     background-color: var(--root-bg);
     color: var(--text-dark);
     min-height: 100vh;

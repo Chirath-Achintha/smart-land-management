@@ -16,6 +16,8 @@ const BiddingPage = () => {
     const [success, setSuccess] = useState('');
     const [timeLeft, setTimeLeft] = useState('');
     const [isAuctionEnded, setIsAuctionEnded] = useState(false);
+    const [isAuctionStarted, setIsAuctionStarted] = useState(true);
+    const [timeToStart, setTimeToStart] = useState('');
 
     const token = localStorage.getItem('access_token');
     const isLoggedIn = !!token;
@@ -42,32 +44,65 @@ const BiddingPage = () => {
         return () => clearInterval(interval);
     }, [fetchBids]);
 
-    // ── Countdown timer ─────────────────────────────────────────────────────
+    // ── Countdown timer (handles both pre-start and end countdowns) ─────────
     useEffect(() => {
-        if (!land?.bidding_end) return;
+        if (!land) return;
+
+        const parseISO = (str) => {
+            if (!str) return null;
+            // Handle both "YYYY-MM-DD" (legacy date-only) and full ISO strings
+            if (!str.includes('T')) return new Date(str + 'T23:59:59');
+            return new Date(str);
+        };
+
         const tick = () => {
             const now = Date.now();
-            // bidding_end might be "YYYY-MM-DD" or full ISO
-            const endStr = land.bidding_end.includes('T')
-                ? land.bidding_end
-                : land.bidding_end + 'T23:59:59';
-            const end = new Date(endStr).getTime();
-            const distance = end - now;
+            const startDate = parseISO(land.bidding_start);
+            const endDate = parseISO(land.bidding_end);
+
+            // Check if auction hasn't started yet
+            if (startDate && startDate.getTime() > now) {
+                setIsAuctionStarted(false);
+                setIsAuctionEnded(false);
+                const dist = startDate.getTime() - now;
+                const days = Math.floor(dist / 86400000);
+                const hours = Math.floor((dist % 86400000) / 3600000);
+                const mins = Math.floor((dist % 3600000) / 60000);
+                const secs = Math.floor((dist % 60000) / 1000);
+                setTimeToStart(days > 0
+                    ? `${days}d ${hours}h ${mins}m ${secs}s`
+                    : `${hours}h ${mins}m ${secs}s`);
+                return;
+            }
+
+            // Auction has started (or no start date set)
+            setIsAuctionStarted(true);
+
+            if (!endDate) {
+                setTimeLeft('No end time set');
+                return;
+            }
+
+            const distance = endDate.getTime() - now;
             if (distance <= 0) {
                 setTimeLeft('AUCTION ENDED');
                 setIsAuctionEnded(true);
             } else {
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+                setIsAuctionEnded(false);
+                const days = Math.floor(distance / 86400000);
+                const hours = Math.floor((distance % 86400000) / 3600000);
+                const mins = Math.floor((distance % 3600000) / 60000);
+                const secs = Math.floor((distance % 60000) / 1000);
+                setTimeLeft(days > 0
+                    ? `${days}d ${hours}h ${mins}m ${secs}s`
+                    : `${hours}h ${mins}m ${secs}s`);
             }
         };
+
         tick();
         const timer = setInterval(tick, 1000);
         return () => clearInterval(timer);
-    }, [land?.bidding_end]);
+    }, [land?.bidding_start, land?.bidding_end]);
 
     // ── Derived values ──────────────────────────────────────────────────────
     const sortedBids = [...bids].sort((a, b) => b.amount - a.amount);
@@ -111,7 +146,7 @@ const BiddingPage = () => {
                 setSuccess('🎉 Bid placed successfully!');
                 setMyBid('');
                 setMyMessage('');
-                fetchBids();   // immediately refresh the list
+                fetchBids();
                 setTimeout(() => setSuccess(''), 4000);
             }
         } catch {
@@ -133,6 +168,16 @@ const BiddingPage = () => {
             <button onClick={() => navigate('/lands')} style={S.darkBtn}>← Back to Listings</button>
         </div>
     );
+
+    // ── Determine what the timer card shows ────────────────────────────────
+    const isScheduled = !isAuctionStarted;
+    const canBid = land.open_for_bidding && isAuctionStarted && !isAuctionEnded;
+
+    const fmtEndDate = (iso) => {
+        if (!iso) return '';
+        const d = new Date(iso);
+        return d.toLocaleString('en-LK', { dateStyle: 'medium', timeStyle: 'short' });
+    };
 
     return (
         <div style={{ background: '#FAF6F1', minHeight: '100vh', paddingBottom: '80px', fontFamily: "'DM Sans', sans-serif" }}>
@@ -173,21 +218,40 @@ const BiddingPage = () => {
                             </div>
                         </div>
 
-                        {/* Countdown timer */}
-                        <div style={S.timerCard}>
-                            <span style={S.timerLabel}>BIDDING ENDS IN</span>
-                            <span style={{ ...S.timerVal, color: isAuctionEnded ? '#e74c3c' : '#fff' }}>
-                                {timeLeft || (land.bidding_end ? 'Calculating…' : 'No end date set')}
-                            </span>
-                            {land.bidding_end && (
-                                <span style={S.timerDate}>
-                                    Closes: {land.bidding_end.split('T')[0]}
+                        {/* ── Timer card (scheduled / live / ended) ── */}
+                        {isScheduled ? (
+                            <div style={{ ...S.timerCard, background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' }}>
+                                <span style={S.timerLabel}>⏳ AUCTION STARTS IN</span>
+                                <span style={{ ...S.timerVal, color: '#f9ca24' }}>{timeToStart}</span>
+                                {land.bidding_start && (
+                                    <span style={S.timerDate}>
+                                        Starts: {fmtEndDate(land.bidding_start)}
+                                    </span>
+                                )}
+                                {land.bidding_end && (
+                                    <span style={{ ...S.timerDate, marginTop: '2px' }}>
+                                        Closes: {fmtEndDate(land.bidding_end)}
+                                    </span>
+                                )}
+                            </div>
+                        ) : (
+                            <div style={S.timerCard}>
+                                <span style={S.timerLabel}>
+                                    {isAuctionEnded ? '🔴 AUCTION ENDED' : '🟢 BIDDING ENDS IN'}
                                 </span>
-                            )}
-                        </div>
+                                <span style={{ ...S.timerVal, color: isAuctionEnded ? '#e74c3c' : '#fff' }}>
+                                    {timeLeft || (land.bidding_end ? 'Calculating…' : 'No end time set')}
+                                </span>
+                                {land.bidding_end && (
+                                    <span style={S.timerDate}>
+                                        Closes: {fmtEndDate(land.bidding_end)}
+                                    </span>
+                                )}
+                            </div>
+                        )}
 
                         {/* Bid input form */}
-                        {land.open_for_bidding && !isAuctionEnded ? (
+                        {canBid ? (
                             <div style={S.inputCard}>
                                 <h3 style={S.inputTitle}>Place Your Bid</h3>
 
@@ -228,7 +292,11 @@ const BiddingPage = () => {
                             </div>
                         ) : (
                             <div style={S.closedBox}>
-                                🔒 {isAuctionEnded ? 'This auction has ended.' : 'Bidding is currently closed for this property.'}
+                                {isScheduled
+                                    ? '📅 This auction hasn\'t started yet. Come back when it\'s live!'
+                                    : isAuctionEnded
+                                        ? '🔒 This auction has ended.'
+                                        : '🔒 Bidding is currently closed for this property.'}
                             </div>
                         )}
                     </div>

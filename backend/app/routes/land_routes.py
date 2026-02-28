@@ -85,7 +85,7 @@ def update_land(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
 
     # Split fields into Land and BiddingSetup
-    bidding_fields = ['open_for_bidding', 'starting_bid', 'bidding_end']
+    bidding_fields = ['open_for_bidding', 'starting_bid', 'bidding_start', 'bidding_end']
     
     for field, value in data.items():
         if field in bidding_fields:

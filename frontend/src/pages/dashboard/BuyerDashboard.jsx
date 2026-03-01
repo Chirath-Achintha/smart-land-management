@@ -43,31 +43,6 @@ const BuyerDashboard = () => {
             .finally(() => setProfileLoading(false));
     }, []);
 
-    // Fetch the buyer's bids from DB
-    const [myBids, setMyBids] = useState([]);
-    useEffect(() => {
-        const tok = localStorage.getItem('access_token');
-        if (!tok) return;
-        fetch(`${API_BASE_URL}/bids/my-bids`, {
-            headers: { 'Authorization': `Bearer ${tok}` }
-        })
-            .then(r => r.json())
-            .then(data => setMyBids(Array.isArray(data) ? data : []))
-            .catch(() => setMyBids([]));
-    }, []);
-
-    // Fetch real visits from DB
-    const [myVisits, setMyVisits] = useState([]);
-    useEffect(() => {
-        const tok = localStorage.getItem('access_token');
-        if (!tok) return;
-        fetch(`${API}/visits/my-requests`, {
-            headers: { 'Authorization': `Bearer ${tok}` }
-        })
-            .then(r => r.json())
-            .then(data => setMyVisits(Array.isArray(data) ? data : []))
-            .catch(() => setMyVisits([]));
-    }, []);
 
     const handleEditToggle = () => {
         setTempProfile({ ...profile });
@@ -138,68 +113,6 @@ const BuyerDashboard = () => {
                     </div>
                 </div>
 
-
-                {/* Bidding Summary */}
-                <div style={S.card}>
-                    <div style={S.cardHeader}>
-                        <div style={S.cardTitle}>
-                            My Biddings
-                            <span style={{ marginLeft: '10px', background: '#1A1A1A', color: '#fff', fontSize: '0.7rem', fontWeight: '700', borderRadius: '20px', padding: '2px 10px' }}>
-                                {myBids.length}
-                            </span>
-                        </div>
-                    </div>
-                    <div style={S.list}>
-                        {myBids.length === 0 ? (
-                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>
-                                You haven't placed any bids yet. <a href="/lands" style={{ color: '#1A1A1A', fontWeight: '700' }}>Browse listings →</a>
-                            </p>
-                        ) : myBids.map(bid => (
-                            <div key={bid.id} style={S.listItem}>
-                                <div style={S.listMain}>
-                                    <h4 style={S.itemTitle}>Land #{bid.land_id}</h4>
-                                    <span style={S.itemSub}>
-                                        Bid #{bid.id} · {bid.created_at ? new Date(bid.created_at).toLocaleDateString() : ''}
-                                    </span>
-                                    {bid.message && <span style={{ fontSize: '0.78rem', color: '#888', fontStyle: 'italic' }}>"{bid.message}"</span>}
-                                </div>
-                                <div style={S.listAction}>
-                                    <span style={S.amount}>Rs. {Number(bid.amount).toLocaleString()}</span>
-                                    <span style={{ ...S.badge, backgroundColor: '#E8F5E9', color: '#4CAF50' }}>
-                                        Active
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Visits Summary */}
-                <div style={S.card}>
-                    <div style={S.cardTitle}>Site Visits</div>
-                    <div style={S.list}>
-                        {myVisits.length === 0 ? (
-                            <p style={{ color: '#aaa', textAlign: 'center', padding: '20px 0', fontSize: '0.9rem' }}>No visits scheduled yet.</p>
-                        ) : myVisits.map(visit => (
-                            <div key={visit.id} style={S.listItem}>
-                                <div style={S.listMain}>
-                                    <h4 style={S.itemTitle}>{visit.land_name || `Land #${visit.land_id}`}</h4>
-                                    <span style={S.itemSub}>{visit.visit_date} at {visit.visit_time}</span>
-                                    <span style={{ fontSize: '0.72rem', color: '#666', fontWeight: '700' }}>{visit.visit_type} Visit</span>
-                                </div>
-                                <div style={S.listAction}>
-                                    <span style={{
-                                        ...S.badge,
-                                        backgroundColor: visit.status === 'Accepted' ? '#E8F5E9' : visit.status === 'Rejected' ? '#FFEBEE' : '#F5F5F5',
-                                        color: visit.status === 'Accepted' ? '#4CAF50' : visit.status === 'Rejected' ? '#F44336' : '#999'
-                                    }}>
-                                        {visit.status}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
             </div>
 
             {/* Delete Confirmation Modal */}

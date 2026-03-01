@@ -32,6 +32,10 @@ import UserManagement from '../pages/dashboard/admin/UserManagement';
 import ConstructorProjectsPage from '../pages/dashboard/constructor/ConstructorProjectsPage';
 import ConstructorServiceBookingsPage from '../pages/dashboard/constructor/ConstructorServiceBookingsPage';
 
+// Buyer Sub-pages
+import BuyerBidsPage from '../pages/dashboard/buyer/BuyerBidsPage';
+import BuyerVisitsPage from '../pages/dashboard/buyer/BuyerVisitsPage';
+
 // Seller Sub-pages
 import SellerListingsPage from '../pages/dashboard/seller/SellerListingsPage';
 import SellerBidsPage from '../pages/dashboard/seller/SellerBidsPage';
@@ -102,6 +106,10 @@ const AppRoutes = () => {
                     <Route path="/dashboard/service-requests" element={<ConstructorServiceBookingsPage />} />
                     <Route path="/dashboard/listings" element={<div><h2 style={{ color: '#333' }}>My Listings</h2><p>Listings management goes here.</p></div>} />
                     <Route path="/dashboard/clients" element={<AgentClientsPage />} />
+
+                    {/* Buyer Sub-pages */}
+                    <Route path="/dashboard/bids" element={<BuyerBidsPage />} />
+                    <Route path="/dashboard/visits" element={<BuyerVisitsPage />} />
                     <Route path="/dashboard/users" element={<UserManagement />} />
                     <Route path="/dashboard/seller/listings" element={<SellerListingsPage />} />
                     <Route path="/dashboard/seller/bids" element={<SellerBidsPage />} />

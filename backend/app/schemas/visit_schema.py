@@ -14,6 +14,7 @@ class VisitCreate(BaseModel):
 
 class VisitUpdateStatus(BaseModel):
     status: VisitStatus
+    seller_message: Optional[str] = None
 
 
 class VisitResponse(BaseModel):
@@ -24,6 +25,7 @@ class VisitResponse(BaseModel):
     visit_date: str
     visit_time: str
     message:    Optional[str] = None
+    seller_message: Optional[str] = None
     status:     VisitStatus
     created_at: datetime
     buyer_name: Optional[str] = None

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
 
-from app.database.connection import get_db
 from app.models.user_model import User
+
 from app.schemas.user_schema import UserRegister, UserLogin, UserResponse, Token
 from app.core.config import settings
 

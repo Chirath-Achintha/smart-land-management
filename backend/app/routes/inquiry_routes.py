@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from beanie import PydanticObjectId
 
-from app.database.connection import get_db
 from app.models.inquiry_model import Inquiry, InquiryStatus, InquiryType
+
 from app.models.user_model import User
 from app.schemas.inquiry_schema import InquiryCreate, InquiryResponse, InquiryAdminReply
 from app.routes.auth_routes import get_current_user

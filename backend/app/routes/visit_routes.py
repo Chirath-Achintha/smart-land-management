@@ -24,6 +24,7 @@ async def _build_response(visit: Visit) -> VisitResponse:
         visit_date=visit.visit_date,
         visit_time=visit.visit_time,
         message=visit.message,
+        seller_message=visit.seller_message,
         status=visit.status,
         created_at=visit.created_at,
         buyer_name=buyer.full_name if buyer else None,
@@ -106,5 +107,7 @@ async def update_visit_status(
         raise HTTPException(status_code=403, detail="You don't own this land")
 
     visit.status = data.status
+    if data.seller_message:
+        visit.seller_message = data.seller_message
     await visit.save()
     return await _build_response(visit)

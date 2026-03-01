@@ -4,7 +4,9 @@ import { useAuth } from '../context/AuthContext';
 
 const NAV = {
     buyer: [
-        { to: '/dashboard', label: 'Dashboard' },
+        { to: '/dashboard', label: 'My Profile' },
+        { to: '/dashboard/bids', label: 'My Biddings' },
+        { to: '/dashboard/visits', label: ' My Site Visits' },
         { to: '/dashboard/properties', label: 'Saved Properties' },
     ],
     seller: [

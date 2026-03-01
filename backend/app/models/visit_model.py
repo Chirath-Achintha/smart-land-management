@@ -20,6 +20,7 @@ class Visit(Document):
     visit_date: str = Field(alias="date")
     visit_time: str = Field(alias="time")
     message: Optional[str] = None
+    seller_message: Optional[str] = None
     status: VisitStatus = Field(default=VisitStatus.Pending)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

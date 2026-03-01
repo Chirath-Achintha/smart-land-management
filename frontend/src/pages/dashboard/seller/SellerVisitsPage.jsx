@@ -17,6 +17,7 @@ const SellerVisitsPage = () => {
     const [filter, setFilter] = useState('All');
     const [updating, setUpdating] = useState(null); // visit id being updated
     const [error, setError] = useState('');
+    const [replyTexts, setReplyTexts] = useState({}); // { visitId: 'message' }
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
@@ -42,7 +43,7 @@ const SellerVisitsPage = () => {
             const res = await fetch(`${API}/visits/${visitId}/status`, {
                 method: 'PUT',
                 headers: authHeaders,
-                body: JSON.stringify({ status: newStatus }),
+                body: JSON.stringify({ status: newStatus, seller_message: replyTexts[visitId] || '' }),
             });
             if (!res.ok) {
                 const err = await res.json();
@@ -50,8 +51,14 @@ const SellerVisitsPage = () => {
             } else {
                 setVisits(prev => prev.map(v => {
                     const vId = v._id || v.id;
-                    return vId === visitId ? { ...v, status: newStatus } : v;
+                    return vId === visitId ? { ...v, status: newStatus, seller_message: replyTexts[visitId] } : v;
                 }));
+                // Clear the message for this visit after success
+                setReplyTexts(prev => {
+                    const next = { ...prev };
+                    delete next[visitId];
+                    return next;
+                });
             }
         } catch { setError('Server error. Try again.'); }
         setUpdating(null);
@@ -66,6 +73,17 @@ const SellerVisitsPage = () => {
         acc[key].items.push(v);
         return acc;
     }, {});
+
+    // Accepted visits for the schedule table
+    const acceptedVisits = visits.filter(v => v.status === 'Accepted');
+    const scheduleByDate = acceptedVisits.reduce((acc, v) => {
+        const date = v.visit_date;
+        if (!acc[date]) acc[date] = [];
+        acc[date].push(v);
+        return acc;
+    }, {});
+
+    const sortedDates = Object.keys(scheduleByDate).sort((a, b) => new Date(a) - new Date(b));
 
     return (
         <div style={S.root}>
@@ -118,7 +136,7 @@ const SellerVisitsPage = () => {
                                             <div>
                                                 <div style={S.buyerName}>{visit.buyer_name || 'Buyer'}</div>
                                                 <div style={{ ...S.typeLabel, color: visit.visit_type === 'self_visit' ? '#1565c0' : '#7b1fa2' }}>
-                                                    {visit.visit_type === 'self_visit' ? 'Personal Visit' : 'Agent Scheduled'}
+                                                    {visit.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Scheduled'}
                                                 </div>
                                             </div>
                                             <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>
@@ -149,6 +167,26 @@ const SellerVisitsPage = () => {
                                             Request received {new Date(visit.created_at).toLocaleDateString()}
                                         </div>
 
+                                        {/* Seller Reply Input */}
+                                        {visit.status === 'Pending' && (
+                                            <div style={S.replyArea}>
+                                                <label style={S.replyLabel}>YOUR RESPONSE (OPTIONAL)</label>
+                                                <textarea
+                                                    style={S.replyInput}
+                                                    placeholder="Type a message to the buyer..."
+                                                    value={replyTexts[vId] || ''}
+                                                    onChange={(e) => setReplyTexts(prev => ({ ...prev, [vId]: e.target.value }))}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {visit.seller_message && (
+                                            <div style={{ ...S.messageWrapper, background: '#E8F5E9', marginTop: '16px' }}>
+                                                <div style={{ ...S.messageKey, color: '#2E7D32' }}>Your Reply</div>
+                                                <div style={S.messageContent}>{visit.seller_message}</div>
+                                            </div>
+                                        )}
+
                                         {/* Actions */}
                                         {visit.status === 'Pending' && (
                                             <div style={S.actionGrid}>
@@ -172,6 +210,43 @@ const SellerVisitsPage = () => {
                         </div>
                     </div>
                 ))
+            )}
+
+            {/* Daily Schedule Summary Table */}
+            {acceptedVisits.length > 0 && (
+                <div style={S.scheduleSection}>
+                    <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
+                    <p style={S.sectionSubtitle}>A quick overview of all your upcoming site visits.</p>
+
+                    <div style={S.tableWrapper}>
+                        <table style={S.table}>
+                            <thead>
+                                <tr>
+                                    <th style={S.th}>Date</th>
+                                    <th style={S.th}>Time</th>
+                                    <th style={S.th}>Land</th>
+                                    <th style={S.th}>Buyer</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sortedDates.map(date => (
+                                    scheduleByDate[date].sort((a, b) => a.visit_time.localeCompare(b.visit_time)).map((v, idx) => (
+                                        <tr key={v._id || v.id} style={S.tr}>
+                                            {idx === 0 ? (
+                                                <td style={{ ...S.td, fontWeight: '800', borderLeft: '4px solid #1A1A1A' }} rowSpan={scheduleByDate[date].length}>
+                                                    {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
+                                                </td>
+                                            ) : null}
+                                            <td style={S.td}>{v.visit_time}</td>
+                                            <td style={S.td}>{v.land_name}</td>
+                                            <td style={S.td}>{v.buyer_name}</td>
+                                        </tr>
+                                    ))
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -212,6 +287,20 @@ const S = {
     actionGrid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px', marginTop: '24px' },
     primaryBtn: { padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' },
     secondaryBtn: { padding: '14px', background: '#fff', color: '#C62828', border: '1.5px solid #FDECEA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' },
+
+    replyArea: { marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '8px' },
+    replyLabel: { fontSize: '0.65rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.05em' },
+    replyInput: { padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E5E0DA', fontSize: '0.88rem', fontFamily: 'inherit', resize: 'vertical', minHeight: '60px', outline: 'none', transition: 'border-color 0.2s' },
+
+    // Schedule Table Styles
+    scheduleSection: { marginTop: '80px', background: '#fff', padding: '48px', borderRadius: '32px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
+    sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
+    sectionSubtitle: { fontSize: '1rem', color: '#777', marginBottom: '32px' },
+    tableWrapper: { overflowX: 'auto' },
+    table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
+    th: { padding: '16px 20px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid #F0F0F0' },
+    tr: { borderBottom: '1px solid #F7F7F7', transition: 'background 0.2s' },
+    td: { padding: '20px', fontSize: '0.95rem', color: '#333', fontWeight: '600' },
 };
 
 export default SellerVisitsPage;

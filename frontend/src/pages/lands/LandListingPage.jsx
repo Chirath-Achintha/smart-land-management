@@ -63,7 +63,7 @@ const LandListingPage = () => {
             ) : (
                 <div className="lands-grid">
                     {filtered.map(land => (
-                        <div key={land.id} className="land-card">
+                        <div key={land._id || land.id} className="land-card">
                             {/* Image */}
                             <div className="land-img-wrap" style={{ position: 'relative' }}>
                                 <img
@@ -106,7 +106,7 @@ const LandListingPage = () => {
                                     <button
                                         className="btn-dark"
                                         style={{ padding: '8px 18px' }}
-                                        onClick={() => navigate(`/lands/${land.id}`)}
+                                        onClick={() => navigate(`/lands/${land._id || land.id}`)}
                                     >
                                         View Details
                                     </button>

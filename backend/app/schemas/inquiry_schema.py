@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, Any
 from datetime import datetime
 
 
@@ -10,8 +10,8 @@ class InquiryCreate(BaseModel):
 
 
 class InquiryResponse(BaseModel):
-    id: int
-    buyer_id: int
+    id:         str = Field(alias="_id")
+    buyer_id:   str
     title: str
     inquiry_type: str
     message: str
@@ -20,7 +20,13 @@ class InquiryResponse(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
+    @field_validator("id", "buyer_id", mode="before")
+    @classmethod
+    def convert_id(cls, v: Any) -> str:
+        return str(v)
+
     class Config:
+        populate_by_name = True
         from_attributes = True
 
 

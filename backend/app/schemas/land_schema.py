@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
+from beanie import PydanticObjectId
 
 class LandStatus(str, Enum):
     Available = "Available"
@@ -26,10 +27,16 @@ class BiddingSetupCreate(BiddingSetupBase):
     pass
 
 class BiddingSetupResponse(BiddingSetupBase):
-    id: int
-    land_id: int
+    id: str = Field(alias="_id")
+    land_id: str
+
+    @field_validator("id", "land_id", mode="before")
+    @classmethod
+    def convert_id(cls, v: Any) -> str:
+        return str(v)
 
     class Config:
+        populate_by_name = True
         from_attributes = True
 
 # ── Land Request Schemas ───────────────────────────────────────────────────────────
@@ -63,8 +70,8 @@ class LandUpdate(BaseModel):
 # ── Response Schema ───────────────────────────────────────────────────────────
 
 class LandResponse(BaseModel):
-    id: int
-    seller_id: int
+    id: str = Field(alias="_id")
+    seller_id: str
     name: str
     district: str
     village: str
@@ -88,5 +95,11 @@ class LandResponse(BaseModel):
     # Nested bidding setup (optional)
     bidding_setup: Optional[BiddingSetupBase] = None
 
+    @field_validator("id", "seller_id", mode="before")
+    @classmethod
+    def convert_id(cls, v: Any) -> str:
+        return str(v)
+
     class Config:
+        populate_by_name = True
         from_attributes = True

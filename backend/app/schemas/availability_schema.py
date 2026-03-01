@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, Field, field_validator
+from typing import List, Any
 
 
 # ── Land-Specific Availability ──────────────────────────────────────────────
@@ -12,11 +12,17 @@ class AvailabilityCreate(AvailabilityBase):
     pass
 
 class AvailabilityResponse(AvailabilityBase):
-    id:        int
-    land_id:   int
-    seller_id: int
+    id:        str = Field(alias="_id")
+    land_id:   str
+    seller_id: str
+
+    @field_validator("id", "land_id", "seller_id", mode="before")
+    @classmethod
+    def convert_id(cls, v: Any) -> str:
+        return str(v)
 
     class Config:
+        populate_by_name = True
         from_attributes = True
 
 class AvailabilityBulkCreate(BaseModel):

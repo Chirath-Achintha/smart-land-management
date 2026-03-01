@@ -48,9 +48,10 @@ const SellerVisitsPage = () => {
                 const err = await res.json();
                 setError(err.detail || 'Failed to update.');
             } else {
-                setVisits(prev => prev.map(v =>
-                    v.id === visitId ? { ...v, status: newStatus } : v
-                ));
+                setVisits(prev => prev.map(v => {
+                    const vId = v._id || v.id;
+                    return vId === visitId ? { ...v, status: newStatus } : v;
+                }));
             }
         } catch { setError('Server error. Try again.'); }
         setUpdating(null);
@@ -109,8 +110,9 @@ const SellerVisitsPage = () => {
                         <div style={S.cards}>
                             {group.items.map(visit => {
                                 const sc = STATUS_COLORS[visit.status] || STATUS_COLORS.Pending;
+                                const vId = visit._id || visit.id;
                                 return (
-                                    <div key={visit.id} style={S.card}>
+                                    <div key={vId} style={S.card}>
                                         {/* Header: Buyer Name + Status */}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                                             <div>
@@ -152,15 +154,15 @@ const SellerVisitsPage = () => {
                                             <div style={S.actionGrid}>
                                                 <button
                                                     style={S.primaryBtn}
-                                                    disabled={updating === visit.id}
-                                                    onClick={() => updateStatus(visit.id, 'Accepted')}>
-                                                    {updating === visit.id ? 'Processing...' : 'Accept Request'}
+                                                    disabled={updating === vId}
+                                                    onClick={() => updateStatus(vId, 'Accepted')}>
+                                                    {updating === vId ? 'Processing...' : 'Accept Request'}
                                                 </button>
                                                 <button
                                                     style={S.secondaryBtn}
-                                                    disabled={updating === visit.id}
-                                                    onClick={() => updateStatus(visit.id, 'Rejected')}>
-                                                    {updating === visit.id ? '...' : 'Decline'}
+                                                    disabled={updating === vId}
+                                                    onClick={() => updateStatus(vId, 'Rejected')}>
+                                                    {updating === vId ? '...' : 'Decline'}
                                                 </button>
                                             </div>
                                         )}

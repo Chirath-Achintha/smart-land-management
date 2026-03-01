@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from enum import Enum
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 
 class UserRole(str, Enum):
@@ -28,7 +28,7 @@ class UserLogin(BaseModel):
 # ---- Response Schemas ----
 
 class UserResponse(BaseModel):
-    id: int
+    id: str = Field(alias="_id")
     full_name: str
     nic_number: str
     role: UserRole
@@ -36,7 +36,13 @@ class UserResponse(BaseModel):
     email: str
     created_at: Optional[datetime]
 
+    @field_validator("id", mode="before")
+    @classmethod
+    def convert_id(cls, v: Any) -> str:
+        return str(v)
+
     class Config:
+        populate_by_name = True
         from_attributes = True
 
 class Token(BaseModel):

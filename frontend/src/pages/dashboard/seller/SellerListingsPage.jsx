@@ -51,6 +51,44 @@ const SellerListingsPage = () => {
         setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
     };
 
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleUpload = async (file) => {
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch(`${API}/lands/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!res.ok) throw new Error('Upload failed');
+            const data = await res.json();
+            setForm(f => ({ ...f, image_url: data.url }));
+        } catch (err) {
+            setError('Image upload failed');
+        }
+    };
+
+    const onDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleUpload(e.dataTransfer.files[0]);
+        }
+    };
+
+    const onDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const onDragLeave = () => {
+        setIsDragging(false);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -260,11 +298,42 @@ const SellerListingsPage = () => {
 
                             <div style={S.sectionDivider}>Property Image</div>
                             <div style={S.formGroup}>
-                                <label style={S.label}>Image URL (paste a link to the image)</label>
-                                <input name="image_url" value={form.image_url} onChange={handleFormChange} style={S.input} placeholder="https://example.com/image.jpg" />
-                                {form.image_url && (
-                                    <img src={form.image_url} alt="Preview" style={{ marginTop: '10px', maxHeight: '140px', borderRadius: '8px', objectFit: 'cover' }}
-                                        onError={e => { e.target.style.display = 'none'; }} />
+                                <label style={S.label}>Upload Property Photo</label>
+                                {!form.image_url ? (
+                                    <div
+                                        onDrop={onDrop}
+                                        onDragOver={onDragOver}
+                                        onDragLeave={onDragLeave}
+                                        style={{
+                                            ...S.dropZone,
+                                            borderColor: isDragging ? '#1A1A1A' : '#e5e0da',
+                                            background: isDragging ? '#fdfaf7' : '#fff'
+                                        }}
+                                        onClick={() => document.getElementById('fileInput').click()}
+                                    >
+                                        <div style={S.dropContent}>
+                                            <span style={{ fontSize: '2rem', marginBottom: '8px' }}>📸</span>
+                                            <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>Drag & drop your image here</span>
+                                            <span style={{ fontSize: '0.75rem', color: '#888' }}>Support for JPG, PNG (Max 5MB)</span>
+                                            <span style={S.browseText}>or browse files</span>
+                                        </div>
+                                        <input
+                                            id="fileInput"
+                                            type="file"
+                                            accept="image/*"
+                                            hidden
+                                            onChange={(e) => handleUpload(e.target.files[0])}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div style={S.previewContainer}>
+                                        <img src={form.image_url} alt="Preview" style={S.previewImage} />
+                                        <div style={S.previewOverlay}>
+                                            <button type="button" onClick={() => setForm(f => ({ ...f, image_url: '' }))} style={S.removeImgBtn}>
+                                                Change Image
+                                            </button>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
 
@@ -344,6 +413,13 @@ const S = {
     cancelBtn: { padding: '12px 24px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontWeight: '700' },
     saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700' },
     confirmDelBtn: { padding: '12px 24px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' },
+    dropZone: { border: '2px dashed #e5e0da', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' },
+    dropContent: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' },
+    browseText: { color: '#1A1A1A', textDecoration: 'underline', fontWeight: '700', marginTop: '12px', fontSize: '0.85rem' },
+    previewContainer: { position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '200px', border: '1px solid #e5e0da' },
+    previewImage: { width: '100%', height: '100%', objectFit: 'cover' },
+    previewOverlay: { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', ':hover': { opacity: 1 } },
+    removeImgBtn: { background: '#fff', color: '#1A1A1A', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }
 };
 
 export default SellerListingsPage;

@@ -1,17 +1,15 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
-from app.database.connection import Base
+from beanie import Document, PydanticObjectId
+from pydantic import Field
+from typing import Optional
 
+class Availability(Document):
+    land_id: PydanticObjectId
+    seller_id: PydanticObjectId
+    day: str
+    time_slot: str
 
-class Availability(Base):
-    __tablename__ = "availability"
+    class Settings:
+        name = "availability"
 
-    id         = Column('av_id', Integer, primary_key=True, index=True)
-    land_id    = Column(Integer, ForeignKey("lands.listing_id", ondelete="CASCADE"), nullable=False)
-    seller_id  = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
-    day        = Column(String(20), nullable=False)   # e.g. "Monday"
-    time_slot  = Column(String(50), nullable=False)   # e.g. "09:00 AM – 12:00 PM"
-
-    # Relationships
-    land   = relationship("Land",  back_populates="availability")
-    seller = relationship("User",  back_populates="availability")
+    class Config:
+        populate_by_name = True

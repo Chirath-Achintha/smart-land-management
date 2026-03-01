@@ -30,7 +30,8 @@ const SellerAvailabilityPage = () => {
                 const lands = await res.json();
                 setListings(Array.isArray(lands) ? lands : []);
                 if (Array.isArray(lands) && lands.length > 0) {
-                    setSelectedId(String(lands[0].id));
+                    const firstId = lands[0]._id || lands[0].id;
+                    setSelectedId(String(firstId));
                 }
             } catch (err) {
                 console.error("Failed to load listings", err);
@@ -42,7 +43,7 @@ const SellerAvailabilityPage = () => {
 
     // Load slots for selected land
     useEffect(() => {
-        if (!selectedId) return;
+        if (!selectedId || selectedId === 'undefined') return;
         fetch(`${API}/availability/land/${selectedId}`)
             .then(r => r.json())
             .then(data => setPropertySlots(Array.isArray(data) ? data : []))
@@ -69,13 +70,15 @@ const SellerAvailabilityPage = () => {
         setPropertySlots([...propertySlots, newSlot]);
         setError('');
         setSaved(false);
+        return newSlot;
     };
 
     const removeSlot = async (idx) => {
         const slotToRemove = propertySlots[idx];
-        if (slotToRemove.id) {
+        const slotId = slotToRemove._id || slotToRemove.id;
+        if (slotId) {
             try {
-                const res = await fetch(`${API}/availability/${slotToRemove.id}`, { method: 'DELETE', headers: authHeaders });
+                const res = await fetch(`${API}/availability/${slotId}`, { method: 'DELETE', headers: authHeaders });
                 if (!res.ok) { setError('Failed to delete slot.'); return; }
             } catch { setError('Server error while deleting slot.'); return; }
         }
@@ -84,13 +87,23 @@ const SellerAvailabilityPage = () => {
     };
 
     const saveSlots = async () => {
-        if (!selectedId) return;
+        if (!selectedId || selectedId === 'undefined') return;
         setSaving(true); setSaved(false); setError('');
+
+        let currentSlots = [...propertySlots];
+
+        // If user didn't click "Add Slot" but filled the form, auto-add it
+        if (currentSlots.length === 0 && startTime && endTime) {
+            const timeRange = `${formatTimeStr(startTime)} – ${formatTimeStr(endTime)}`;
+            currentSlots = [{ day: slotDay, time_slot: timeRange }];
+            setPropertySlots(currentSlots);
+        }
+
         try {
             const res = await fetch(`${API}/availability/land/${selectedId}`, {
                 method: 'POST',
                 headers: authHeaders,
-                body: JSON.stringify(propertySlots),
+                body: JSON.stringify(currentSlots),
             });
             if (!res.ok) {
                 const err = await res.json();
@@ -104,7 +117,7 @@ const SellerAvailabilityPage = () => {
         setSaving(false);
     };
 
-    const selectedListing = listings.find(l => String(l.id) === selectedId);
+    const selectedListing = listings.find(l => String(l._id || l.id) === selectedId);
 
     return (
         <div style={S.root}>

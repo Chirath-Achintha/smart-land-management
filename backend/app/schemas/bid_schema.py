@@ -1,20 +1,20 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, Any
 from datetime import datetime
 
 # ── Request Schemas ───────────────────────────────────────────────────────────
 
 class BidCreate(BaseModel):
-    land_id: int
+    land_id: str
     amount: float
     message: Optional[str] = None
 
 # ── Response Schema ───────────────────────────────────────────────────────────
 
 class BidResponse(BaseModel):
-    id: int
-    land_id: int
-    buyer_id: int
+    id: str = Field(alias="_id")
+    land_id: str
+    buyer_id: str
     buyer_name: Optional[str] = None
     buyer_email: Optional[str] = None
     amount: float
@@ -22,5 +22,11 @@ class BidResponse(BaseModel):
     status: str
     created_at: Optional[datetime]
 
+    @field_validator("id", "land_id", "buyer_id", mode="before")
+    @classmethod
+    def convert_id(cls, v: Any) -> str:
+        return str(v)
+
     class Config:
+        populate_by_name = True
         from_attributes = True

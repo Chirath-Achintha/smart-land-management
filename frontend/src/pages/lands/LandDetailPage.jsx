@@ -7,187 +7,6 @@ import API_BASE_URL from '../../apiConfig';
 
 const API = API_BASE_URL;
 
-// ── Visit Modal (two-panel layout) ─────────────────────────────────────────────
-const VisitModal = ({ land, onClose }) => {
-    const [visitType, setVisitType] = useState('self_visit');
-    const [date, setDate] = useState('');
-    const [time, setTime] = useState('');
-    const [message, setMessage] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const [success, setSuccess] = useState('');
-    const [error, setError] = useState('');
-    const [propertyAv, setPropertyAv] = useState([]);
-    const [loadingSlots, setLoadingSlots] = useState(true);
-    const today = new Date().toISOString().split('T')[0];
-
-    // Fetch property-specific availability
-    useEffect(() => {
-        const fetchAv = async () => {
-            try {
-                const res = await fetch(`${API}/availability/land/${land.id}`);
-                const data = await res.json();
-                setPropertyAv(Array.isArray(data) ? data : []);
-            } catch (err) {
-                console.error("Failed to fetch availability", err);
-            }
-            setLoadingSlots(false);
-        };
-        fetchAv();
-    }, [land.id]);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(''); setSubmitting(true);
-        const token = localStorage.getItem('access_token');
-        if (!token) { setError('Please log in to book a visit.'); setSubmitting(false); return; }
-        try {
-            const res = await fetch(`${API}/visits/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({
-                    land_id: land.id,
-                    visit_type: visitType,
-                    visit_date: date,
-                    visit_time: time,
-                    message: message,
-                }),
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                setError(err.detail || 'Failed to book visit.');
-            } else {
-                setSuccess(`✓ ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit request sent for ${date} at ${time}. Waiting for seller confirmation.`);
-            }
-        } catch { setError('Server error. Please try again.'); }
-        setSubmitting(false);
-    };
-
-
-    // Seller initials helper
-    const initials = (land.seller_name || 'S').charAt(0).toUpperCase();
-
-    return (
-        <div style={VS.overlay} onClick={onClose}>
-            <div style={VS.container} onClick={e => e.stopPropagation()}>
-                {/* ── Left panel: land info + owner ── */}
-                <div style={VS.leftPanel}>
-                    <img
-                        src={land.image_url
-                            ? land.image_url.split(',')[0]
-                            : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80'}
-                        alt={land.name}
-                        style={VS.landImg}
-                    />
-                    <div style={VS.landInfo}>
-                        <h3 style={VS.landName}>{land.name}</h3>
-                        <p style={VS.landLoc}>
-                            <span style={{ marginRight: '4px' }}>📍</span>
-                            {land.village}, {land.district}
-                        </p>
-
-                        <h4 style={VS.sectionHead}>Owner Details</h4>
-                        <div style={VS.ownerCard}>
-                            <div style={VS.avatar}>{initials}</div>
-                            <div>
-                                <div style={VS.ownerName}>{land.seller_name || 'Seller'}</div>
-                                <div style={VS.ownerRole}>Seller</div>
-                                <div style={VS.ownerPhone}>+94 77 123 4567</div>
-                            </div>
-                        </div>
-
-                        <h4 style={VS.sectionHead}>Owner Availability</h4>
-                        {loadingSlots ? (
-                            <p style={{ fontSize: '0.82rem', color: '#bbb' }}>Loading slots…</p>
-                        ) : propertyAv.length === 0 ? (
-                            <p style={{ fontSize: '0.82rem', color: '#bbb', fontStyle: 'italic' }}>No availability slots listed yet for this property.</p>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '250px', overflowY: 'auto', paddingRight: '8px' }}>
-                                <div>
-                                    <div style={VS.subLabel}>Available Property Slots</div>
-                                    <div style={VS.slotsGrid}>
-                                        {propertyAv.map(a => (
-                                            <div key={a.id} style={VS.slotCard}>
-                                                <div style={VS.slotDay}>{a.day.toUpperCase()}</div>
-                                                <div style={VS.slotTime}>{a.time_slot}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* ── Right panel: booking form ── */}
-                <div style={VS.rightPanel}>
-                    <button style={VS.closeBtn} onClick={onClose}>✕</button>
-                    <h2 style={VS.formTitle}>Schedule Your Visit</h2>
-                    <p style={VS.formSub}>Choose your preferred visit type and timing</p>
-
-                    {!success ? (
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            {/* Self / Agent tab toggle */}
-                            <div style={VS.tabGroup}>
-                                {[{ id: 'self_visit', label: 'Self' }, { id: 'agent_visit', label: 'Agent' }].map(t => (
-                                    <button key={t.id} type="button"
-                                        style={{
-                                            ...VS.tab,
-                                            background: visitType === t.id ? '#1A1A1A' : '#fff',
-                                            color: visitType === t.id ? '#fff' : '#555',
-                                            border: visitType === t.id ? 'none' : '1px solid #e5e0da',
-                                        }}
-                                        onClick={() => setVisitType(t.id)}>
-                                        {t.label} Visit
-                                    </button>
-                                ))}
-                            </div>
-
-                            {error && (
-                                <div style={{ background: '#fdecea', color: '#d32f2f', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                    {error}
-                                </div>
-                            )}
-
-                            <div>
-                                <label style={VS.label}>Select Date</label>
-                                <input type="date" value={date} min={today}
-                                    onChange={e => setDate(e.target.value)}
-                                    style={VS.input} required />
-                            </div>
-                            <div>
-                                <label style={VS.label}>Select Time</label>
-                                <input type="time" value={time}
-                                    onChange={e => setTime(e.target.value)}
-                                    style={VS.input} required />
-                            </div>
-
-                            <div>
-                                <label style={VS.label}>Message (Optional)</label>
-                                <textarea
-                                    value={message}
-                                    onChange={e => setMessage(e.target.value)}
-                                    placeholder="Any special requests or details?"
-                                    style={{ ...VS.input, height: '80px', resize: 'vertical' }}
-                                />
-                            </div>
-
-                            <button type="submit" className="btn-dark"
-                                style={{ padding: '16px', fontSize: '0.95rem', borderRadius: '10px' }}
-                                disabled={submitting}>
-                                {submitting ? 'Sending request…' : `Confirm ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit`}
-                            </button>
-                            <p style={VS.disclaimer}>
-                                * Booking is subject to owner's final confirmation.
-                            </p>
-                        </form>
-                    ) : (
-                        <div style={VS.successBox}>{success}</div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
 
 // ── Land Detail Page ──────────────────────────────────────────────────────────
 const LandDetailPage = () => {
@@ -197,7 +16,6 @@ const LandDetailPage = () => {
     const [land, setLand] = useState(null);
     const [bids, setBids] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showVisitModal, setShowVisitModal] = useState(false);
 
     // ── Tab state ──────────────────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState('property'); // 'property' | 'services'
@@ -231,7 +49,7 @@ const LandDetailPage = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
-                    land_id: parseInt(id),
+                    land_id: id,
                     service_type: bookingService.type,
                     preferred_date: bkgForm.preferred_date,
                     preferred_time: bkgForm.preferred_time,
@@ -412,7 +230,7 @@ const LandDetailPage = () => {
                                 </button>
                                 <button
                                     style={{ flex: 1, padding: '14px', background: '#fff', border: '1.5px solid #1A1A1A', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' }}
-                                    onClick={() => setShowVisitModal(true)}>
+                                    onClick={() => navigate(`/schedule-visit/${id}`)}>
                                     Schedule a Visit
                                 </button>
                             </div>
@@ -440,7 +258,7 @@ const LandDetailPage = () => {
                         </h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             {bids.map((bid, i) => (
-                                <div key={bid.id} style={{
+                                <div key={bid._id || bid.id} style={{
                                     background: '#FAFAFA', borderRadius: '12px', padding: '20px 24px',
                                     borderLeft: `4px solid ${i === 0 ? '#27ae60' : '#ddd'}`
                                 }}>
@@ -474,7 +292,6 @@ const LandDetailPage = () => {
                 )}
             </div>
 
-            {showVisitModal && <VisitModal land={land} onClose={() => setShowVisitModal(false)} />}
 
             {/* ── Service Booking Modal (Redesigned) ────────────────────────── */}
             {bookingService && (
@@ -617,39 +434,6 @@ const S = {
 // ── Bid Modal Styles ──────────────────────────────────────────────────────────
 const MO = {};
 
-// ── Visit Modal Styles ────────────────────────────────────────────────────────
-const VS = {
-    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' },
-    container: { display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#FAF6F1', borderRadius: '24px', overflow: 'hidden', width: '100%', maxWidth: '860px', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' },
-    // Left panel
-    leftPanel: { background: '#fff', display: 'flex', flexDirection: 'column' },
-    landImg: { width: '100%', height: '220px', objectFit: 'cover', display: 'block' },
-    landInfo: { padding: '24px' },
-    landName: { fontSize: '1.3rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
-    landLoc: { fontSize: '0.85rem', color: '#666', marginBottom: '22px', display: 'flex', alignItems: 'center' },
-    sectionHead: { fontSize: '0.88rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '12px' },
-    ownerCard: { display: 'flex', alignItems: 'center', gap: '14px', background: '#FAF6F1', borderRadius: '12px', padding: '14px 16px', marginBottom: '22px' },
-    avatar: { width: '44px', height: '44px', borderRadius: '50%', background: '#1A1A1A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.1rem', flexShrink: 0 },
-    ownerName: { fontWeight: '700', fontSize: '0.95rem', color: '#1A1A1A' },
-    ownerRole: { fontSize: '0.78rem', color: '#888' },
-    ownerPhone: { fontSize: '0.82rem', color: '#555', marginTop: '2px' },
-    subLabel: { fontSize: '0.7rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' },
-    slotsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
-    slotCard: { background: '#F5F0EA', borderRadius: '10px', padding: '12px 14px' },
-    slotDay: { fontSize: '0.65rem', fontWeight: '800', color: '#888', letterSpacing: '0.07em', marginBottom: '4px' },
-    slotTime: { fontSize: '0.82rem', fontWeight: '700', color: '#1A1A1A' },
-    // Right panel
-    rightPanel: { padding: '40px 36px', position: 'relative', display: 'flex', flexDirection: 'column' },
-    closeBtn: { position: 'absolute', top: '16px', right: '20px', background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#999' },
-    formTitle: { fontSize: '1.6rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
-    formSub: { fontSize: '0.85rem', color: '#888', marginBottom: '28px' },
-    tabGroup: { display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#F0EBE4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '4px' },
-    tab: { padding: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '0.875rem', cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'inherit' },
-    label: { display: 'block', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888', marginBottom: '8px' },
-    input: { padding: '14px 16px', border: '1.5px solid #E5E0DA', borderRadius: '10px', outline: 'none', fontSize: '0.95rem', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', background: '#fff' },
-    disclaimer: { fontSize: '0.75rem', color: '#aaa', textAlign: 'center', marginTop: '-8px' },
-    successBox: { background: '#eafaf1', color: '#27ae60', padding: '20px', borderRadius: '12px', fontWeight: '700', textAlign: 'center', fontSize: '1rem', marginTop: '20px' },
-};
 
 const BK = {
     overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' },

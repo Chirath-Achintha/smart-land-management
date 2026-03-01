@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List
+from beanie import PydanticObjectId
 
 from app.database.connection import get_db
 from app.models.service_booking_model import ServiceBooking
@@ -17,14 +17,14 @@ router = APIRouter(prefix="/service-bookings", tags=["Service Bookings"])
 CONSTRUCTOR_ROLE = "constructor_manager"
 
 
-def _build_response(b: ServiceBooking, db: Session) -> ServiceBookingResponse:
-    buyer = db.query(User).filter(User.id == b.buyer_id).first()
-    land  = db.query(Land).filter(Land.id == b.land_id).first() if b.land_id else None
+async def _build_response(b: ServiceBooking) -> ServiceBookingResponse:
+    buyer = await User.get(b.buyer_id)
+    land  = await Land.get(b.land_id) if b.land_id else None
     return ServiceBookingResponse(
-        id=b.id,
-        buyer_id=b.buyer_id,
-        land_id=b.land_id,
-        constructor_id=b.constructor_id,
+        id=str(b.id),
+        buyer_id=str(b.buyer_id),
+        land_id=str(b.land_id) if b.land_id else None,
+        constructor_id=str(b.constructor_id) if b.constructor_id else None,
         service_type=b.service_type,
         preferred_date=b.preferred_date,
         preferred_time=b.preferred_time,
@@ -38,17 +38,16 @@ def _build_response(b: ServiceBooking, db: Session) -> ServiceBookingResponse:
 
 # ── Buyer: create a booking ───────────────────────────────────────────────────
 @router.post("/", response_model=ServiceBookingResponse, status_code=status.HTTP_201_CREATED)
-def create_booking(
+async def create_booking(
     data: ServiceBookingCreate,
-    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     # Auto-assign the first available constructor_manager if any
-    constructor = db.query(User).filter(User.role == CONSTRUCTOR_ROLE).first()
+    constructor = await User.find_one(User.role == CONSTRUCTOR_ROLE)
 
     booking = ServiceBooking(
         buyer_id=current_user.id,
-        land_id=data.land_id,
+        land_id=PydanticObjectId(data.land_id) if data.land_id else None,
         constructor_id=constructor.id if constructor else None,
         service_type=data.service_type,
         preferred_date=data.preferred_date,
@@ -56,95 +55,82 @@ def create_booking(
         notes=data.notes,
         status="Scheduled",
     )
-    db.add(booking)
-    db.commit()
-    db.refresh(booking)
-    return _build_response(booking, db)
+    await booking.insert()
+    return await _build_response(booking)
 
 
 # ── Buyer: get my bookings ─────────────────────────────────────────────────────
 @router.get("/my", response_model=List[ServiceBookingResponse])
-def my_bookings(
-    db: Session = Depends(get_db),
+async def my_bookings(
     current_user: User = Depends(get_current_user)
 ):
-    bookings = (db.query(ServiceBooking)
-                  .filter(ServiceBooking.buyer_id == current_user.id)
-                  .order_by(ServiceBooking.created_at.desc())
-                  .all())
-    return [_build_response(b, db) for b in bookings]
+    bookings = await ServiceBooking.find(ServiceBooking.buyer_id == current_user.id).sort("-created_at").to_list()
+    return [await _build_response(b) for b in bookings]
 
 
 # ── Buyer: edit a booking (while Scheduled) ────────────────────────────────────
 @router.put("/{booking_id}", response_model=ServiceBookingResponse)
-def update_booking(
-    booking_id: int,
+async def update_booking(
+    booking_id: PydanticObjectId,
     data: ServiceBookingUpdate,
-    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    booking = db.query(ServiceBooking).filter(
+    booking = await ServiceBooking.find_one(
         ServiceBooking.id == booking_id,
         ServiceBooking.buyer_id == current_user.id
-    ).first()
+    )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     if booking.status != "Scheduled":
         raise HTTPException(status_code=400, detail="Only Scheduled bookings can be edited")
 
-    for field, value in data.dict(exclude_unset=True).items():
+    update_dict = data.dict(exclude_unset=True)
+    for field, value in update_dict.items():
         setattr(booking, field, value)
-    db.commit()
-    db.refresh(booking)
-    return _build_response(booking, db)
+    
+    await booking.save()
+    return await _build_response(booking)
 
 
 # ── Buyer: delete / cancel a booking ──────────────────────────────────────────
 @router.delete("/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_booking(
-    booking_id: int,
-    db: Session = Depends(get_db),
+async def delete_booking(
+    booking_id: PydanticObjectId,
     current_user: User = Depends(get_current_user)
 ):
-    booking = db.query(ServiceBooking).filter(
+    booking = await ServiceBooking.find_one(
         ServiceBooking.id == booking_id,
         ServiceBooking.buyer_id == current_user.id
-    ).first()
+    )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    db.delete(booking)
-    db.commit()
+    await booking.delete()
 
 
 # ── Constructor: get all bookings assigned to me ───────────────────────────────
 @router.get("/assigned", response_model=List[ServiceBookingResponse])
-def assigned_bookings(
-    db: Session = Depends(get_db),
+async def assigned_bookings(
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role != CONSTRUCTOR_ROLE:
         raise HTTPException(status_code=403, detail="Not a constructor manager")
-    bookings = (db.query(ServiceBooking)
-                  .filter(ServiceBooking.constructor_id == current_user.id)
-                  .order_by(ServiceBooking.created_at.desc())
-                  .all())
-    return [_build_response(b, db) for b in bookings]
+    bookings = await ServiceBooking.find(ServiceBooking.constructor_id == current_user.id).sort("-created_at").to_list()
+    return [await _build_response(b) for b in bookings]
 
 
 # ── Constructor: update status ─────────────────────────────────────────────────
 @router.put("/{booking_id}/status", response_model=ServiceBookingResponse)
-def update_status(
-    booking_id: int,
+async def update_status(
+    booking_id: PydanticObjectId,
     data: ServiceBookingStatusUpdate,
-    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role != CONSTRUCTOR_ROLE:
         raise HTTPException(status_code=403, detail="Not a constructor manager")
-    booking = db.query(ServiceBooking).filter(
+    booking = await ServiceBooking.find_one(
         ServiceBooking.id == booking_id,
         ServiceBooking.constructor_id == current_user.id
-    ).first()
+    )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
@@ -153,6 +139,5 @@ def update_status(
         raise HTTPException(status_code=400, detail=f"Status must be one of {allowed}")
 
     booking.status = data.status
-    db.commit()
-    db.refresh(booking)
-    return _build_response(booking, db)
+    await booking.save()
+    return await _build_response(booking)

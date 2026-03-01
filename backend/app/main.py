@@ -1,16 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Import models BEFORE create_all so SQLAlchemy knows about all tables
-from app.database.connection import Base, engine
-from app.models.user_model import User
-from app.models.land_model import Land
-from app.models.bid_model import Bid
-from app.models.availability_model import Availability
-from app.models.visit_model import Visit
-from app.models.inquiry_model import Inquiry
-from app.models.service_booking_model import ServiceBooking
-from app.models.bidding_setup_model import BiddingSetup
+from fastapi.staticfiles import StaticFiles
+import os
+
+from app.database.connection import init_db
 
 from app.routes.auth_routes         import router as auth_router
 from app.routes.land_routes         import router as land_router
@@ -20,14 +14,15 @@ from app.routes.visit_routes        import router as visit_router
 from app.routes.inquiry_routes      import router as inquiry_router
 from app.routes.service_booking_routes import router as service_booking_router
 
-# Auto-create all tables on startup
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title="Smart Land Management API",
     description="Backend API for Smart Land Management System",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    await init_db()
 
 # CORS configuration
 origins = [
@@ -43,6 +38,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Static files
+os.makedirs("static/uploads", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Include routers
 app.include_router(auth_router)

@@ -1,11 +1,11 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, Any
 from datetime import datetime
 from app.models.visit_model import VisitStatus, VisitType
 
 
 class VisitCreate(BaseModel):
-    land_id:    int
+    land_id:    str
     visit_type: VisitType
     visit_date: str
     visit_time: str
@@ -17,9 +17,9 @@ class VisitUpdateStatus(BaseModel):
 
 
 class VisitResponse(BaseModel):
-    id:         int
-    land_id:    int
-    buyer_id:   int
+    id:         str = Field(alias="_id")
+    land_id:    str
+    buyer_id:   str
     visit_type: VisitType
     visit_date: str
     visit_time: str
@@ -29,5 +29,11 @@ class VisitResponse(BaseModel):
     buyer_name: Optional[str] = None
     land_name:  Optional[str] = None
 
+    @field_validator("id", "land_id", "buyer_id", mode="before")
+    @classmethod
+    def convert_id(cls, v: Any) -> str:
+        return str(v)
+
     class Config:
+        populate_by_name = True
         from_attributes = True

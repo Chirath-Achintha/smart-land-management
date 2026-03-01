@@ -1,18 +1,16 @@
-from sqlalchemy import create_engine, text
-from app.core.config import settings
+import asyncio
+from app.database.connection import init_db, db
 
-def check_counts():
+async def check_counts():
+    await init_db()
     try:
-        engine = create_engine(settings.DATABASE_URL)
-        inspector = __import__('sqlalchemy').inspect(engine)
-        tables = inspector.get_table_names()
-        
-        with engine.connect() as conn:
-            for table in tables:
-                count = conn.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
-                print(f"Table '{table}': {count} rows")
+        collections = await db.list_collection_names()
+        for collection_name in collections:
+            count = await db[collection_name].count_documents({})
+            print(f"Collection '{collection_name}': {count} documents")
     except Exception as e:
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    check_counts()
+    asyncio.run(check_counts())
+

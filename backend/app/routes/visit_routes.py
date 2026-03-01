@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from beanie import PydanticObjectId
 
-from app.database.connection import get_db
 from app.models.visit_model import Visit, VisitStatus, VisitType
+
 from app.models.land_model import Land
 from app.models.user_model import User
 from app.schemas.visit_schema import VisitCreate, VisitUpdateStatus, VisitResponse

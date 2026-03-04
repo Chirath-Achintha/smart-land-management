@@ -1,10 +1,21 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from app.core.config import settings
+import dns.resolver
+
+# Force Google's DNS (8.8.8.8) to resolve the MongoDB Atlas SRV link
+# This is required if the system DNS (default) fails to resolve the SRV record.
+try:
+    dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
+    dns.resolver.default_resolver.nameservers = ['8.8.8.8']
+except Exception as e:
+    print(f"Warning: Could not force Google DNS for DB connection: {e}")
+
 
 # Export the database client and initialization function
 client = AsyncIOMotorClient(settings.DATABASE_URL)
 db = client.get_default_database()
+
 
 async def init_db():
     # To be called on FastAPI startup

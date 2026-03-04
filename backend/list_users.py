@@ -1,15 +1,20 @@
-from sqlalchemy import create_engine, text
-from app.core.config import settings
+import asyncio
+from app.database.connection import init_db
+from app.models.user_model import User
 
-def list_users():
+async def list_users():
+    await init_db()
     try:
-        engine = create_engine(settings.DATABASE_URL)
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT user_id, name, email, type FROM users"))
-            for row in result:
-                print(f"User: ID={row[0]}, Name={row[1]}, Email={row[2]}, Role={row[3]}")
+        users = await User.find_all().to_list()
+        if not users:
+            print("No users found.")
+            return
+            
+        for user in users:
+            print(f"User: ID={str(user.id)}, Name={user.full_name}, Email={user.email}, Role={user.role}")
     except Exception as e:
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    list_users()
+    asyncio.run(list_users())
+

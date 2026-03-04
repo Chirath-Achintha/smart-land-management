@@ -5,8 +5,8 @@ import shutil
 from typing import List
 from beanie import PydanticObjectId
 
-from app.database.connection import get_db
 from app.models.land_model import Land
+
 from app.models.user_model import User
 from app.models.bidding_setup_model import BiddingSetup
 from app.schemas.land_schema import LandCreate, LandUpdate, LandResponse, BiddingSetupBase

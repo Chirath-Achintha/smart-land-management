@@ -1,36 +1,39 @@
-from sqlalchemy import create_engine
-from app.core.config import settings
-from app.models.user_model import User
+import asyncio
+from app.database.connection import init_db
 from app.models.land_model import Land
-from app.models.bid_model import Bid
-from app.models.availability_model import Availability
-from app.models.visit_model import Visit
-from app.models.inquiry_model import Inquiry
-from app.models.service_booking_model import ServiceBooking
 from app.models.bidding_setup_model import BiddingSetup
-from sqlalchemy.orm import sessionmaker
+from beanie import PydanticObjectId
 
-def seed_test_land():
+async def seed_test_land():
+    await init_db()
     try:
-        engine = create_engine(settings.DATABASE_URL)
-        Session = sessionmaker(bind=engine)
-        session = Session()
+        # Add a test land
+        # Note: seller_id needs to be a valid PydanticObjectId, 
+        # normally you should get an existing user's ID
+        # Since this is a seed script, we'll try to find a seller first
+        # For now, let's just use a dummy ID or find the first user
+        from app.models.user_model import User
+        seller = await User.find_one(User.role == "seller")
         
-        # Add a test land for user_id=1 (Manit)
+        if not seller:
+            print("[WARN] No seller found. Please register a seller first.")
+            return
+
+        # Add a test land for the seller
         new_land = Land(
-            seller_id=1,
+            seller_id=seller.id,
             name="Golden Sunrise Acres",
             village="Hikkaduwa",
             district="Galle",
-            total_price=5500000,
+            price_per_perch=366666.67,
             perches=15,
+            total_price=5500000,
             image_url="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
             location="Near the coastal road",
             description="Beautiful land near the beach, perfect for a villa.",
             id_verified=True
         )
-        session.add(new_land)
-        session.flush() # Get the land ID
+        await new_land.insert()
         
         # Bidding setup
         bidding = BiddingSetup(
@@ -38,13 +41,12 @@ def seed_test_land():
             open_for_bidding=True,
             starting_bid=5000000
         )
-        session.add(bidding)
+        await bidding.insert()
         
-        session.commit()
-        print("Test land and bidding setup added successfully!")
-        session.close()
+        print("Test land and bidding setup added successfully for seller: " + seller.email)
     except Exception as e:
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    seed_test_land()
+    asyncio.run(seed_test_land())
+

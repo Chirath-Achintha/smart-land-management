@@ -1,23 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../../../apiConfig';
+
+const API = API_BASE_URL;
 
 const UserManagement = () => {
-    // Initial Mock Data
-    const [users, setUsers] = useState([
-        { id: 1, name: 'John Buyer', email: 'john@example.com', role: 'Buyer', status: 'Active', joined: '2025-12-01' },
-        { id: 2, name: 'Sarah Seller', email: 'sarah@example.com', role: 'Seller', status: 'Active', joined: '2025-12-05' },
-        { id: 3, name: 'Mike Agent', email: 'mike@smartland.com', role: 'Agent', status: 'Active', joined: '2026-01-10' },
-        { id: 4, name: 'Robert Suspended', email: 'robert@spam.com', role: 'Buyer', status: 'Suspended', joined: '2026-02-15' },
-    ]);
-
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
 
+    // Fetch users from DB
+    const fetchUsers = () => {
+        const token = localStorage.getItem('access_token');
+        setLoading(true);
+        fetch(`${API}/admin/users`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+            .then(r => r.json())
+            .then(data => {
+                const formattedUsers = data.map(u => ({
+                    id: u.id,
+                    name: u.full_name,
+                    email: u.email,
+                    role: u.role.charAt(0).toUpperCase() + u.role.slice(1).replace('_', ' '),
+                    status: 'Active', // Status field not in model yet, default to Active
+                    joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'
+                }));
+                setUsers(formattedUsers);
+            })
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
     // Filtering
     const filteredUsers = users.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.role.toLowerCase().includes(searchTerm.toLowerCase())
+        (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.role || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleEdit = (user) => {
@@ -27,9 +51,22 @@ const UserManagement = () => {
 
     const handleDelete = (id) => {
         if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-            setUsers(users.filter(u => u.id !== id));
+            const token = localStorage.getItem('access_token');
+            fetch(`${API}/admin/users/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+                .then(r => {
+                    if (r.ok) {
+                        setUsers(users.filter(u => u.id !== id));
+                    } else {
+                        alert('Failed to delete user');
+                    }
+                })
+                .catch(console.error);
         }
     };
+
 
     const handleSave = (e) => {
         e.preventDefault();
@@ -46,10 +83,9 @@ const UserManagement = () => {
                     <p style={styles.subtitle}>View, edit, and manage all registered users and their system roles.</p>
                 </div>
                 <div style={styles.searchBar}>
-                    <span style={styles.searchIcon}>🔍</span>
                     <input
                         type="text"
-                        placeholder="Search users by name, email or role..."
+                        placeholder="Search users..."
                         style={styles.searchInput}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -187,15 +223,15 @@ const styles = {
     titleArea: { flex: 1 },
     title: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
     subtitle: { color: '#666', fontSize: '0.95rem' },
-    searchBar: { position: 'relative', width: '350px' },
-    searchIcon: { position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', pointerEvents: 'none' },
-    searchInput: { width: '100%', padding: '12px 16px 12px 48px', borderRadius: '12px', border: '1px solid #ede8e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff' },
-    tableCard: { backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #ede8e1', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' },
+    searchBar: { width: '300px' },
+    searchInput: { width: '100%', padding: '12px 20px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' },
+    tableCard: { backgroundColor: '#fff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.05)', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' },
     table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
-    thRow: { backgroundColor: '#F9FAFB', borderBottom: '1px solid #ede8e1' },
-    th: { padding: '16px 24px', fontSize: '0.8rem', fontWeight: '700', color: '#777', textTransform: 'uppercase', letterSpacing: '0.05em' },
-    tr: { borderBottom: '1px solid #f9fafb', transition: 'background 0.2s' },
-    td: { padding: '16px 24px', fontSize: '0.9rem' },
+    thRow: { backgroundColor: '#ffffff', borderBottom: '1px solid rgba(0,0,0,0.05)' },
+    th: { padding: '20px 24px', fontSize: '0.75rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em' },
+    tr: { borderBottom: '1px solid rgba(0,0,0,0.02)', transition: 'background 0.2s' },
+    td: { padding: '20px 24px', fontSize: '0.9rem' },
+
     avatar: { width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '1.1rem' },
     userName: { fontWeight: '700', color: '#1A1A1A' },
     userEmail: { fontSize: '0.8rem', color: '#666' },

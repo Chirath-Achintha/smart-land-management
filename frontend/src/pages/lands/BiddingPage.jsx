@@ -133,7 +133,7 @@ const BiddingPage = () => {
                     'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    land_id: parseInt(id),
+                    land_id: id,
                     amount: amount,
                     message: myMessage.trim() || null,
                 }),

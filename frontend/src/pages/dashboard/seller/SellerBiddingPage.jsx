@@ -54,7 +54,8 @@ const SellerBiddingPage = () => {
                 const lands = Array.isArray(data) ? data : [];
                 setListings(lands);
                 if (lands.length > 0 && !selectedId) {
-                    setSelectedId(String(lands[0].id));
+                    const firstId = lands[0].id || lands[0]._id;
+                    setSelectedId(String(firstId));
                     setForm(extractForm(lands[0]));
                 }
                 setLoading(false);
@@ -103,7 +104,7 @@ const SellerBiddingPage = () => {
 
     const handleSelectListing = (id) => {
         setSelectedId(id);
-        const found = listings.find(l => String(l.id) === id);
+        const found = listings.find(l => String(l.id || l._id) === id);
         if (found) setForm(extractForm(found));
         setSaved(false);
         setError('');
@@ -175,7 +176,7 @@ const SellerBiddingPage = () => {
         setSaving(false);
     };
 
-    const selectedListing = listings.find(l => String(l.id) === selectedId);
+    const selectedListing = listings.find(l => String(l.id || l._id) === selectedId);
 
     /* Status helpers for quick list */
     const getStatus = (land) => {
@@ -223,9 +224,10 @@ const SellerBiddingPage = () => {
                         <div style={S.sectionLabel}>Select Land</div>
                         <div style={S.selectorRow}>
                             <select value={selectedId} onChange={e => handleSelectListing(e.target.value)} style={S.select}>
-                                {listings.map(l => (
-                                    <option key={l.id} value={String(l.id)}>{l.name}</option>
-                                ))}
+                                {listings.map(l => {
+                                    const lid = l.id || l._id;
+                                    return <option key={lid} value={String(lid)}>{l.name}</option>
+                                })}
                             </select>
                             {selectedListing && (
                                 <span style={S.locationTag}>{selectedListing.village}, {selectedListing.district}</span>
@@ -409,13 +411,13 @@ const SellerBiddingPage = () => {
                                 const status = getStatus(l);
                                 return (
                                     <div
-                                        key={l.id}
+                                        key={l.id || l._id}
                                         style={{
                                             ...S.quickRow,
-                                            background: String(l.id) === selectedId ? '#f5f0ea' : '#fdfaf7',
-                                            border: String(l.id) === selectedId ? '1px solid #ddd' : '1px solid #f0ebe4',
+                                            background: String(l.id || l._id) === selectedId ? '#f5f0ea' : '#fdfaf7',
+                                            border: String(l.id || l._id) === selectedId ? '1px solid #ddd' : '1px solid #f0ebe4',
                                         }}
-                                        onClick={() => handleSelectListing(String(l.id))}
+                                        onClick={() => handleSelectListing(String(l.id || l._id))}
                                     >
                                         <div>
                                             <span style={S.quickName}>{l.name}</span>

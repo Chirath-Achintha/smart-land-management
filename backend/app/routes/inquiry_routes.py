@@ -11,19 +11,23 @@ from app.routes.auth_routes import get_current_user
 router = APIRouter(prefix="/inquiries", tags=["Inquiries"])
 
 
-def _to_response(inq: Inquiry) -> InquiryResponse:
-    return InquiryResponse(
-        id=str(inq.id),
-        buyer_id=str(inq.buyer_id),
-        title=inq.title,
-        inquiry_type=inq.inquiry_type.value if hasattr(inq.inquiry_type, 'value') else str(inq.inquiry_type),
-        message=inq.message,
-        admin_reply=inq.admin_reply,
-        status=inq.status.value if hasattr(inq.status, 'value') else str(inq.status),
-        created_at=inq.created_at,
-        updated_at=inq.updated_at,
-    )
-
+async def _to_response_full(inq: Inquiry) -> dict:
+    buyer = await User.get(inq.buyer_id)
+    return {
+        "id": str(inq.id),
+        "buyer_id": str(inq.buyer_id),
+        "buyer_name": buyer.full_name if buyer else "Unknown Buyer",
+        "buyer_email": buyer.email if buyer else "",
+        "receiver_id": str(inq.receiver_id) if inq.receiver_id else None,
+        "land_id": str(inq.land_id) if inq.land_id else None,
+        "title": inq.title,
+        "inquiry_type": inq.inquiry_type.value if hasattr(inq.inquiry_type, 'value') else str(inq.inquiry_type),
+        "message": inq.message,
+        "admin_reply": inq.admin_reply,
+        "status": inq.status.value if hasattr(inq.status, 'value') else str(inq.status),
+        "created_at": inq.created_at,
+        "updated_at": inq.updated_at,
+    }
 
 # ── Buyer: Submit a new inquiry ───────────────────────────────────────────────
 @router.post("/", response_model=InquiryResponse, status_code=status.HTTP_201_CREATED)
@@ -54,6 +58,15 @@ async def get_my_inquiries(
 ):
     inquiries = await Inquiry.find(Inquiry.buyer_id == current_user.id).sort("-created_at").to_list()
     return [_to_response(i) for i in inquiries]
+
+
+# ── Seller: Get inquiries RECEIVED by me ──────────────────────────────────────
+@router.get("/received")
+async def get_received_inquiries(
+    current_user: User = Depends(get_current_user)
+):
+    inquiries = await Inquiry.find(Inquiry.receiver_id == current_user.id).sort("-created_at").to_list()
+    return [await _to_response_full(i) for i in inquiries]
 
 
 # ── Admin: Get ALL inquiries ──────────────────────────────────────────────────

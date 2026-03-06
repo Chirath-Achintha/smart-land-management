@@ -8,6 +8,7 @@ class BiddingSetup(Document):
     starting_bid: Optional[float] = None
     bidding_start: Optional[str] = None
     bidding_end: Optional[str] = None
+    winner_notified: bool = False  # Track if the winner has been notified
 
     class Settings:
         name = "bidding_setup"

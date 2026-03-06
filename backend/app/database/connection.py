@@ -28,6 +28,8 @@ async def init_db():
     from app.models.service_booking_model import ServiceBooking
     from app.models.bidding_setup_model import BiddingSetup
 
+    from app.models.notification_model import Notification
+    
     await init_beanie(
         database=db,
         document_models=[
@@ -38,7 +40,8 @@ async def init_db():
             Visit,
             Inquiry,
             ServiceBooking,
-            BiddingSetup
+            BiddingSetup,
+            Notification
         ]
     )
 

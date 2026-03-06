@@ -6,6 +6,7 @@ const API = API_BASE_URL;
 const SellerBidsPage = () => {
     const [bids, setBids] = useState([]);
     const [lands, setLands] = useState([]);
+    const [receivedMessages, setReceivedMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedLand, setSelectedLand] = useState('all');
 
@@ -13,25 +14,25 @@ const SellerBidsPage = () => {
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
     // Fetch all bids on seller's lands from DB
-    const fetchBids = () => {
-        fetch(`${API}/bids/my-listings`, { headers: authHeaders })
-            .then(r => r.json())
-            .then(data => {
-                setBids(Array.isArray(data) ? data : []);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+    const fetchData = async () => {
+        try {
+            const [bidsRes, landsRes, msgRes] = await Promise.all([
+                fetch(`${API}/bids/my-listings`, { headers: authHeaders }),
+                fetch(`${API}/lands/my`, { headers: authHeaders }),
+                fetch(`${API}/inquiries/received`, { headers: authHeaders })
+            ]);
+
+            setBids(await bidsRes.json());
+            setLands(await landsRes.json());
+            setReceivedMessages(await msgRes.json());
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // Fetch seller's own land list for filter dropdown
-    const fetchLands = () => {
-        fetch(`${API}/lands/my`, { headers: authHeaders })
-            .then(r => r.json())
-            .then(data => setLands(Array.isArray(data) ? data : []))
-            .catch(() => { });
-    };
-
-    useEffect(() => { fetchBids(); fetchLands(); }, []);
+    useEffect(() => { fetchData(); }, []);
 
     // Filter bids by land
     const filtered = bids.filter(b =>
@@ -71,6 +72,30 @@ const SellerBidsPage = () => {
                     </select>
                 </div>
             </div>
+
+            {/* Winner Messages */}
+            {receivedMessages.length > 0 && (
+                <div style={S.msgPanel}>
+                    <h2 style={S.msgTitle}>📬 Winner Messages</h2>
+                    <div style={S.msgGrid}>
+                        {receivedMessages.map(m => (
+                            <div key={m.id} style={S.msgCard}>
+                                <div style={S.msgHeader}>
+                                    <span style={S.msgBadge}>From: {m.buyer_name}</span>
+                                    <span style={S.msgDate}>{new Date(m.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
+                                    Property: {m.title.split(': ')[1] || 'Unknown'}
+                                </div>
+                                <p style={S.msgText}>"{m.message}"</p>
+                                <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#1A1A1A' }}>
+                                    Reply to: <strong>{m.buyer_email}</strong>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Bids Table */}
             <div style={S.tableWrap}>
@@ -178,6 +203,15 @@ const S = {
     bidRow: { display: 'flex', alignItems: 'center', padding: '18px 24px', gap: '12px', borderBottom: '1px solid #f5f0ea', transition: 'background 0.15s' },
     cell: { display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' },
     avatar: { width: '38px', height: '38px', borderRadius: '50%', background: '#1A1A1A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1rem', flexShrink: 0 },
+
+    msgPanel: { background: '#FFFDF5', border: '1px solid #FFEBB0', borderRadius: '16px', padding: '24px', marginBottom: '28px' },
+    msgTitle: { fontSize: '1.1rem', fontWeight: '800', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' },
+    msgGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' },
+    msgCard: { background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #f0f0f0' },
+    msgHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' },
+    msgBadge: { fontSize: '0.75rem', fontWeight: '800', background: '#FFF9C4', padding: '3px 8px', borderRadius: '6px' },
+    msgDate: { fontSize: '0.75rem', color: '#aaa' },
+    msgText: { fontSize: '0.88rem', color: '#444', fontStyle: 'italic', margin: 0, lineHeight: '1.4' },
 };
 
 export default SellerBidsPage;

@@ -14,12 +14,14 @@ class BidCreate(BaseModel):
 class BidResponse(BaseModel):
     id: str = Field(alias="_id")
     land_id: str
+    land_name: Optional[str] = None
     buyer_id: str
     buyer_name: Optional[str] = None
     buyer_email: Optional[str] = None
     amount: float
     message: Optional[str]
     status: str
+    is_winner: bool = False
     created_at: Optional[datetime]
 
     @field_validator("id", "land_id", "buyer_id", mode="before")

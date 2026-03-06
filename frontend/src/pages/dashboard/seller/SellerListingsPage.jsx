@@ -171,8 +171,9 @@ const SellerListingsPage = () => {
                         <tbody>
                             {listings.map((l, i) => {
                                 const sc = STATUS_COLORS[l.status] || STATUS_COLORS['Available'];
+                                const lid = l.id || l._id;
                                 return (
-                                    <tr key={l.id} style={{ ...S.tr, background: i % 2 === 0 ? '#fff' : '#fdfaf7' }}>
+                                    <tr key={lid} style={{ ...S.tr, background: i % 2 === 0 ? '#fff' : '#fdfaf7' }}>
                                         <td style={S.td}>
                                             <div style={S.nameCell}>
                                                 {l.image_url && (
@@ -212,11 +213,11 @@ const SellerListingsPage = () => {
                                                         starting_bid: l.starting_bid || '',
                                                         bidding_end: l.bidding_end || '',
                                                     });
-                                                    setEditingId(l.id);
+                                                    setEditingId(lid);
                                                     setError('');
                                                     setShowForm(true);
                                                 }}>Edit</button>
-                                                <button style={S.delBtn} onClick={() => setDeleteConfirm(l.id)}>Delete</button>
+                                                <button style={S.delBtn} onClick={() => setDeleteConfirm(lid)}>Delete</button>
                                             </div>
                                         </td>
                                     </tr>

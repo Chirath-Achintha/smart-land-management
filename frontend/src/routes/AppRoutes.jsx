@@ -18,6 +18,9 @@ import ServiceBookingPage from '../pages/services/ServiceBookingPage';
 // Auth Pages
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
+import ForgotPassword from '../pages/auth/ForgotPassword';
+import VerifyOtp from '../pages/auth/VerifyOtp';
+import ResetPassword from '../pages/auth/ResetPassword';
 
 // Dashboard Pages
 import BuyerDashboard from '../pages/dashboard/BuyerDashboard';
@@ -96,6 +99,9 @@ const AppRoutes = () => {
                 <Route element={<AuthLayout />}>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/verify-otp" element={<VerifyOtp />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                 </Route>
 
                 {/* Dashboard Routes */}

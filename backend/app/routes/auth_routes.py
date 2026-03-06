@@ -4,8 +4,14 @@ from datetime import datetime, timedelta
 
 from app.models.user_model import User
 
-from app.schemas.user_schema import UserRegister, UserLogin, UserResponse, Token
+from app.schemas.user_schema import (
+    UserRegister, UserLogin, UserResponse, Token,
+    ForgotPasswordRequest, VerifyOtpRequest, ResetPasswordRequest
+)
 from app.core.config import settings
+from app.utils.email_utils import send_otp_email
+
+import random
 
 import bcrypt
 from jose import jwt, JWTError
@@ -99,3 +105,55 @@ async def login(credentials: UserLogin):
 async def get_me(current_user: User = Depends(get_current_user)):
     """Returns the logged-in user's full profile from the database."""
     return current_user
+
+# ─── Password Reset Flow ─────────────────────────────────────────────────────
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(request: ForgotPasswordRequest):
+    user = await User.find_one(User.email == request.email)
+    if not user:
+        # We don't want to leak if an email exists or not directly, just return success
+        return {"message": "If that email is registered, you will receive an OTP shortly."}
+    
+    # Generate 6-digit OTP
+    otp = str(random.randint(100000, 999999))
+    
+    # Set OTP and expiry (5 minutes)
+    user.reset_otp = otp
+    user.reset_otp_expiry = datetime.utcnow() + timedelta(minutes=5)
+    await user.save()
+    
+    # Send email
+    send_otp_email(user.email, otp)
+    
+    return {"message": "OTP sent to your email."}
+
+@router.post("/verify-otp", status_code=status.HTTP_200_OK)
+async def verify_otp(request: VerifyOtpRequest):
+    user = await User.find_one(User.email == request.email)
+    if not user or user.reset_otp != request.otp:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP")
+    
+    if not user.reset_otp_expiry or user.reset_otp_expiry < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP has expired")
+        
+    return {"message": "OTP verified successfully. You can now reset your password."}
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(request: ResetPasswordRequest):
+    if request.new_password != request.confirm_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match")
+        
+    user = await User.find_one(User.email == request.email)
+    
+    # Extra check for OTP to ensure secure reset
+    if not user or user.reset_otp != request.otp or not user.reset_otp_expiry or user.reset_otp_expiry < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+        
+    # Update password and clear OTP
+    user.hashed_password = hash_password(request.new_password)
+    user.reset_otp = None
+    user.reset_otp_expiry = None
+    await user.save()
+    
+    return {"message": "Password reset successfully. You can now login with your new password."}

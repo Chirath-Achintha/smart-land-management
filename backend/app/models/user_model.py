@@ -21,6 +21,8 @@ class User(Document):
     hashed_password: str = Field(alias="password")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
+    reset_otp: Optional[str] = None
+    reset_otp_expiry: Optional[datetime] = None
 
     class Settings:
         name = "users"

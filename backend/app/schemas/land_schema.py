@@ -67,6 +67,11 @@ class LandUpdate(BaseModel):
     water: Optional[bool] = None
     image_url: Optional[str] = None
 
+
+class LandVerificationUpdate(BaseModel):
+    is_verified: bool
+    verification_note: Optional[str] = None
+
 # ── Response Schema ───────────────────────────────────────────────────────────
 
 class LandResponse(BaseModel):
@@ -84,6 +89,11 @@ class LandResponse(BaseModel):
     electricity: bool
     water: bool
     image_url: Optional[str]
+    is_verified: bool = False
+    review_status: str = "pending"
+    verified_by: Optional[str] = None
+    verified_at: Optional[datetime] = None
+    verification_note: Optional[str] = None
     created_at: Optional[datetime]
     
     # Bidding fields (flattened for compatibility)
@@ -95,9 +105,11 @@ class LandResponse(BaseModel):
     # Nested bidding setup (optional)
     bidding_setup: Optional[BiddingSetupBase] = None
 
-    @field_validator("id", "seller_id", mode="before")
+    @field_validator("id", "seller_id", "verified_by", mode="before")
     @classmethod
     def convert_id(cls, v: Any) -> str:
+        if v is None:
+            return None
         return str(v)
 
     class Config:

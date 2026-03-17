@@ -31,6 +31,11 @@ class Land(Document):
     water: bool = False
     description: Optional[str] = None
     id_verified: bool = False
+    is_verified: bool = False
+    review_status: str = "pending"  # pending | approved | rejected
+    verified_by: Optional[PydanticObjectId] = None
+    verified_at: Optional[datetime] = None
+    verification_note: Optional[str] = None
     image_url: Optional[str] = Field(None, alias="images")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None

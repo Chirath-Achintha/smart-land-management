@@ -15,6 +15,7 @@ class VisitCreate(BaseModel):
 class VisitUpdateStatus(BaseModel):
     status: VisitStatus
     seller_message: Optional[str] = None
+    agent_id: Optional[str] = None
 
 
 class VisitResponse(BaseModel):
@@ -30,10 +31,14 @@ class VisitResponse(BaseModel):
     created_at: datetime
     buyer_name: Optional[str] = None
     land_name:  Optional[str] = None
+    land_address: Optional[str] = None
+    agent_id:   Optional[str] = None
+    agent_name: Optional[str] = None
 
-    @field_validator("id", "land_id", "buyer_id", mode="before")
+    @field_validator("id", "land_id", "buyer_id", "agent_id", mode="before")
     @classmethod
     def convert_id(cls, v: Any) -> str:
+        if v is None: return None
         return str(v)
 
     class Config:

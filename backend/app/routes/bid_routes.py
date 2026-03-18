@@ -42,6 +42,7 @@ async def check_and_notify_winners():
             if highest_bid:
                 winner_bid = highest_bid[0]
                 land = await Land.get(setup.land_id)
+                seller = await User.get(land.seller_id)
                 
                 # Check if notification already exists to avoid overlaps
                 existing = await Notification.find_one({
@@ -51,12 +52,13 @@ async def check_and_notify_winners():
                 })
                 
                 if not existing:
-                    # Notify the winner
+                    # Notify the winner with seller details
+                    seller_info = f"{seller.full_name} ({seller.email})" if seller else "the seller"
                     notif = Notification(
                         user_id=winner_bid.buyer_id,
                         type=NotificationType.bid_won,
                         title="Congratulations! You Won a Bid",
-                        message=f"You are the highest bidder for \"{land.name}\". Contact the seller to proceed.",
+                        message=f"You are the highest bidder for \"{land.name}\". Contact {seller_info} to proceed with the purchase.",
                         link=f"/lands/{str(setup.land_id)}"
                     )
                     await notif.insert()
@@ -207,6 +209,47 @@ async def get_my_bids(
     
     bids = await Bid.find(Bid.buyer_id == current_user.id).sort("-created_at").to_list()
     return [await _to_response(b) for b in bids]
+
+
+# ── Seller manually notifies the winner ──────────────────────────────────────
+@router.post("/notify-winner/{bid_id}")
+async def notify_winner_manually(
+    bid_id: PydanticObjectId, 
+    current_user: User = Depends(get_current_user)
+):
+    bid = await Bid.get(bid_id)
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found")
+        
+    land = await Land.get(bid.land_id)
+    if not land or land.seller_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not own this land listing")
+        
+    # Send notification to Buyer
+    contact_parts = [f"Name: {current_user.full_name}", f"Email: {current_user.email}"]
+    if current_user.phone:
+        contact_parts.append(f"Phone: {current_user.phone}")
+    if current_user.address:
+        contact_parts.append(f"Address: {current_user.address}")
+        
+    seller_info = " | ".join(contact_parts)
+    
+    notif = Notification(
+        user_id=bid.buyer_id,
+        type=NotificationType.bid_won,
+        title="Official Winner Notification",
+        message=f"The seller of \"{land.name}\" has officially notified you as the winner. Please contact them: {seller_info}",
+        link=f"/lands/{str(land.id)}"
+    )
+    await notif.insert()
+    
+    # Also mark bidding as ended/closed if it wasn't already
+    bidding = await BiddingSetup.find_one(BiddingSetup.land_id == land.id)
+    if bidding:
+        bidding.winner_notified = True
+        await bidding.save()
+        
+    return {"status": "winner notified successfully"}
 
 
 # ── Seller deletes a bid (optional cleanup) ───────────────────────────────────

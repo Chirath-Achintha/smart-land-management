@@ -9,6 +9,12 @@ const STATUS_COLORS = {
     Sold: { bg: '#f0f0f0', color: '#888', border: '#ccc' },
 };
 
+const REVIEW_COLORS = {
+    approved: { bg: '#eafaf1', color: '#2ecc71', border: '#2ecc71', label: 'Approved' },
+    pending: { bg: '#fff8e6', color: '#b7791f', border: '#f2c86b', label: 'Pending Review' },
+    rejected: { bg: '#fff1f0', color: '#c0392b', border: '#f1b0aa', label: 'Rejected' },
+};
+
 const EMPTY_FORM = {
     name: '', district: '', village: '', perches: '', price_per_perch: '',
     land_type: 'Residential', status: 'Available', road_access: '',
@@ -23,6 +29,7 @@ function calcTotal(perches, ppp) {
 
 const SellerListingsPage = () => {
     const [listings, setListings] = useState([]);
+    const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
@@ -37,14 +44,39 @@ const SellerListingsPage = () => {
     // ── Fetch seller's own listings from DB ────────────────────────────────
     const fetchListings = () => {
         setLoading(true);
-        fetch(`${API}/lands/my`, { headers: authHeaders })
-            .then(r => r.json())
-            .then(data => setListings(Array.isArray(data) ? data : []))
-            .catch(() => setListings([]))
+        Promise.all([
+            fetch(`${API}/lands/my`, { headers: authHeaders }).then(r => r.json()).catch(() => []),
+            fetch(`${API}/notifications/`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()).catch(() => [])
+        ])
+            .then(([lands, notifs]) => {
+                setListings(Array.isArray(lands) ? lands : []);
+                setNotifications(Array.isArray(notifs) ? notifs : []);
+            })
+            .catch(() => {
+                setListings([]);
+                setNotifications([]);
+            })
             .finally(() => setLoading(false));
     };
 
     useEffect(() => { fetchListings(); }, []);
+
+    const markAllRead = async () => {
+        try {
+            await fetch(`${API}/notifications/read-all`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            fetchListings();
+        } catch {
+            // Ignore network failures for mark-as-read action.
+        }
+    };
+
+    const verificationNotifications = notifications.filter(n =>
+        (n.title || '').toLowerCase().includes('land verification') && !n.is_read
+    );
+    const unreadNotifCount = verificationNotifications.length;
 
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -143,6 +175,26 @@ const SellerListingsPage = () => {
 
     return (
         <div style={S.root}>
+            {verificationNotifications.length > 0 && (
+                <div style={S.notifPanel}>
+                    <div style={S.notifHeader}>
+                        <h2 style={S.notifTitle}>Seller Notifications {unreadNotifCount > 0 && <span style={S.unreadBadge}>{unreadNotifCount} new</span>}</h2>
+                        <button onClick={markAllRead} style={S.readAllBtn}>Mark all read</button>
+                    </div>
+                    <div style={S.notifList}>
+                        {verificationNotifications.slice(0, 5).map(n => (
+                            <div key={n.id || n._id} style={S.notifItem}>
+                                <div style={S.notifDot}></div>
+                                <div>
+                                    <div style={S.notifText}><strong>{n.title}</strong></div>
+                                    <div style={S.notifSub}>{n.message}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <div style={S.header}>
                 <div>
                     <h1 style={S.title}>My Land Listings</h1>
@@ -163,7 +215,7 @@ const SellerListingsPage = () => {
                     <table style={S.table}>
                         <thead>
                             <tr>
-                                {['Property', 'Location', 'Size', 'Price / Perch', 'Total Price', 'Bidding', 'Status', 'Actions'].map(h => (
+                                {['Property', 'Location', 'Size', 'Price / Perch', 'Total Price', 'Bidding', 'Status', 'Review', 'Actions'].map(h => (
                                     <th key={h} style={S.th}>{h}</th>
                                 ))}
                             </tr>
@@ -171,6 +223,7 @@ const SellerListingsPage = () => {
                         <tbody>
                             {listings.map((l, i) => {
                                 const sc = STATUS_COLORS[l.status] || STATUS_COLORS['Available'];
+                                const rc = REVIEW_COLORS[l.review_status || 'pending'] || REVIEW_COLORS.pending;
                                 const lid = l.id || l._id;
                                 return (
                                     <tr key={lid} style={{ ...S.tr, background: i % 2 === 0 ? '#fff' : '#fdfaf7' }}>
@@ -198,6 +251,14 @@ const SellerListingsPage = () => {
                                             <span style={{ ...S.statusBadge, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
                                                 {l.status}
                                             </span>
+                                        </td>
+                                        <td style={S.td}>
+                                            <span style={{ ...S.statusBadge, background: rc.bg, color: rc.color, border: `1px solid ${rc.border}` }}>
+                                                {rc.label}
+                                            </span>
+                                            {l.review_status === 'rejected' && l.verification_note && (
+                                                <div style={S.rejectReason}>Reason: {l.verification_note}</div>
+                                            )}
                                         </td>
                                         <td style={S.td}>
                                             <div style={S.actionBtns}>
@@ -374,6 +435,17 @@ const SellerListingsPage = () => {
 
 const S = {
     root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    notifPanel: { background: '#FFF5F5', border: '1px solid #FFE4E4', borderRadius: '20px', padding: '20px', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' },
+    notifHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
+    notifTitle: { fontSize: '1rem', fontWeight: '800', margin: 0 },
+    unreadBadge: { fontSize: '0.7rem', background: '#FF4D4D', color: '#FFF', padding: '2px 8px', borderRadius: '10px', marginLeft: '8px' },
+    readAllBtn: { background: 'none', border: 'none', color: '#666', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' },
+    notifList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+    notifItem: { display: 'flex', gap: '12px', alignItems: 'center', background: '#FFF', padding: '12px', borderRadius: '12px', border: '1px solid #F0EBE4' },
+    notifDot: { width: '8px', height: '8px', background: '#FF4D4D', borderRadius: '50%' },
+    notifText: { fontSize: '0.9rem', color: '#1A1A1A' },
+    notifSub: { fontSize: '0.8rem', color: '#666' },
+    rejectReason: { marginTop: '6px', fontSize: '0.74rem', color: '#a23a2b', fontWeight: '600' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
     title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A' },
     subtitle: { color: '#777', fontSize: '0.95rem' },

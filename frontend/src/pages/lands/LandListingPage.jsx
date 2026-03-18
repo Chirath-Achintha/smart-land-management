@@ -79,6 +79,7 @@ const LandListingPage = () => {
                                         background: '#1A1A1A', color: '#fff',
                                         fontSize: '0.68rem', fontWeight: '800',
                                         padding: '4px 10px', borderRadius: '20px',
+                                        zIndex: 2
                                     }}>
                                         🔨 Open for Bidding
                                     </span>

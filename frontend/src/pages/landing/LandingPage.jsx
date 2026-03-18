@@ -67,7 +67,7 @@ const LandingPage = () => {
                 ) : (
                     <div className="props-grid">
                         {lands.map((p) => (
-                            <div key={p.id} className="prop-card">
+                            <div key={p._id || p.id} className="prop-card">
                                 <div className="prop-img-wrap">
                                     <img
                                         src={p.image_url ? p.image_url.split(',')[0] : "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80"}
@@ -89,7 +89,7 @@ const LandingPage = () => {
                                         </span>
                                     </div>
                                     <div className="prop-footer">
-                                        <button className="btn-dark" onClick={() => navigate(`/lands/${p.id}`)}>View Land</button>
+                                        <button className="btn-dark" onClick={() => navigate(`/lands/${p._id || p.id}`)}>View Land</button>
                                         <span className="prop-price">Rs. {(p.total_price / 1000000).toFixed(2)}M</span>
                                     </div>
                                 </div>

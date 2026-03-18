@@ -199,15 +199,17 @@ const ScheduleVisitPage = () => {
                                     />
                                 </div>
 
-                                <div style={S.inputRow}>
-                                    <label style={S.label}>Message (Optional)</label>
-                                    <textarea
-                                        value={message}
-                                        onChange={e => setMessage(e.target.value)}
-                                        placeholder="Any special requests or details?"
-                                        style={{ ...S.input, height: '100px', resize: 'none' }}
-                                    />
-                                </div>
+                                {visitType === 'self_visit' && (
+                                    <div style={S.inputRow}>
+                                        <label style={S.label}>Message (Optional)</label>
+                                        <textarea
+                                            value={message}
+                                            onChange={e => setMessage(e.target.value)}
+                                            placeholder="Any special requests or details?"
+                                            style={{ ...S.input, height: '100px', resize: 'none' }}
+                                        />
+                                    </div>
+                                )}
 
                                 <button type="submit" className="btn-dark" style={S.submitBtn} disabled={submitting}>
                                     {submitting ? 'Sending Request...' : `Confirm ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit`}

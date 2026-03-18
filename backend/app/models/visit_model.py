@@ -21,6 +21,7 @@ class Visit(Document):
     visit_time: str = Field(alias="time")
     message: Optional[str] = None
     seller_message: Optional[str] = None
+    agent_id: Optional[PydanticObjectId] = None
     status: VisitStatus = Field(default=VisitStatus.Pending)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

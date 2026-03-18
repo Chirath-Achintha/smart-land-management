@@ -11,3 +11,5 @@ uvicorn app.main:app --reload
         Admin	admin@dwello.com	admin123
         Seller	seller@gmail.com	seller123
         Buyer	buyer@gmail.com	buyer123
+
+        seller1@gmail.com = 12345

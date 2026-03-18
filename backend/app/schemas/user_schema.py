@@ -47,6 +47,7 @@ class UserResponse(BaseModel):
     role: UserRole
     address: str
     email: str
+    phone: Optional[str] = None
     created_at: Optional[datetime]
 
     @field_validator("id", mode="before")

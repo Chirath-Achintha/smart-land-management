@@ -6,7 +6,7 @@ from app.models.user_model import User
 
 from app.schemas.user_schema import (
     UserRegister, UserLogin, UserResponse, Token,
-    ForgotPasswordRequest, VerifyOtpRequest, ResetPasswordRequest
+    ForgotPasswordRequest, VerifyOtpRequest, ResetPasswordRequest, UserProfileUpdate
 )
 from app.core.config import settings
 from app.utils.email_utils import send_otp_email
@@ -105,6 +105,43 @@ async def login(credentials: UserLogin):
 async def get_me(current_user: User = Depends(get_current_user)):
     """Returns the logged-in user's full profile from the database."""
     return current_user
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(data: UserProfileUpdate, current_user: User = Depends(get_current_user)):
+    """Update the logged-in user's editable profile fields."""
+
+    if data.email and data.email != current_user.email:
+        existing_email_user = await User.find_one(User.email == data.email)
+        if existing_email_user and str(existing_email_user.id) != str(current_user.id):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    if data.nic_number and data.nic_number != current_user.nic_number:
+        existing_nic_user = await User.find_one(User.nic_number == data.nic_number)
+        if existing_nic_user and str(existing_nic_user.id) != str(current_user.id):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NIC number already registered")
+
+    if data.full_name is not None:
+        current_user.full_name = data.full_name.strip()
+    if data.nic_number is not None:
+        current_user.nic_number = data.nic_number.strip()
+    if data.address is not None:
+        current_user.address = data.address.strip()
+    if data.phone is not None:
+        current_user.phone = data.phone.strip() if data.phone else None
+    if data.email is not None:
+        current_user.email = data.email
+
+    current_user.updated_at = datetime.utcnow()
+    await current_user.save()
+    return current_user
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(current_user: User = Depends(get_current_user)):
+    """Delete the logged-in user's account."""
+    await current_user.delete()
+    return None
 
 # ─── Password Reset Flow ─────────────────────────────────────────────────────
 

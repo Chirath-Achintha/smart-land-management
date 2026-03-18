@@ -54,6 +54,16 @@ class LandCreate(BaseModel):
     water: bool = False
     image_url: Optional[str] = None
 
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_limit(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        urls = [u.strip() for u in v.split(",") if u.strip()]
+        if len(urls) > 5:
+            raise ValueError("A maximum of 5 images is allowed")
+        return ",".join(urls)
+
 class LandUpdate(BaseModel):
     name: Optional[str] = None
     district: Optional[str] = None
@@ -66,6 +76,16 @@ class LandUpdate(BaseModel):
     electricity: Optional[bool] = None
     water: Optional[bool] = None
     image_url: Optional[str] = None
+
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_limit(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        urls = [u.strip() for u in v.split(",") if u.strip()]
+        if len(urls) > 5:
+            raise ValueError("A maximum of 5 images is allowed")
+        return ",".join(urls)
 
 
 class LandVerificationUpdate(BaseModel):

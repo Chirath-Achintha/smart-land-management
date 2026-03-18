@@ -10,8 +10,10 @@ export const AuthProvider = ({ children }) => {
         return savedUser ? JSON.parse(savedUser) : null;
     });
 
-    const login = (role) => {
-        const userData = { role, loggedIn: true };
+    const login = (userOrRole) => {
+        const userData = typeof userOrRole === 'string'
+            ? { role: userOrRole, loggedIn: true }
+            : { ...(userOrRole || {}), loggedIn: true };
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
     };
@@ -19,6 +21,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
+        localStorage.removeItem('access_token');
     };
 
     return (

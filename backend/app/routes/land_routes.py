@@ -4,6 +4,7 @@ import uuid
 import shutil
 from typing import List
 from datetime import datetime
+from urllib.parse import urlparse
 from beanie import PydanticObjectId
 
 from app.models.land_model import Land
@@ -15,6 +16,41 @@ from app.schemas.land_schema import LandCreate, LandUpdate, LandResponse, LandVe
 from app.routes.auth_routes import get_current_user
 
 router = APIRouter(prefix="/lands", tags=["Lands"])
+UPLOAD_ROOT = os.path.abspath(os.path.join("static", "uploads"))
+
+
+def get_local_uploaded_image_paths(image_url_value: str) -> List[str]:
+    if not image_url_value:
+        return []
+
+    resolved_paths: List[str] = []
+    seen = set()
+
+    for raw_url in [u.strip() for u in image_url_value.split(",") if u.strip()]:
+        parsed = urlparse(raw_url)
+        path = (parsed.path or raw_url).replace("\\", "/").strip()
+
+        rel_path = None
+        if "/static/uploads/" in path:
+            rel_path = path.split("/static/uploads/", 1)[1].lstrip("/")
+        elif not parsed.scheme and not parsed.netloc:
+            rel_path = os.path.basename(path)
+
+        if not rel_path:
+            continue
+
+        abs_path = os.path.abspath(os.path.join(UPLOAD_ROOT, rel_path))
+        try:
+            if os.path.commonpath([UPLOAD_ROOT, abs_path]) != UPLOAD_ROOT:
+                continue
+        except ValueError:
+            continue
+
+        if abs_path not in seen:
+            seen.add(abs_path)
+            resolved_paths.append(abs_path)
+
+    return resolved_paths
 
 
 async def attach_bidding_data(land: Land) -> Land:
@@ -267,6 +303,12 @@ async def update_land(
 
     bidding = await BiddingSetup.find_one(BiddingSetup.land_id == land_id)
 
+    if "image_url" in data and data["image_url"]:
+        image_urls = [u.strip() for u in str(data["image_url"]).split(",") if u.strip()]
+        if len(image_urls) > 5:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A maximum of 5 images is allowed")
+        data["image_url"] = ",".join(image_urls)
+
     # Split fields into Land and BiddingSetup
     bidding_fields = ['open_for_bidding', 'starting_bid', 'bidding_start', 'bidding_end']
     
@@ -325,6 +367,8 @@ async def delete_land(
     land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
     if not land:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
+
+    image_paths = get_local_uploaded_image_paths(land.image_url or "")
     
     # Also delete associated bidding setup
     bidding = await BiddingSetup.find_one(BiddingSetup.land_id == land_id)
@@ -332,3 +376,11 @@ async def delete_land(
         await bidding.delete()
         
     await land.delete()
+
+    for image_path in image_paths:
+        if os.path.isfile(image_path):
+            try:
+                os.remove(image_path)
+            except OSError:
+                # Ignore filesystem errors so land deletion is not blocked.
+                pass

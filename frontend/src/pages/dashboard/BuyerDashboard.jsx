@@ -1,193 +1,82 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../apiConfig';
 
 const API = API_BASE_URL;
 
 const BuyerDashboard = () => {
-    const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [profileName, setProfileName] = useState('Buyer');
+    const [loading, setLoading] = useState(true);
 
-    // Profile fetched from DB
-    const [profile, setProfile] = useState(null);
-    const [profileLoading, setProfileLoading] = useState(true);
-
-    // State for UI controls
-    const [isEditing, setIsEditing] = useState(false);
-    const [tempProfile, setTempProfile] = useState({});
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deleteVerification, setDeleteVerification] = useState('');
-
-    // Fetch user from database using JWT token
     useEffect(() => {
         const token = localStorage.getItem('access_token');
-        if (!token) { setProfileLoading(false); return; }
+        if (!token) {
+            setLoading(false);
+            return;
+        }
 
         fetch(`${API}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` }
         })
-            .then(r => r.json())
-            .then(data => {
-                const p = {
-                    name: data.full_name || '',
-                    email: data.email || '',
-                    nic: data.nic_number || '',
-                    address: data.address || '',
-                    role: (data.role || '').replace('_', ' '),
-                };
-                setProfile(p);
-                setTempProfile(p);
+            .then((r) => r.json())
+            .then((data) => {
+                if (data?.full_name) {
+                    setProfileName(data.full_name);
+                }
             })
-            .catch(console.error)
-            .finally(() => setProfileLoading(false));
+            .catch(() => {})
+            .finally(() => setLoading(false));
     }, []);
-
-
-    const handleEditToggle = () => {
-        setTempProfile({ ...profile });
-        setIsEditing(true);
-    };
-
-    const handleSave = () => {
-        setProfile({ ...tempProfile });
-        setIsEditing(false);
-        alert('Profile updated successfully!');
-    };
-
-    const handleDeleteAccount = () => {
-        if (deleteVerification === 'DELETE') {
-            alert('Account successfully deleted. Navigating to landing page.');
-            logout();
-            navigate('/');
-        } else {
-            alert('Verification failed. Please type "DELETE" exactly.');
-        }
-    };
 
     return (
         <div style={S.container}>
             <header style={S.header}>
-                <h1 style={S.title}>Buyer Profile</h1>
+                <h1 style={S.title}>Buyer Dashboard</h1>
                 <p style={S.subtitle}>
-                    {profileLoading ? 'Loading...' : <>Welcome, <strong>{profile?.name}</strong>! Overview of your property activities and profile.</>}
+                    {loading ? 'Loading...' : <>Welcome, <strong>{profileName}</strong>. Manage your bids and site visits here.</>}
                 </p>
             </header>
 
             <div style={S.grid}>
-                {/* Profile Card */}
                 <div style={S.card}>
-                    <div style={S.cardHeader}>
-                        <div style={S.cardTitle}>My Profile</div>
-                        <div style={S.headerActions}>
-                            {!isEditing ? (
-                                <button style={S.editBtn} onClick={handleEditToggle}>Edit Profile</button>
-                            ) : (
-                                <div style={S.editActions}>
-                                    <button style={S.saveBtn} onClick={handleSave}>Save Changes</button>
-                                    <button style={S.cancelBtn} onClick={() => setIsEditing(false)}>Cancel</button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div style={S.profileInfo}>
-                        {profile && Object.keys(profile).map(key => (
-                            <div key={key} style={S.profileItem}>
-                                <span style={S.label}>{key.replace('nic', 'NIC').toUpperCase()}</span>
-                                {isEditing ? (
-                                    <input
-                                        style={S.input}
-                                        value={tempProfile[key]}
-                                        onChange={(e) => setTempProfile({ ...tempProfile, [key]: e.target.value })}
-                                    />
-                                ) : (
-                                    <span style={S.value}>{profile[key]}</span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    <div style={S.dangerZone}>
-                        <button style={S.deleteLink} onClick={() => setShowDeleteConfirm(true)}>Delete Account</button>
-                    </div>
+                    <h2 style={S.cardTitle}>My Biddings</h2>
+                    <p style={S.cardText}>Track current bids, see updates, and follow auction results.</p>
+                    <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/bids')}>
+                        Open Biddings
+                    </button>
                 </div>
 
+                <div style={S.card}>
+                    <h2 style={S.cardTitle}>My Site Visits</h2>
+                    <p style={S.cardText}>Review your scheduled site visits and visit history.</p>
+                    <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/visits')}>
+                        Open Visits
+                    </button>
+                </div>
+
+                <div style={S.card}>
+                    <h2 style={S.cardTitle}>Saved Properties</h2>
+                    <p style={S.cardText}>Keep your shortlisted properties in one place.</p>
+                    <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/properties')}>
+                        Open Saved
+                    </button>
+                </div>
             </div>
-
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-                <div style={S.modalOverlay}>
-                    <div style={S.modal}>
-                        <h2 style={S.modalTitle}>Delete Your Account?</h2>
-                        <p style={S.modalText}>
-                            This action is permanent and cannot be undone. All your bidding history and profile data will be lost.
-                        </p>
-                        <div style={S.verifyGroup}>
-                            <label style={S.verifyLabel}>Type <strong>DELETE</strong> to confirm</label>
-                            <input
-                                style={S.verifyInput}
-                                placeholder="DELETE"
-                                value={deleteVerification}
-                                onChange={(e) => setDeleteVerification(e.target.value)}
-                            />
-                        </div>
-                        <div style={S.modalActions}>
-                            <button style={S.confirmDeleteBtn} onClick={handleDeleteAccount}>Permanently Delete</button>
-                            <button style={S.cancelDeleteBtn} onClick={() => { setShowDeleteConfirm(false); setDeleteVerification(''); }}>Go Back</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
 
 const S = {
     container: { padding: '32px' },
-    header: { marginBottom: '32px' },
+    header: { marginBottom: '28px' },
     title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
     subtitle: { color: '#666', fontSize: '1rem' },
-    grid: { display: 'grid', gridTemplateColumns: '1fr', gap: '32px' },
-    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #F0F0F0', paddingBottom: '16px' },
-    cardTitle: { fontSize: '1.25rem', fontWeight: '800', color: '#1A1A1A' },
-    headerActions: { display: 'flex', gap: '12px' },
-    editActions: { display: 'flex', gap: '8px' },
-    editBtn: { padding: '8px 16px', background: '#F5F5F5', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#1A1A1A' },
-    saveBtn: { padding: '8px 16px', background: '#1A1A1A', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#fff' },
-    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid #DDD', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#666' },
-
-    profileInfo: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' },
-    profileItem: { display: 'flex', flexDirection: 'column', gap: '8px' },
-    label: { fontSize: '0.75rem', fontWeight: '700', color: '#AAA', textTransform: 'uppercase' },
-    value: { fontSize: '1rem', fontWeight: '600', color: '#1A1A1A' },
-    input: { padding: '12px', borderRadius: '10px', border: '1px solid #EEE', background: '#F9F9F9', fontSize: '0.95rem', color: '#1A1A1A', fontWeight: '500', outline: 'none' },
-
-    dangerZone: { marginTop: '32px', paddingTop: '24px', borderTop: '1px dashed #EEE', display: 'flex', justifyContent: 'flex-start' },
-    deleteLink: { background: 'none', border: 'none', color: '#F44336', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', padding: 0, opacity: 0.7, textDecoration: 'underline' },
-
-    list: { display: 'flex', flexDirection: 'column', gap: '16px' },
-    listItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '16px', backgroundColor: '#F9F9F9' },
-    listMain: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    itemTitle: { fontSize: '0.95rem', fontWeight: '700', color: '#1A1A1A', margin: 0 },
-    itemSub: { fontSize: '0.8rem', color: '#888' },
-    listAction: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' },
-    amount: { fontSize: '1rem', fontWeight: '800', color: '#1A1A1A' },
-    badge: { fontSize: '0.7rem', fontWeight: '700', padding: '4px 10px', borderRadius: '10px', textTransform: 'uppercase' },
-    itemAgent: { fontSize: '0.8rem', color: '#666', fontStyle: 'italic' },
-
-    // Modal
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modal: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '440px', textAlign: 'center' },
-    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '12px' },
-    modalText: { color: '#666', marginBottom: '24px', lineHeight: '1.5' },
-    verifyGroup: { marginBottom: '32px', textAlign: 'left' },
-    verifyLabel: { fontSize: '0.85rem', display: 'block', marginBottom: '8px', color: '#333' },
-    verifyInput: { width: '100%', padding: '14px', borderRadius: '12px', border: '2px solid #F0F0F0', fontSize: '1.1rem', fontWeight: '800', textAlign: 'center', letterSpacing: '2px', outline: 'none' },
-    modalActions: { display: 'flex', flexDirection: 'column', gap: '12px' },
-    confirmDeleteBtn: { padding: '16px', background: '#F44336', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', cursor: 'pointer' },
-    cancelDeleteBtn: { padding: '14px', background: 'transparent', color: '#666', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer' }
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' },
+    card: { background: '#fff', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
+    cardTitle: { fontSize: '1.1rem', fontWeight: '800', margin: '0 0 8px' },
+    cardText: { fontSize: '0.92rem', color: '#666', marginBottom: '16px', lineHeight: 1.45 },
+    actionBtn: { borderRadius: '10px', padding: '10px 16px', fontWeight: '700' }
 };
 
 export default BuyerDashboard;

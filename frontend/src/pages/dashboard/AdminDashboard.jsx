@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../apiConfig';
 
 const API = API_BASE_URL;
 
 const AdminDashboard = () => {
-    const { logout } = useAuth();
     const navigate = useNavigate();
 
     // Stats
@@ -15,9 +13,6 @@ const AdminDashboard = () => {
     // Profile fetched from DB
     const [profile, setProfile] = useState(null);
     const [profileLoading, setProfileLoading] = useState(true);
-
-    const [isEditing, setIsEditing] = useState(false);
-    const [tempProfile, setTempProfile] = useState({});
 
     // Land verification state
     const [sellerLandGroups, setSellerLandGroups] = useState([]);
@@ -146,7 +141,6 @@ const AdminDashboard = () => {
                     role: (data.role || '').replace('_', ' '),
                 };
                 setProfile(profileData);
-                setTempProfile(profileData);
             })
             .catch(console.error)
             .finally(() => setProfileLoading(false));
@@ -161,17 +155,6 @@ const AdminDashboard = () => {
 
         fetchSellerLandGroups();
     }, []);
-
-    const handleEditToggle = () => {
-        setTempProfile({ ...profile });
-        setIsEditing(true);
-    };
-
-    const handleSave = () => {
-        setProfile({ ...tempProfile });
-        setIsEditing(false);
-        alert('Profile updated successfully!');
-    };
 
     return (
         <div style={S.root}>
@@ -198,38 +181,6 @@ const AdminDashboard = () => {
 
             <div style={S.dashboardContent}>
                 <div style={S.mainColumn}>
-                    {/* Profile Card */}
-                    <div style={S.sectionCard}>
-                        <div style={S.cardHeader}>
-                            <h2 style={S.sectionTitle}>Admin Profile</h2>
-                            {!isEditing ? (
-                                <button style={S.editBtn} onClick={handleEditToggle}>Edit Profile</button>
-                            ) : (
-                                <div style={S.editActions}>
-                                    <button style={S.saveBtn} onClick={handleSave}>Save</button>
-                                    <button style={S.cancelBtn} onClick={() => setIsEditing(false)}>Cancel</button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={S.profileGrid}>
-                            {profile && Object.keys(profile).map(key => (
-                                <div key={key} style={S.profileItem}>
-                                    <span style={S.label}>{key.replace('nic', 'NIC').toUpperCase()}</span>
-                                    {isEditing ? (
-                                        <input
-                                            style={S.input}
-                                            value={tempProfile[key]}
-                                            onChange={(e) => setTempProfile({ ...tempProfile, [key]: e.target.value })}
-                                        />
-                                    ) : (
-                                        <span style={S.value}>{profile[key]}</span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* Quick Actions */}
                     <div style={S.sectionCard}>
                         <h2 style={S.sectionTitle}>System Management</h2>

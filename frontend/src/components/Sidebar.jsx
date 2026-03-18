@@ -5,7 +5,7 @@ import API_BASE_URL from '../apiConfig';
 
 const NAV = {
     buyer: [
-        { to: '/dashboard', label: 'My Profile' },
+        { to: '/dashboard', label: 'Overview' },
         { to: '/dashboard/bids', label: 'My Biddings' },
         { to: '/dashboard/visits', label: ' My Site Visits' },
         { to: '/dashboard/properties', label: 'Saved Properties' },

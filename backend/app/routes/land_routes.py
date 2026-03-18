@@ -120,6 +120,8 @@ async def create_land(
 # ── Get all Available lands (public, for buyers) ──────────────────────────────
 @router.get("/", response_model=List[LandResponse])
 async def get_all_lands():
+    # Public view: Show only Available lands that have been VERIFIED by an admin.
+    # Unverified/Pending lands should only be seen by the seller in their Dashboard.
     lands = await Land.find(
         Land.status == "Available",
         Land.is_verified == True

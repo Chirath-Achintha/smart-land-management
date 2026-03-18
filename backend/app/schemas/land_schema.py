@@ -97,7 +97,7 @@ class LandResponse(BaseModel):
     created_at: Optional[datetime]
     
     # Bidding fields (flattened for compatibility)
-    open_for_bidding: bool = False
+    open_for_bidding: Optional[bool] = False
     starting_bid: Optional[float] = None
     bidding_start: Optional[str] = None
     bidding_end: Optional[str] = None

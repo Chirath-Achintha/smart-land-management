@@ -29,6 +29,7 @@ import AgentDashboard from '../pages/dashboard/AgentDashboard';
 import AdminDashboard from '../pages/dashboard/AdminDashboard';
 import ConstructorManagerDashboard from '../pages/dashboard/ConstructorManagerDashboard';
 import AgentAssignment from '../pages/dashboard/admin/AgentAssignment';
+import AgentVisitsPage from '../pages/dashboard/admin/AgentVisitsPage';
 import ServiceManagement from '../pages/dashboard/admin/ServiceManagement';
 import ComplaintsManagement from '../pages/dashboard/admin/ComplaintsManagement';
 import UserManagement from '../pages/dashboard/admin/UserManagement';
@@ -125,6 +126,7 @@ const AppRoutes = () => {
 
                     {/* Admin Specific Routes */}
                     <Route path="/dashboard/admin/agents" element={<AgentAssignment />} />
+                    <Route path="/dashboard/admin/agent-visits" element={<AgentVisitsPage />} />
                     <Route path="/dashboard/admin/services" element={<ServiceManagement />} />
                     <Route path="/dashboard/admin/complaints" element={<ComplaintsManagement />} />
                 </Route>

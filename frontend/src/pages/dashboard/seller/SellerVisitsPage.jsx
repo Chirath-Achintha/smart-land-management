@@ -5,6 +5,7 @@ const API = API_BASE_URL;
 
 const STATUS_COLORS = {
     Pending: { bg: '#fff8e1', color: '#e65100', border: '#ffe082' },
+    SellerAccepted: { bg: '#e3f2fd', color: '#1565c0', border: '#90caf9' }, // Awaiting Admin
     Accepted: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
     Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
 };
@@ -14,10 +15,11 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const SellerVisitsPage = () => {
     const [visits, setVisits] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('All');
-    const [updating, setUpdating] = useState(null); // visit id being updated
+    const [updating, setUpdating] = useState(null); 
     const [error, setError] = useState('');
-    const [replyTexts, setReplyTexts] = useState({}); // { visitId: 'message' }
+    const [replyTexts, setReplyTexts] = useState({});
+    const [rejectingVisit, setRejectingVisit] = useState(null);
+    const [rejectMessage, setRejectMessage] = useState('');
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
@@ -27,9 +29,7 @@ const SellerVisitsPage = () => {
         fetch(`${API}/visits/my-lands`, { headers: authHeaders })
             .then(r => r.json())
             .then(data => {
-                // Sellers only see Self Visits
-                const selfVisits = Array.isArray(data) ? data.filter(v => v.visit_type === 'self_visit') : [];
-                setVisits(selfVisits);
+                setVisits(Array.isArray(data) ? data : []);
                 setLoading(false);
             })
             .catch(() => { setVisits([]); setLoading(false); });
@@ -37,13 +37,22 @@ const SellerVisitsPage = () => {
 
     useEffect(() => { fetchVisits(); }, []);
 
-    const updateStatus = async (visitId, newStatus) => {
+    const updateStatus = async (visitId, newStatus, message = '') => {
+        let finalStatus = newStatus;
+        const visit = visits.find(v => (v._id || v.id) === visitId);
+
+        if (newStatus === 'Accepted' && visit?.visit_type === 'agent_visit') {
+            finalStatus = 'SellerAccepted';
+        }
+
+        const finalMessage = message || replyTexts[visitId] || '';
+
         setUpdating(visitId); setError('');
         try {
             const res = await fetch(`${API}/visits/${visitId}/status`, {
                 method: 'PUT',
                 headers: authHeaders,
-                body: JSON.stringify({ status: newStatus, seller_message: replyTexts[visitId] || '' }),
+                body: JSON.stringify({ status: finalStatus, seller_message: finalMessage }),
             });
             if (!res.ok) {
                 const err = await res.json();
@@ -51,20 +60,30 @@ const SellerVisitsPage = () => {
             } else {
                 setVisits(prev => prev.map(v => {
                     const vId = v._id || v.id;
-                    return vId === visitId ? { ...v, status: newStatus, seller_message: replyTexts[visitId] } : v;
+                    return vId === visitId ? { ...v, status: finalStatus, seller_message: finalMessage } : v;
                 }));
-                // Clear the message for this visit after success
                 setReplyTexts(prev => {
                     const next = { ...prev };
                     delete next[visitId];
                     return next;
                 });
+                setRejectingVisit(null);
+                setRejectMessage('');
             }
         } catch { setError('Server error. Try again.'); }
         setUpdating(null);
     };
+    // Filter by visit type separately
+    const [visitTypeFilter, setVisitTypeFilter] = useState('All');
 
-    const filtered = filter === 'All' ? visits : visits.filter(v => v.status === filter);
+    // Filter by status for quick overview (tabs)
+    const [filter, setFilter] = useState('All');
+
+    const typedVisits = visitTypeFilter === 'All' 
+        ? visits 
+        : visits.filter(v => v.visit_type === visitTypeFilter);
+
+    const filtered = filter === 'All' ? typedVisits : typedVisits.filter(v => v.status === filter);
 
     // Group by land
     const byLand = filtered.reduce((acc, v) => {
@@ -75,8 +94,9 @@ const SellerVisitsPage = () => {
     }, {});
 
     // Accepted visits for the schedule table
-    const acceptedVisits = visits.filter(v => v.status === 'Accepted');
-    const scheduleByDate = acceptedVisits.reduce((acc, v) => {
+    // Also include SellerAccepted in the visual schedule (since seller confirmed time)
+    const activeSchedule = visits.filter(v => v.status === 'Accepted' || v.status === 'SellerAccepted');
+    const scheduleByDate = activeSchedule.reduce((acc, v) => {
         const date = v.visit_date;
         if (!acc[date]) acc[date] = [];
         acc[date].push(v);
@@ -97,20 +117,44 @@ const SellerVisitsPage = () => {
 
             {error && <div style={S.errBox}>{error}</div>}
 
+            {/* Type Toggle */}
+            <div style={S.typeToggleRow}>
+                {[
+                    { id: 'All', label: 'All Visits' },
+                    { id: 'self_visit', label: 'Self Visits' },
+                    { id: 'agent_visit', label: 'Agent Visits' }
+                ].map(type => (
+                    <button 
+                        key={type.id} 
+                        onClick={() => setVisitTypeFilter(type.id)}
+                        style={{
+                            ...S.typeTab,
+                            background: visitTypeFilter === type.id ? '#1A1A1A' : 'transparent',
+                            color: visitTypeFilter === type.id ? '#fff' : '#1A1A1A',
+                        }}>
+                        {type.label}
+                    </button>
+                ))}
+            </div>
+
             {/* Filter tabs */}
             <div style={S.filterRow}>
                 {['All', 'Pending', 'Accepted', 'Rejected'].map(f => (
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
-                            background: filter === f ? '#1A1A1A' : '#fff',
-                            color: filter === f ? '#fff' : '#555',
-                            border: filter === f ? 'none' : '1px solid #e5e0da',
+                            background: filter === f ? '#fff' : 'transparent',
+                            color: filter === f ? '#1A1A1A' : '#555',
+                            border: filter === f ? '1px solid #1A1A1A' : '1px solid #e5e0da',
                         }}>
                         {f}
                         {f !== 'All' && (
-                            <span style={S.filterCount}>
-                                {visits.filter(v => v.status === f).length}
+                            <span style={{
+                                ...S.filterCount,
+                                background: filter === f ? '#1A1A1A' : 'transparent',
+                                color: filter === f ? '#fff' : '#1A1A1A'
+                            }}>
+                                {typedVisits.filter(v => v.status === f).length}
                             </span>
                         )}
                     </button>
@@ -167,8 +211,8 @@ const SellerVisitsPage = () => {
                                             Request received {new Date(visit.created_at).toLocaleDateString()}
                                         </div>
 
-                                        {/* Seller Reply Input */}
-                                        {visit.status === 'Pending' && (
+                                        {/* Seller Reply Input (Only for Self Visits as per user request) */}
+                                        {visit.status === 'Pending' && visit.visit_type === 'self_visit' && (
                                             <div style={S.replyArea}>
                                                 <label style={S.replyLabel}>YOUR RESPONSE (OPTIONAL)</label>
                                                 <textarea
@@ -187,6 +231,28 @@ const SellerVisitsPage = () => {
                                             </div>
                                         )}
 
+                                        {visit.admin_message && (
+                                            <div style={{ ...S.messageWrapper, background: '#E3F2FD', marginTop: '16px' }}>
+                                                <div style={{ ...S.messageKey, color: '#1565C0' }}>Admin's Reply</div>
+                                                <div style={S.messageContent}>{visit.admin_message}</div>
+                                            </div>
+                                        )}
+
+                                        {/* Assigned Agent info */}
+                                        {visit.agent_name && (
+                                            <div style={{ ...S.messageWrapper, background: '#F5F5F5', marginTop: '16px', border: '1px solid #E0E0E0' }}>
+                                                <div style={{ ...S.messageKey, color: '#616161' }}>ASSIGNED AGENT</div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                                                    <div style={{ fontWeight: '700', color: '#1A1A1A' }}>{visit.agent_name}</div>
+                                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#3498db' }}>OFFICIAL AGENT</span>
+                                                </div>
+                                                <div style={{ marginTop: '12px', display: 'flex', gap: '20px', fontSize: '0.8rem' }}>
+                                                    <span style={{ color: '#555', fontWeight: 600 }}>TEL: {visit.agent_phone || 'N/A'}</span>
+                                                    <span style={{ color: '#555', fontWeight: 600 }}>NIC: {visit.agent_nic || 'N/A'}</span>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Actions */}
                                         {visit.status === 'Pending' && (
                                             <div style={S.actionGrid}>
@@ -199,7 +265,10 @@ const SellerVisitsPage = () => {
                                                 <button
                                                     style={S.secondaryBtn}
                                                     disabled={updating === vId}
-                                                    onClick={() => updateStatus(vId, 'Rejected')}>
+                                                    onClick={() => {
+                                                        setRejectingVisit(visit);
+                                                        setRejectMessage('');
+                                                    }}>
                                                     {updating === vId ? '...' : 'Decline'}
                                                 </button>
                                             </div>
@@ -212,8 +281,40 @@ const SellerVisitsPage = () => {
                 ))
             )}
 
+            {/* Decline Message Modal */}
+            {rejectingVisit && (
+                <div style={S.modalOverlay}>
+                    <div style={S.modalBox}>
+                        <h2 style={S.modalTitle}>Decline Visit Request</h2>
+                        <p style={S.modalSubtitle}>Please provide a short reason for declining this request.</p>
+                        
+                        <div style={S.modalInfo}>
+                            <strong>Buyer: {rejectingVisit.buyer_name}</strong><br/>
+                            Date: {rejectingVisit.visit_date} at {rejectingVisit.visit_time}
+                        </div>
+
+                        <textarea
+                            style={S.modalInput}
+                            placeholder="e.g. I am not available at this time, please suggest another date."
+                            value={rejectMessage}
+                            onChange={(e) => setRejectMessage(e.target.value)}
+                        />
+
+                        <div style={S.modalActions}>
+                            <button style={S.cancelBtn} onClick={() => setRejectingVisit(null)}>Cancel</button>
+                            <button 
+                                style={S.confirmDeclineBtn}
+                                onClick={() => updateStatus(rejectingVisit._id || rejectingVisit.id, 'Rejected', rejectMessage)}
+                            >
+                                Confirm Decline
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Daily Schedule Summary Table */}
-            {acceptedVisits.length > 0 && (
+            {activeSchedule.length > 0 && (
                 <div style={S.scheduleSection}>
                     <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
                     <p style={S.sectionSubtitle}>A quick overview of all your upcoming site visits.</p>
@@ -258,10 +359,12 @@ const S = {
     title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px', letterSpacing: '-0.02em' },
     subtitle: { color: '#777', fontSize: '1rem', fontWeight: '500' },
     countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
+    typeToggleRow: { display: 'flex', gap: '8px', marginBottom: '20px', background: '#F0EBE4', padding: '6px', borderRadius: '40px', width: 'fit-content' },
+    typeTab: { padding: '10px 20px', borderRadius: '30px', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s ease-in-out' },
     errBox: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem', border: '1px solid #ef9a9a' },
     filterRow: { display: 'flex', gap: '12px', marginBottom: '40px', flexWrap: 'wrap' },
-    filterBtn: { padding: '10px 24px', borderRadius: '30px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' },
-    filterCount: { background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '1px 8px', fontSize: '0.7rem' },
+    filterBtn: { padding: '8px 20px', borderRadius: '30px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' },
+    filterCount: { borderRadius: '10px', padding: '2px 8px', fontSize: '0.75rem', border: '1px solid #e5e0da' },
     empty: { textAlign: 'center', color: '#aaa', padding: '100px 20px', fontSize: '1.1rem', fontWeight: '500' },
     landGroup: { marginBottom: '48px' },
     landGroupTitle: { fontSize: '1.25rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '20px', paddingLeft: '4px' },
@@ -301,6 +404,17 @@ const S = {
     th: { padding: '16px 20px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid #F0F0F0' },
     tr: { borderBottom: '1px solid #F7F7F7', transition: 'background 0.2s' },
     td: { padding: '20px', fontSize: '0.95rem', color: '#333', fontWeight: '600' },
+
+    // Modal Styles
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
+    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px' },
+    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    modalSubtitle: { fontSize: '0.9rem', color: '#666', lineHeight: '1.5', margin: 0 },
+    modalInfo: { padding: '12px 16px', background: '#FAF6F1', borderRadius: '12px', fontSize: '0.85rem', color: '#444', lineHeight: '1.6' },
+    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' },
+    modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
+    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
+    confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' },
 };
 
 export default SellerVisitsPage;

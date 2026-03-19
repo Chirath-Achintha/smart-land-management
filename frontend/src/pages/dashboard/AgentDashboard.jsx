@@ -1,24 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../apiConfig';
 
-const AGENT_ID = 'agent_001';
-
-function getSeedBookings() {
-    return [
-        { id: 'BK-001', landId: 'LND-101', buyer: 'Kasun Kalhara', land: 'Golden Valley Acres', location: 'Digana, Kandy', seller: 'S. Perera', date: '2026-02-25', time: '10:30 AM', status: 'Upcoming' },
-        { id: 'BK-002', landId: 'LND-102', buyer: 'Dinesh Gamage', land: 'Ocean View Ridge', location: 'Unawatuna, Galle', seller: 'G. Silva', date: '2026-02-26', time: '02:00 PM', status: 'Completed', report: 'Property visits went well. Buyer interested.' },
-        { id: 'BK-003', landId: 'LND-103', buyer: 'Mahesh Kumara', land: 'Pine Forest Retreat', location: 'Nanu Oya', seller: 'M. Fernando', date: '2026-02-28', time: '09:15 AM', status: 'Assigned' },
-        { id: 'BK-004', landId: 'LND-101', buyer: 'Ruwan Perera', land: 'Golden Valley Acres', location: 'Digana, Kandy', seller: 'S. Perera', date: '2026-03-01', time: '11:45 AM', status: 'Assigned' },
-        { id: 'BK-005', landId: 'LND-105', buyer: 'Saman Silva', land: 'Uda Walawe View', location: 'Embilipitiya', seller: 'A. Rathnayake', date: '2026-03-05', time: '03:30 PM', status: 'Assigned' },
-    ];
-}
 
 const AgentDashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [bookings, setBookings] = useState([]);
-    const [activeTab, setActiveTab] = useState('Upcoming'); // Assigned, Upcoming, Completed
+    const [activeTab, setActiveTab] = useState('Assigned'); // Assigned, Accepted, Completed
+    const [loading, setLoading] = useState(false);
 
     // Profile State
     const [profile, setProfile] = useState({
@@ -42,75 +33,46 @@ const AgentDashboard = () => {
     // Profile Modal State
     const [showProfileModal, setShowProfileModal] = useState(false);
 
-    useEffect(() => {
-        const raw = localStorage.getItem(`agent_bookings_${AGENT_ID}`);
-        const loaded = raw ? JSON.parse(raw) : getSeedBookings();
-        setBookings(loaded);
-        if (!raw) localStorage.setItem(`agent_bookings_${AGENT_ID}`, JSON.stringify(loaded));
+    const [isUpdating, setIsUpdating] = useState(false);
 
+    useEffect(() => {
+        const fetchAssignments = async () => {
+            setLoading(true);
+            try {
+                const res = await fetch(`${API_BASE_URL}/visits/my-assignments`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await res.json();
+                if (res.ok) setBookings(Array.isArray(data) ? data : []);
+            } catch (err) { console.error('Fetch error:', err); }
+            setLoading(false);
+        };
+        fetchAssignments();
     }, []);
 
-    const saveBookings = (newBookings) => {
-        setBookings(newBookings);
-        localStorage.setItem(`agent_bookings_${AGENT_ID}`, JSON.stringify(newBookings));
+    const updateStatus = async (visitId, newStatus) => {
+        setIsUpdating(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/visits/${visitId}/status`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}` 
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setBookings(prev => prev.map(b => (b._id || b.id) === visitId ? updated : b));
+            }
+        } catch (err) { alert('Update failed.'); }
+        setIsUpdating(false);
     };
 
-    const handleConfirm = (id) => {
-        const updated = bookings.map(b => b.id === id ? { ...b, status: 'Upcoming' } : b);
-        saveBookings(updated);
-        alert('Site visit confirmed!');
-    };
-
-    const handleCancel = (id) => {
-        if (window.confirm('Are you sure you want to cancel this visit?')) {
-            const updated = bookings.map(b => b.id === id ? { ...b, status: 'Cancelled' } : b);
-            saveBookings(updated);
-        }
-    };
-
-    const handleReschedule = (id) => {
-        const newDate = window.prompt('Enter new date (YYYY-MM-DD):', '2024-03-10');
-        if (newDate) {
-            const updated = bookings.map(b => b.id === id ? { ...b, date: newDate, status: 'Assigned' } : b);
-            saveBookings(updated);
-            alert('Visit rescheduled. Waiting for confirmation.');
-        }
-    };
-
-    const openReportModal = (booking) => {
-        setActiveReport(booking);
-        setReportNotes('');
-        setShowReportModal(true);
-    };
-
-    const handleSubmitReport = () => {
-        if (!reportNotes.trim()) return alert('Please enter notes.');
-        const updated = bookings.map(b => b.id === activeReport.id ? { ...b, status: 'Completed', report: reportNotes } : b);
-        saveBookings(updated);
-        setShowReportModal(false);
-        alert('Site visit report submitted and marked as Completed!');
-    };
-
-    const handleEditToggle = () => {
-        setTempProfile({ ...profile });
-        setIsEditing(true);
-    };
-
-    const handleSave = () => {
-        setProfile({ ...tempProfile });
-        setIsEditing(false);
-        alert('Profile updated successfully!');
-    };
-
-    const handleDeleteAccount = () => {
-        if (deleteVerification === 'DELETE') {
-            alert('Account successfully deleted.');
-            logout();
-            navigate('/');
-        } else {
-            alert('Verification failed. Please type "DELETE" exactly.');
-        }
-    };
+    const handleConfirm = (id) => updateStatus(id, 'Accepted');
+    const handleCancel = (id) => updateStatus(id, 'Rejected');
+    const handleReschedule = (id) => alert('Please contact the seller or admin to reschedule the date.');
+    const handleSubmitReport = (id) => updateStatus(id, 'Completed');
 
     const filteredBookings = bookings.filter(b => b.status === activeTab);
     const assignedCount = bookings.filter(b => b.status === 'Assigned').length;
@@ -124,28 +86,24 @@ const AgentDashboard = () => {
                     {assignedCount > 0 && (
                         <div style={S.notifBadge}>
                             <span style={S.notifPulse}></span>
-                            You have {assignedCount} new assignments waiting!
+                            You have {assignedCount} new visits waiting!
                         </div>
                     )}
                 </div>
 
-                {/* Profile Pic Top Right */}
-                <div style={S.profilePicWrapper} onClick={() => setShowProfileModal(true)}>
-                    <div style={S.profileInitials}>{profile.name.charAt(0)}</div>
-                </div>
             </div>
 
             <div style={S.dashboardContent}>
                 <div style={S.mainColumn}>
                     {/* Filtering Tabs */}
                     <div style={S.tabBar}>
-                        {['Assigned', 'Upcoming', 'Completed'].map(t => (
+                        {['Assigned', 'Accepted', 'Completed'].map(t => (
                             <button
                                 key={t}
                                 onClick={() => setActiveTab(t)}
                                 style={{ ...S.tab, ...(activeTab === t ? S.activeTab : {}) }}
                             >
-                                {t} {t === 'Assigned' && assignedCount > 0 && <span style={S.count}>{assignedCount}</span>}
+                                {t === 'Assigned' ? 'Pending Action' : t} {t === 'Assigned' && assignedCount > 0 && <span style={S.count}>{assignedCount}</span>}
                             </button>
                         ))}
                     </div>
@@ -155,7 +113,6 @@ const AgentDashboard = () => {
                         <div style={S.tableWrap}>
                             {filteredBookings.length === 0 ? (
                                 <div style={S.emptyState}>
-                                    <div style={S.emptyIcon}>🗓️</div>
                                     <p style={S.emptyMsg}>No {activeTab.toLowerCase()} site visits found.</p>
                                 </div>
                             ) : (
@@ -173,39 +130,40 @@ const AgentDashboard = () => {
                                             <tr key={b.id} style={{ ...S.tr, background: i % 2 === 0 ? '#fff' : '#fdfaf7' }}>
                                                 <td style={S.td}>
                                                     <div style={S.landCell}>
-                                                        <span style={S.landId}>{b.landId}</span>
-                                                        <span style={S.landName}>{b.land}</span>
-                                                        <span style={S.location}>{b.location}</span>
+                                                        <span style={S.landName}>{b.land_name || b.land_id}</span>
+                                                        <span style={S.location}>{b.land_address}</span>
                                                     </div>
                                                 </td>
                                                 <td style={S.td}>
                                                     <div style={S.partiesCell}>
-                                                        <span style={S.partyLabel}>Buyer: <span style={S.partyValue}>{b.buyer}</span></span>
-                                                        <span style={S.partyLabel}>Seller: <span style={S.partyValue}>{b.seller}</span></span>
+                                                        <span style={S.partyLabel}>Buyer: <span style={S.partyValue}>{b.buyer_name || 'N/A'}</span></span>
+                                                        <span style={S.partyLabel}>Seller: <span style={S.partyValue}>{b.seller_name || 'N/A'}</span></span>
                                                     </div>
                                                 </td>
                                                 <td style={S.td}>
                                                     <div style={S.dateTime}>
-                                                        <span style={S.date}>{b.date}</span>
-                                                        <span style={S.time}>{b.time}</span>
+                                                        <span style={S.date}>{b.visit_date}</span>
+                                                        <span style={S.time}>{b.visit_time}</span>
                                                     </div>
                                                 </td>
                                                 <td style={S.td}>
                                                     <div style={S.actionGroup}>
                                                         {b.status === 'Assigned' && (
                                                             <>
-                                                                <button style={S.confirmBtn} onClick={() => handleConfirm(b.id)}>Accept</button>
-                                                                <button style={S.outlineMiniBtn} onClick={() => handleReschedule(b.id)}>Reschedule</button>
+                                                                <button style={S.confirmBtn} onClick={() => handleConfirm(b._id || b.id)}>Accept Visit</button>
+                                                                <button style={S.cancelBtnSmall} onClick={() => handleCancel(b._id || b.id)}>Decline</button>
                                                             </>
                                                         )}
-                                                        {b.status === 'Upcoming' && (
+                                                        {b.status === 'Accepted' && (
                                                             <>
-                                                                <button style={S.reportBtn} onClick={() => openReportModal(b)}>Submit Report</button>
-                                                                <button style={S.cancelBtnSmall} onClick={() => handleCancel(b.id)}>Cancel</button>
+                                                                <button style={S.reportBtn} onClick={() => handleSubmitReport(b._id || b.id)}>Mark as Completed</button>
                                                             </>
                                                         )}
                                                         {b.status === 'Completed' && (
-                                                            <span style={S.reportBadge} title={b.report}>Report Filed ✅</span>
+                                                            <span style={S.reportBadge}>Visit Fully Completed ✅</span>
+                                                        )}
+                                                        {b.status === 'Rejected' && (
+                                                            <span style={{ color: '#e74c3c', fontWeight: 'bold' }}>Declined</span>
                                                         )}
                                                     </div>
                                                 </td>

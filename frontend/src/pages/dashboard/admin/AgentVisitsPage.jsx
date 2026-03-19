@@ -5,7 +5,10 @@ const API = API_BASE_URL;
 
 const STATUS_COLORS = {
     Pending: { bg: '#fff8e1', color: '#e65100', border: '#ffe082' },
+    SellerAccepted: { bg: '#e3f2fd', color: '#1565c0', border: '#90caf9' }, // New: Ready for admin
+    Assigned: { bg: '#E3F2FD', color: '#0D47A1', border: '#BBDEFB' },
     Accepted: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
+    Completed: { bg: '#E8F5E9', color: '#1B5E20', border: '#C8E6C9' },
     Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
 };
 
@@ -18,6 +21,8 @@ const AgentVisitsPage = () => {
     const [replyTexts, setReplyTexts] = useState({});
     const [agents, setAgents] = useState([]);
     const [selectedAgents, setSelectedAgents] = useState({});
+    const [rejectingVisit, setRejectingVisit] = useState(null); // Stores the visit object being rejected
+    const [rejectMessage, setRejectMessage] = useState('');
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
@@ -45,12 +50,14 @@ const AgentVisitsPage = () => {
         fetchAgents();
     }, []);
 
-    const updateStatus = async (visitId, newStatus) => {
+    const updateStatus = async (visitId, newStatus, message = '') => {
         const agentId = selectedAgents[visitId];
         if (newStatus === 'Accepted' && !agentId) {
             setError('Please select an agent to assign before confirming.');
             return;
         }
+
+        const finalMessage = message || replyTexts[visitId] || '';
 
         setUpdating(visitId); setError('');
         try {
@@ -60,7 +67,7 @@ const AgentVisitsPage = () => {
                 body: JSON.stringify({
                     status: newStatus,
                     agent_id: agentId || null,
-                    seller_message: replyTexts[visitId] || ''
+                    seller_message: finalMessage
                 }),
             });
             if (!res.ok) {
@@ -69,14 +76,20 @@ const AgentVisitsPage = () => {
             } else {
                 setVisits(prev => prev.map(v => {
                     const vId = v._id || v.id;
-                    return vId === visitId ? { ...v, status: newStatus, seller_message: replyTexts[visitId], agent_id: agentId } : v;
+                    return vId === visitId ? { ...v, status: newStatus, seller_message: finalMessage, agent_id: agentId } : v;
                 }));
+                setRejectingVisit(null);
+                setRejectMessage('');
             }
         } catch { setError('Server error. Try again.'); }
         setUpdating(null);
     };
 
-    const filtered = filter === 'All' ? visits : visits.filter(v => v.status === filter);
+    const filtered = filter === 'All' 
+        ? visits 
+        : filter === 'To Assign' 
+            ? visits.filter(v => v.status === 'SellerAccepted')
+            : visits.filter(v => v.status === filter);
 
     return (
         <div style={S.root}>
@@ -85,13 +98,13 @@ const AgentVisitsPage = () => {
                     <h1 style={S.title}>Agent Site Requests</h1>
                     <p style={S.subtitle}>Manage site visit requests assigned for agent assistance.</p>
                 </div>
-                <div style={S.countBadge}>{visits.filter(v => v.status === 'Pending').length} Pending</div>
+                <div style={S.countBadge}>{visits.filter(v => v.status === 'SellerAccepted').length} To Assign</div>
             </div>
 
             {error && <div style={S.errBox}>{error}</div>}
 
             <div style={S.filterRow}>
-                {['All', 'Pending', 'Accepted', 'Rejected'].map(f => (
+                {['All', 'To Assign', 'Assigned', 'Accepted', 'Completed', 'Rejected'].map(f => (
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
@@ -102,7 +115,9 @@ const AgentVisitsPage = () => {
                         {f}
                         {f !== 'All' && (
                             <span style={S.filterCount}>
-                                {visits.filter(v => v.status === f).length}
+                                {visits.filter(v => 
+                                    f === 'To Assign' ? v.status === 'SellerAccepted' : v.status === f
+                                ).length}
                             </span>
                         )}
                     </button>
@@ -148,7 +163,7 @@ const AgentVisitsPage = () => {
                                 </div>
 
                                 <div style={S.messageSection}>
-                                    {visit.status === 'Pending' ? (
+                                    {visit.status === 'SellerAccepted' ? (
                                         <div style={S.replyArea}>
                                             <label style={S.detailKey}>Assign Local Agent</label>
                                             <select
@@ -188,22 +203,25 @@ const AgentVisitsPage = () => {
                                 <div style={S.actionSection}>
                                     <div style={{ textAlign: 'right', marginBottom: '10px' }}>
                                         <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>
-                                            {visit.status.toUpperCase()}
+                                            {visit.status === 'SellerAccepted' ? 'READY TO ASSIGN' : visit.status.toUpperCase()}
                                         </span>
                                     </div>
 
-                                    {visit.status === 'Pending' && (
+                                    {visit.status === 'SellerAccepted' && (
                                         <div style={S.actionButtons}>
                                             <button
                                                 style={S.primaryBtn}
                                                 disabled={updating === vId}
-                                                onClick={() => updateStatus(vId, 'Accepted')}>
+                                                onClick={() => updateStatus(vId, 'Assigned')}>
                                                 Confirm & Assign
                                             </button>
                                             <button
                                                 style={S.secondaryBtn}
                                                 disabled={updating === vId}
-                                                onClick={() => updateStatus(vId, 'Rejected')}>
+                                                onClick={() => {
+                                                    setRejectingVisit(visit);
+                                                    setRejectMessage('');
+                                                }}>
                                                 Decline
                                             </button>
                                         </div>
@@ -212,6 +230,44 @@ const AgentVisitsPage = () => {
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* Decline Message Modal */}
+            {rejectingVisit && (
+                <div style={S.modalOverlay}>
+                    <div style={S.modalBox}>
+                        <h2 style={S.modalTitle}>Decline Request</h2>
+                        <p style={S.modalSubtitle}>Please provide a reason or a message to the buyer for declining this visit.</p>
+                        
+                        <div style={S.modalInfo}>
+                            <strong>{rejectingVisit.buyer_name}</strong> - {rejectingVisit.land_name}
+                        </div>
+
+                        <textarea
+                            style={S.modalInput}
+                            placeholder="Type your message here... (e.g. Agent unavailable on this date, please pick another time)"
+                            value={rejectMessage}
+                            onChange={(e) => setRejectMessage(e.target.value)}
+                        />
+
+                        <div style={S.modalActions}>
+                            <button 
+                                style={S.cancelBtn} 
+                                onClick={() => setRejectingVisit(null)}
+                                disabled={updating === (rejectingVisit._id || rejectingVisit.id)}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                style={S.confirmDeclineBtn}
+                                onClick={() => updateStatus(rejectingVisit._id || rejectingVisit.id, 'Rejected', rejectMessage)}
+                                disabled={updating === (rejectingVisit._id || rejectingVisit.id)}
+                            >
+                                {updating === (rejectingVisit._id || rejectingVisit.id) ? 'Declining...' : 'Confirm Decline'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
@@ -250,7 +306,18 @@ const S = {
     primaryBtn: { flex: 1, padding: '10px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
     secondaryBtn: { flex: 1, padding: '10px', background: '#fff', color: '#C62828', border: '1.5px solid #FDECEA', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
     replyArea: { display: 'flex', flexDirection: 'column' },
-    replyInput: { width: '100%', boxSizing: 'border-box', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #E5E0DA', fontSize: '0.8rem', minHeight: '40px', outline: 'none', resize: 'none' },
+    replyInput: { width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E5E0DA', fontSize: '0.85rem', outline: 'none', background: '#fff' },
+
+    // Modal Styles
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
+    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px' },
+    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    modalSubtitle: { fontSize: '0.9rem', color: '#666', lineHeight: '1.5', margin: 0 },
+    modalInfo: { padding: '12px 16px', background: '#FAF6F1', borderRadius: '12px', fontSize: '0.9rem', color: '#444' },
+    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', '&:focus': { borderColor: '#1A1A1A' } },
+    modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
+    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
+    confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },
 };
 
 export default AgentVisitsPage;

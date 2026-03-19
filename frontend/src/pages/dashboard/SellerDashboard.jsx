@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../apiConfig';
 
 const API = API_BASE_URL;
@@ -15,18 +14,12 @@ function getSeedListings() {
 }
 
 const SellerDashboard = () => {
-    const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [stats, setStats] = useState({ active: 0, sold: 0, pendingBids: 0 });
 
     // Profile fetched from DB
     const [profile, setProfile] = useState(null);
     const [profileLoading, setProfileLoading] = useState(true);
-
-    const [isEditing, setIsEditing] = useState(false);
-    const [tempProfile, setTempProfile] = useState({});
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deleteVerification, setDeleteVerification] = useState('');
 
     // Fetch user from DB using JWT
     useEffect(() => {
@@ -39,13 +32,6 @@ const SellerDashboard = () => {
             .then(r => r.json())
             .then(data => {
                 setProfile({
-                    name: data.full_name || '',
-                    email: data.email || '',
-                    nic: data.nic_number || '',
-                    address: data.address || '',
-                    role: (data.role || '').replace('_', ' '),
-                });
-                setTempProfile({
                     name: data.full_name || '',
                     email: data.email || '',
                     nic: data.nic_number || '',
@@ -83,27 +69,6 @@ const SellerDashboard = () => {
         { label: 'Pending Bids', value: stats.pendingBids, accent: '#e67e22' },
     ];
 
-    const handleEditToggle = () => {
-        setTempProfile({ ...profile });
-        setIsEditing(true);
-    };
-
-    const handleSave = () => {
-        setProfile({ ...tempProfile });
-        setIsEditing(false);
-        alert('Profile updated successfully!');
-    };
-
-    const handleDeleteAccount = () => {
-        if (deleteVerification === 'DELETE') {
-            alert('Account successfully deleted. Navigating to landing page.');
-            logout();
-            navigate('/');
-        } else {
-            alert('Verification failed. Please type "DELETE" exactly.');
-        }
-    };
-
     return (
         <div style={S.root}>
             <div style={S.header}>
@@ -125,42 +90,6 @@ const SellerDashboard = () => {
 
             <div style={S.dashboardContent}>
                 <div style={S.mainColumn}>
-                    {/* Profile Card */}
-                    <div style={S.sectionCard}>
-                        <div style={S.cardHeader}>
-                            <h2 style={S.sectionTitle}>My Profile</h2>
-                            {!isEditing ? (
-                                <button style={S.editBtn} onClick={handleEditToggle}>Edit Profile</button>
-                            ) : (
-                                <div style={S.editActions}>
-                                    <button style={S.saveBtn} onClick={handleSave}>Save</button>
-                                    <button style={S.cancelBtn} onClick={() => setIsEditing(false)}>Cancel</button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={S.profileGrid}>
-                            {profile && Object.keys(profile).map(key => (
-                                <div key={key} style={S.profileItem}>
-                                    <span style={S.label}>{key.replace('nic', 'NIC').toUpperCase()}</span>
-                                    {isEditing ? (
-                                        <input
-                                            style={S.input}
-                                            value={tempProfile[key]}
-                                            onChange={(e) => setTempProfile({ ...tempProfile, [key]: e.target.value })}
-                                        />
-                                    ) : (
-                                        <span style={S.value}>{profile[key]}</span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-
-                        <div style={S.dangerZone}>
-                            <button style={S.deleteLink} onClick={() => setShowDeleteConfirm(true)}>Delete Account</button>
-                        </div>
-                    </div>
-
                     {/* Quick Actions */}
                     <div style={S.sectionCard}>
                         <h2 style={S.sectionTitle}>Quick Actions</h2>
@@ -200,31 +129,6 @@ const SellerDashboard = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-                <div style={S.modalOverlay}>
-                    <div style={S.modal}>
-                        <h2 style={S.modalTitle}>Delete Your Account?</h2>
-                        <p style={S.modalText}>
-                            This action is permanent and cannot be undone. All your listings and history data will be lost.
-                        </p>
-                        <div style={S.verifyGroup}>
-                            <label style={S.verifyLabel}>Type <strong>DELETE</strong> to confirm</label>
-                            <input
-                                style={S.verifyInput}
-                                placeholder="DELETE"
-                                value={deleteVerification}
-                                onChange={(e) => setDeleteVerification(e.target.value)}
-                            />
-                        </div>
-                        <div style={S.modalActions}>
-                            <button style={S.confirmDeleteBtn} onClick={handleDeleteAccount}>Permanently Delete</button>
-                            <button style={S.cancelDeleteBtn} onClick={() => { setShowDeleteConfirm(false); setDeleteVerification(''); }}>Go Back</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

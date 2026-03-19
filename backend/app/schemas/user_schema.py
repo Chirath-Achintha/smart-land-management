@@ -38,6 +38,14 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
     confirm_password: str
 
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    nic_number: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+
 # ---- Response Schemas ----
 
 class UserResponse(BaseModel):

@@ -38,14 +38,15 @@ const Login = () => {
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
-            // Login via AuthContext using role from backend
-            login(data.user.role);
+            // Login via AuthContext using full user payload
+            login(data.user);
+
+            // Show one-time dashboard welcome after successful login
+            sessionStorage.setItem('showWelcomeAfterLogin', '1');
 
             // Redirect to 'from' path if it exists, otherwise use default role-based path
             if (from) {
                 navigate(from);
-            } else if (data.user.role === 'buyer') {
-                navigate('/');
             } else {
                 navigate('/dashboard');
             }

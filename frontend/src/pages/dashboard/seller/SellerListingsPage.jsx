@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
+const MAX_IMAGES = 5;
 
 const STATUS_COLORS = {
     Available: { bg: '#eafaf1', color: '#2ecc71', border: '#2ecc71' },
@@ -25,6 +26,11 @@ const EMPTY_FORM = {
 
 function calcTotal(perches, ppp) {
     return (parseFloat(perches) || 0) * (parseFloat(ppp) || 0);
+}
+
+function getImageUrls(imageUrlValue) {
+    if (!imageUrlValue) return [];
+    return imageUrlValue.split(',').map(url => url.trim()).filter(Boolean);
 }
 
 const SellerListingsPage = () => {
@@ -85,21 +91,48 @@ const SellerListingsPage = () => {
 
     const [isDragging, setIsDragging] = useState(false);
 
-    const handleUpload = async (file) => {
-        if (!file) return;
-
+    const uploadSingleImage = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
 
+        const res = await fetch(`${API}/lands/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        return data.url;
+    };
+
+    const handleUploadMany = async (files) => {
+        if (!files || files.length === 0) return;
+
+        const existingUrls = getImageUrls(form.image_url);
+        const remainingSlots = MAX_IMAGES - existingUrls.length;
+
+        if (remainingSlots <= 0) {
+            setError(`You can upload up to ${MAX_IMAGES} images only.`);
+            return;
+        }
+
+        const selected = Array.from(files).slice(0, remainingSlots);
+        if (files.length > remainingSlots) {
+            setError(`Only ${remainingSlots} more image(s) can be uploaded. Max ${MAX_IMAGES}.`);
+        }
+
+        const uploadedUrls = [];
         try {
-            const res = await fetch(`${API}/lands/upload`, {
-                method: 'POST',
-                body: formData
-            });
-            if (!res.ok) throw new Error('Upload failed');
-            const data = await res.json();
-            setForm(f => ({ ...f, image_url: data.url }));
-        } catch (err) {
+            for (const file of selected) {
+                const uploadedUrl = await uploadSingleImage(file);
+                uploadedUrls.push(uploadedUrl);
+            }
+
+            const nextUrls = [...existingUrls, ...uploadedUrls].slice(0, MAX_IMAGES);
+            setForm(f => ({ ...f, image_url: nextUrls.join(',') }));
+            if (files.length <= remainingSlots) {
+                setError('');
+            }
+        } catch {
             setError('Image upload failed');
         }
     };
@@ -107,8 +140,8 @@ const SellerListingsPage = () => {
     const onDrop = (e) => {
         e.preventDefault();
         setIsDragging(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleUpload(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files && e.dataTransfer.files.length) {
+            handleUploadMany(e.dataTransfer.files);
         }
     };
 
@@ -119,6 +152,12 @@ const SellerListingsPage = () => {
 
     const onDragLeave = () => {
         setIsDragging(false);
+    };
+
+    const removeImageAt = (index) => {
+        const urls = getImageUrls(form.image_url);
+        const nextUrls = urls.filter((_, i) => i !== index);
+        setForm(f => ({ ...f, image_url: nextUrls.join(',') }));
     };
 
     const handleSubmit = async (e) => {
@@ -360,41 +399,45 @@ const SellerListingsPage = () => {
 
                             <div style={S.sectionDivider}>Property Image</div>
                             <div style={S.formGroup}>
-                                <label style={S.label}>Upload Property Photo</label>
-                                {!form.image_url ? (
-                                    <div
-                                        onDrop={onDrop}
-                                        onDragOver={onDragOver}
-                                        onDragLeave={onDragLeave}
-                                        style={{
-                                            ...S.dropZone,
-                                            borderColor: isDragging ? '#1A1A1A' : '#e5e0da',
-                                            background: isDragging ? '#fdfaf7' : '#fff'
-                                        }}
-                                        onClick={() => document.getElementById('fileInput').click()}
-                                    >
-                                        <div style={S.dropContent}>
-                                            <span style={{ fontSize: '2rem', marginBottom: '8px' }}>📸</span>
-                                            <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>Drag & drop your image here</span>
-                                            <span style={{ fontSize: '0.75rem', color: '#888' }}>Support for JPG, PNG (Max 5MB)</span>
-                                            <span style={S.browseText}>or browse files</span>
-                                        </div>
-                                        <input
-                                            id="fileInput"
-                                            type="file"
-                                            accept="image/*"
-                                            hidden
-                                            onChange={(e) => handleUpload(e.target.files[0])}
-                                        />
+                                <label style={S.label}>Upload Property Photos (Max {MAX_IMAGES})</label>
+                                <div
+                                    onDrop={onDrop}
+                                    onDragOver={onDragOver}
+                                    onDragLeave={onDragLeave}
+                                    style={{
+                                        ...S.dropZone,
+                                        borderColor: isDragging ? '#1A1A1A' : '#e5e0da',
+                                        background: isDragging ? '#fdfaf7' : '#fff'
+                                    }}
+                                    onClick={() => document.getElementById('fileInput').click()}
+                                >
+                                    <div style={S.dropContent}>
+                                        <span style={{ fontSize: '2rem', marginBottom: '8px' }}>📸</span>
+                                        <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>Drag & drop images here</span>
+                                        <span style={{ fontSize: '0.75rem', color: '#888' }}>Support for JPG, PNG (Max 5MB each)</span>
+                                        <span style={S.browseText}>or browse files</span>
+                                        <span style={{ fontSize: '0.75rem', color: '#777' }}>{getImageUrls(form.image_url).length} / {MAX_IMAGES} selected</span>
                                     </div>
-                                ) : (
-                                    <div style={S.previewContainer}>
-                                        <img src={form.image_url} alt="Preview" style={S.previewImage} />
-                                        <div style={S.previewOverlay}>
-                                            <button type="button" onClick={() => setForm(f => ({ ...f, image_url: '' }))} style={S.removeImgBtn}>
-                                                Change Image
-                                            </button>
-                                        </div>
+                                    <input
+                                        id="fileInput"
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        hidden
+                                        onChange={(e) => handleUploadMany(e.target.files)}
+                                    />
+                                </div>
+
+                                {getImageUrls(form.image_url).length > 0 && (
+                                    <div style={S.previewGrid}>
+                                        {getImageUrls(form.image_url).map((url, index) => (
+                                            <div key={`${url}-${index}`} style={S.previewItem}>
+                                                <img src={url} alt={`Preview ${index + 1}`} style={S.previewImage} />
+                                                <button type="button" onClick={() => removeImageAt(index)} style={S.removeImgBtn}>
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -489,10 +532,10 @@ const S = {
     dropZone: { border: '2px dashed #e5e0da', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' },
     dropContent: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' },
     browseText: { color: '#1A1A1A', textDecoration: 'underline', fontWeight: '700', marginTop: '12px', fontSize: '0.85rem' },
-    previewContainer: { position: 'relative', borderRadius: '12px', overflow: 'hidden', height: '200px', border: '1px solid #e5e0da' },
-    previewImage: { width: '100%', height: '100%', objectFit: 'cover' },
-    previewOverlay: { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', ':hover': { opacity: 1 } },
-    removeImgBtn: { background: '#fff', color: '#1A1A1A', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }
+    previewGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px', marginTop: '14px' },
+    previewItem: { border: '1px solid #e5e0da', borderRadius: '10px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff' },
+    previewImage: { width: '100%', height: '110px', objectFit: 'cover', borderRadius: '8px' },
+    removeImgBtn: { background: '#fff', color: '#c0392b', border: '1px solid #f1b0aa', padding: '8px 10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }
 };
 
 export default SellerListingsPage;

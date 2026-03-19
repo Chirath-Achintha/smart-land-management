@@ -171,3 +171,56 @@ async def update_visit_status(
             
     await visit.save()
     return await _build_response(visit)
+
+
+# ── Buyer: Cancel or Update my own visit ──────────────────────────────────────
+@router.put("/{visit_id}/cancel", response_model=VisitResponse)
+async def cancel_visit(
+    visit_id: PydanticObjectId,
+    current_user: User = Depends(get_current_user)
+):
+    visit = await Visit.get(visit_id)
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit request not found")
+    
+    if visit.buyer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to cancel this visit")
+    
+    if visit.status in [VisitStatus.Completed, VisitStatus.Cancelled]:
+        raise HTTPException(status_code=400, detail=f"Cannot cancel a visit that is already {visit.status.lower()}")
+
+    visit.status = VisitStatus.Cancelled
+    await visit.save()
+    return await _build_response(visit)
+
+
+@router.put("/{visit_id}/update", response_model=VisitResponse)
+async def update_visit(
+    visit_id: PydanticObjectId,
+    data: VisitCreate,
+    current_user: User = Depends(get_current_user)
+):
+    visit = await Visit.get(visit_id)
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit request not found")
+    
+    if visit.buyer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this visit")
+    
+    # Logic: Only allow updates if still Pending (Seller hasn't seen it) or SellerAccepted (Admin hasn't assigned agent yet)
+    # If it's already 'Assigned' or 'Accepted', the Buyer should cancel and re-book to avoid schedule conflicts.
+    if visit.status not in [VisitStatus.Pending, VisitStatus.SellerAccepted]:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot update details once an agent is assigned or visit is accepted. Please cancel and re-book if needed."
+        )
+
+    visit.visit_date = data.visit_date
+    visit.visit_time = data.visit_time
+    visit.message = data.message if data.message else visit.message
+    
+    # If they updated it, we might want to reset it to Pending if it was SellerAccepted? 
+    # Let's keep status same for now unless you want it to go back to start.
+    
+    await visit.save()
+    return await _build_response(visit)

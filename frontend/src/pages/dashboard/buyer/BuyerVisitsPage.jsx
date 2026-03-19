@@ -6,6 +6,9 @@ const API = API_BASE_URL;
 const BuyerVisitsPage = () => {
     const [myVisits, setMyVisits] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [updatingVisit, setUpdatingVisit] = useState(null);
+    const [cancellingVisit, setCancellingVisit] = useState(null);
+    const [editData, setEditData] = useState({ date: '', time: '', message: '' });
 
     useEffect(() => {
         const tok = localStorage.getItem('access_token');
@@ -37,6 +40,83 @@ const BuyerVisitsPage = () => {
         Pending: { bg: '#fff8e1', color: '#e65100', border: '#ffe082' },
         Accepted: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
         Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
+        Cancelled: { bg: '#eeeeee', color: '#757575', border: '#e0e0e0' },
+    };
+
+    const handleCancelSubmit = async () => {
+        if (!cancellingVisit) return;
+        const vId = cancellingVisit._id || cancellingVisit.id;
+        if (!vId || vId === 'undefined') {
+            alert('Error: Visit ID is missing');
+            return;
+        }
+
+        try {
+            const tok = localStorage.getItem('access_token');
+            const res = await fetch(`${API}/visits/${vId}/cancel`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${tok}` }
+            });
+            if (res.ok) {
+                setMyVisits(myVisits.map(v => v.id === vId || v._id === vId ? { ...v, status: 'Cancelled' } : v));
+                setCancellingVisit(null);
+            } else {
+                const err = await res.json();
+                alert(err.detail || 'Failed to cancel visit');
+            }
+        } catch (err) {
+            alert('Error cancelling visit');
+        }
+    };
+
+    const handleUpdate = (visit) => {
+        setUpdatingVisit(visit);
+        setEditData({
+            date: visit.visit_date,
+            time: visit.visit_time,
+            message: visit.message || ''
+        });
+    };
+
+    const handleUpdateSubmit = async () => {
+        if (!updatingVisit) return;
+        const vId = updatingVisit._id || updatingVisit.id;
+        if (!vId || vId === 'undefined') {
+            alert('Error: Visit ID is missing');
+            return;
+        }
+
+        try {
+            const tok = localStorage.getItem('access_token');
+            const res = await fetch(`${API}/visits/${vId}/update`, {
+                method: 'PUT',
+                headers: { 
+                    'Authorization': `Bearer ${tok}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    land_id: updatingVisit.land_id,
+                    visit_type: updatingVisit.visit_type,
+                    visit_date: editData.date,
+                    visit_time: editData.time,
+                    message: editData.message,
+                    status: 'Pending' // Force back to Pending so Seller can re-approve new time
+                })
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setMyVisits(myVisits.map(v => v.id === updated.id ? updated : v));
+                setUpdatingVisit(null);
+                alert('Schedule updated successfully!');
+            } else {
+                const err = await res.json();
+                const errorMsg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+                alert(errorMsg || 'Failed to update schedule');
+            }
+        } catch (err) {
+            console.error('Update update error:', err);
+            alert('Error updating schedule. See console for details.');
+        }
     };
 
     return (
@@ -186,13 +266,87 @@ const BuyerVisitsPage = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div style={S.footer}>
-                                    <span style={S.receivedDate}>Request sent {new Date(visit.created_at).toLocaleDateString()}</span>
-                                    <button style={S.viewBtn} onClick={() => window.location.href = `/lands/${visit.land_id}`}>View Land</button>
+                                <div style={{ ...S.footer, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                    <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {visit.status !== 'Cancelled' && visit.status !== 'Rejected' && visit.status !== 'Completed' && (
+                                                <button 
+                                                    style={{ ...S.viewBtn, borderColor: '#e74c3c', color: '#e74c3c' }}
+                                                    onClick={() => setCancellingVisit(visit)}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            )}
+                                            {['Pending', 'SellerAccepted'].includes(visit.status) && (
+                                                <button 
+                                                    style={{ ...S.viewBtn, borderColor: '#3498db', color: '#3498db' }}
+                                                    onClick={() => handleUpdate(visit)}
+                                                >
+                                                    Update
+                                                </button>
+                                            )}
+                                        </div>
+                                        <button style={S.viewBtn} onClick={() => window.location.href = `/lands/${visit.land_id}`}>View Land</button>
+                                    </div>
+                                    <div style={{ marginTop: '12px', width: '100%' }}>
+                                        <span style={S.receivedDate}>Request sent {new Date(visit.created_at).toLocaleDateString()}</span>
+                                    </div>
                                 </div>
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* Update Modal */}
+            {updatingVisit && (
+                <div style={S.modalOverlay}>
+                    <div style={S.modalContent}>
+                        <h2 style={S.modalTitle}>Update Site Visit</h2>
+                        <p style={S.modalSub}>Adjust your scheduled date and time for <strong>{updatingVisit.land_name || 'this property'}</strong>.</p>
+                        
+                        <div style={S.modalBody}>
+                            <div style={S.inputRow}>
+                                <label style={S.label}>New Date</label>
+                                <input 
+                                    type="date" 
+                                    style={S.input} 
+                                    value={editData.date}
+                                    onChange={(e) => setEditData({ ...editData, date: e.target.value })}
+                                />
+                            </div>
+                            <div style={S.inputRow}>
+                                <label style={S.label}>New Time</label>
+                                <input 
+                                    type="time" 
+                                    style={S.input} 
+                                    value={editData.time}
+                                    onChange={(e) => setEditData({ ...editData, time: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={S.modalFooter}>
+                            <button style={S.cancelBtn} onClick={() => setUpdatingVisit(null)}>Close</button>
+                            <button style={S.saveBtn} onClick={handleUpdateSubmit}>Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Confirmation Modal */}
+            {cancellingVisit && (
+                <div style={S.modalOverlay}>
+                    <div style={{ ...S.modalContent, maxWidth: '400px', textAlign: 'center' }}>
+                        <div style={S.warningIcon}>!</div>
+                        <h2 style={S.modalTitle}>Are you sure?</h2>
+                        <p style={S.modalSub}>You are about to cancel your visit request for <strong>{cancellingVisit.land_name}</strong>. This action cannot be undone.</p>
+                        
+                        <div style={{ ...S.modalFooter, justifyContent: 'center', marginTop: '32px' }}>
+                            <button style={S.cancelBtn} onClick={() => setCancellingVisit(null)}>Keep Booking</button>
+                            <button style={{ ...S.saveBtn, backgroundColor: '#e74c3c' }} onClick={handleCancelSubmit}>Yes, Cancel it</button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
@@ -230,7 +384,20 @@ const S = {
 
     footer: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid #F0EBE4', paddingTop: '16px' },
     receivedDate: { fontSize: '0.72rem', color: '#BBB', fontWeight: '600' },
-    viewBtn: { background: 'none', border: '1.5px solid #1A1A1A', borderRadius: '10px', padding: '8px 16px', fontWeight: '700', fontSize: '0.85rem', color: '#1A1A1A', cursor: 'pointer', transition: 'all 0.2s ease-in-out', hover: { background: '#1A1A1A', color: '#fff' } }
+    viewBtn: { background: 'none', border: '1.5px solid #1A1A1A', borderRadius: '10px', padding: '8px 16px', fontWeight: '700', fontSize: '0.85rem', color: '#1A1A1A', cursor: 'pointer', transition: 'all 0.2s ease-in-out', hover: { background: '#1A1A1A', color: '#fff' } },
+    
+    // Modal Styles
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
+    modalContent: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.2)' },
+    modalTitle: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
+    modalSub: { color: '#666', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '32px' },
+    modalBody: { display: 'flex', flexDirection: 'column', gap: '20px' },
+    input: { padding: '16px', borderRadius: '12px', border: '1.5px solid #F0EBE4', fontSize: '1rem', outline: 'none', background: '#FDFDFD', width: '100%', boxSizing: 'border-box' },
+    label: { fontSize: '0.68rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' },
+    modalFooter: { display: 'flex', gap: '12px', marginTop: '40px', justifyContent: 'flex-end' },
+    cancelBtn: { padding: '12px 24px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontWeight: '800', color: '#666', cursor: 'pointer', fontSize: '0.9rem' },
+    saveBtn: { padding: '12px 24px', background: '#1A1A1A', border: 'none', borderRadius: '12px', fontWeight: '800', color: '#fff', cursor: 'pointer', fontSize: '0.9rem' },
+    warningIcon: { width: '50px', height: '50px', borderRadius: '50%', border: '3px solid #e74c3c', color: '#e74c3c', fontSize: '1.5rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }
 };
 
 export default BuyerVisitsPage;

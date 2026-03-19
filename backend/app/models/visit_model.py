@@ -5,9 +5,12 @@ from typing import Optional
 import enum
 
 class VisitStatus(str, enum.Enum):
-    Pending  = "Pending"
+    Pending = "Pending"
+    SellerAccepted = "SellerAccepted"
+    Assigned = "Assigned"
     Accepted = "Accepted"
     Rejected = "Rejected"
+    Completed = "Completed"
 
 class VisitType(str, enum.Enum):
     SelfVisit  = "self_visit"
@@ -21,6 +24,9 @@ class Visit(Document):
     visit_time: str = Field(alias="time")
     message: Optional[str] = None
     seller_message: Optional[str] = None
+    admin_message: Optional[str] = None
+    internal_notes: Optional[str] = None
+    visit_feedback: Optional[str] = None
     agent_id: Optional[PydanticObjectId] = None
     status: VisitStatus = Field(default=VisitStatus.Pending)
     created_at: datetime = Field(default_factory=datetime.utcnow)

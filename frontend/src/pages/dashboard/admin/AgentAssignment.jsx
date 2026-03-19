@@ -106,6 +106,27 @@ const AgentAssignment = () => {
         nic: '',
         status: 'Active'
     });
+    const [formErrors, setFormErrors] = useState({});
+
+    const validateForm = () => {
+        const errors = {};
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phoneRegex = /^(?:\+94|0)[1-9][0-9]{8}$/;
+        const nicRegex = /^(?:[0-9]{9}[vVxX]|[0-9]{12})$/;
+
+        if (!currentAgent.name.trim()) errors.name = 'Full name is required';
+        if (!emailRegex.test(currentAgent.email)) errors.email = 'Invalid email address';
+        if (!isEditingAgent && (!currentAgent.password || currentAgent.password.length < 6)) {
+            errors.password = 'Password must be at least 6 characters';
+        }
+        if (!currentAgent.district) errors.district = 'District is required';
+        if (!currentAgent.village) errors.village = 'Village/Area is required';
+        if (!nicRegex.test(currentAgent.nic)) errors.nic = 'Invalid NIC (e.g., 123456789V or 12-digit)';
+        if (!phoneRegex.test(currentAgent.phone)) errors.phone = 'Invalid SL phone number (e.g., 0771234567)';
+
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
 
     const handleAssign = (requestId, agentId) => {
         const assignedAgentObj = agentsList.find(a => a.id === agentId);
@@ -148,6 +169,8 @@ const AgentAssignment = () => {
     // Agent CRUD
     const handleSaveAgent = (e) => {
         e.preventDefault();
+        if (!validateForm()) return;
+
         const address = `${currentAgent.village}, ${currentAgent.district}`;
 
         if (isEditingAgent) {
@@ -208,6 +231,7 @@ const AgentAssignment = () => {
 
     const handleEditAgent = (agent) => {
         setIsEditingAgent(true);
+        setFormErrors({});
         const [village, district] = (agent.livingArea || '').split(', ');
         setCurrentAgent({ ...agent, village: village || '', district: district || '', password: '' });
     };
@@ -245,35 +269,55 @@ const AgentAssignment = () => {
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Full Name</label>
                             <input
-                                style={styles.input}
+                                style={{ ...styles.input, borderColor: formErrors.name ? '#e74c3c' : '#e5e7eb' }}
                                 value={currentAgent.name}
-                                onChange={(e) => setCurrentAgent({ ...currentAgent, name: e.target.value })}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setCurrentAgent({ ...currentAgent, name: val });
+                                    setFormErrors(prev => ({ ...prev, name: val.trim() ? null : 'Full name is required' }));
+                                }}
                                 required
                             />
+                            {formErrors.name && <span style={styles.errorText}>{formErrors.name}</span>}
                         </div>
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Email (Login)</label>
                                 <input
                                     type="email"
-                                    style={styles.input}
+                                    style={{ ...styles.input, borderColor: formErrors.email ? '#e74c3c' : '#e5e7eb' }}
                                     value={currentAgent.email}
                                     autoComplete="off"
-                                    onChange={(e) => setCurrentAgent({ ...currentAgent, email: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                        setCurrentAgent({ ...currentAgent, email: val });
+                                        setFormErrors(prev => ({ ...prev, email: emailRegex.test(val) ? null : 'Invalid email address' }));
+                                    }}
                                     required
                                 />
+                                {formErrors.email && <span style={styles.errorText}>{formErrors.email}</span>}
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Password</label>
                                 <input
                                     type="password"
-                                    style={styles.input}
+                                    style={{ ...styles.input, borderColor: formErrors.password ? '#e74c3c' : '#e5e7eb' }}
                                     placeholder={isEditingAgent ? "Leave blank to keep" : "Enter password"}
                                     value={currentAgent.password}
                                     autoComplete="new-password"
-                                    onChange={(e) => setCurrentAgent({ ...currentAgent, password: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCurrentAgent({ ...currentAgent, password: val });
+                                        if (!isEditingAgent) {
+                                            setFormErrors(prev => ({ ...prev, password: val.length >= 6 ? null : 'Password must be at least 6 characters' }));
+                                        } else {
+                                            setFormErrors(prev => ({ ...prev, password: null }));
+                                        }
+                                    }}
                                     required={!isEditingAgent}
                                 />
+                                {formErrors.password && <span style={styles.errorText}>{formErrors.password}</span>}
                             </div>
                         </div>
                         <div style={styles.formRow}>
@@ -281,10 +325,13 @@ const AgentAssignment = () => {
                                 <label style={styles.label}>District</label>
                                 <input
                                     list="district-list"
-                                    style={styles.input}
+                                    style={{ ...styles.input, borderColor: formErrors.district ? '#e74c3c' : '#e5e7eb' }}
                                     value={currentAgent.district}
                                     placeholder="Select or type district"
-                                    onChange={(e) => setCurrentAgent({ ...currentAgent, district: e.target.value, village: '' })}
+                                    onChange={(e) => {
+                                        setCurrentAgent({ ...currentAgent, district: e.target.value, village: '' });
+                                        if (formErrors.district) setFormErrors({ ...formErrors, district: null });
+                                    }}
                                     required
                                 />
                                 <datalist id="district-list">
@@ -292,15 +339,19 @@ const AgentAssignment = () => {
                                         <option key={dist} value={dist} />
                                     ))}
                                 </datalist>
+                                {formErrors.district && <span style={styles.errorText}>{formErrors.district}</span>}
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Village / Area</label>
                                 <input
                                     list="village-list"
-                                    style={styles.input}
+                                    style={{ ...styles.input, borderColor: formErrors.village ? '#e74c3c' : '#e5e7eb' }}
                                     value={currentAgent.village}
                                     placeholder="Select or type area"
-                                    onChange={(e) => setCurrentAgent({ ...currentAgent, village: e.target.value })}
+                                    onChange={(e) => {
+                                        setCurrentAgent({ ...currentAgent, village: e.target.value });
+                                        if (formErrors.village) setFormErrors({ ...formErrors, village: null });
+                                    }}
                                     required
                                 />
                                 <datalist id="village-list">
@@ -308,26 +359,39 @@ const AgentAssignment = () => {
                                         <option key={vill} value={vill} />
                                     ))}
                                 </datalist>
+                                {formErrors.village && <span style={styles.errorText}>{formErrors.village}</span>}
                             </div>
                         </div>
                         <div style={styles.formGroup}>
                             <label style={styles.label}>NIC Number</label>
                             <input
-                                style={styles.input}
+                                style={{ ...styles.input, borderColor: formErrors.nic ? '#e74c3c' : '#e5e7eb' }}
                                 value={currentAgent.nic}
-                                onChange={(e) => setCurrentAgent({ ...currentAgent, nic: e.target.value })}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const nicRegex = /^(?:[0-9]{9}[vVxX]|[0-9]{12})$/;
+                                    setCurrentAgent({ ...currentAgent, nic: val });
+                                    setFormErrors(prev => ({ ...prev, nic: nicRegex.test(val) ? null : 'Invalid NIC (e.g., 123456789V or 12-digit)' }));
+                                }}
                                 required
                             />
+                            {formErrors.nic && <span style={styles.errorText}>{formErrors.nic}</span>}
                         </div>
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Phone Number</label>
                             <input
-                                style={styles.input}
+                                style={{ ...styles.input, borderColor: formErrors.phone ? '#e74c3c' : '#e5e7eb' }}
                                 value={currentAgent.phone}
                                 placeholder="Enter phone number"
-                                onChange={(e) => setCurrentAgent({ ...currentAgent, phone: e.target.value })}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const phoneRegex = /^(?:\+94|0)[1-9][0-9]{8}$/;
+                                    setCurrentAgent({ ...currentAgent, phone: val });
+                                    setFormErrors(prev => ({ ...prev, phone: phoneRegex.test(val) ? null : 'Invalid phone number (e.g., 0771234567)' }));
+                                }}
                                 required
                             />
+                            {formErrors.phone && <span style={styles.errorText}>{formErrors.phone}</span>}
                         </div>
                         <button type="submit" style={styles.submitBtn}>
                             {isEditingAgent ? 'Update Agent' : 'Register Agent'}
@@ -336,7 +400,11 @@ const AgentAssignment = () => {
                             <button
                                 type="button"
                                 style={styles.cancelBtnSmall}
-                                onClick={() => { setIsEditingAgent(false); setCurrentAgent({ id: '', name: '', email: '', password: '', phone: '', district: '', village: '', nic: '', status: 'Active' }); }}
+                                onClick={() => {
+                                    setIsEditingAgent(false);
+                                    setFormErrors({});
+                                    setCurrentAgent({ id: '', name: '', email: '', password: '', phone: '', district: '', village: '', nic: '', status: 'Active' });
+                                }}
                             >
                                 Cancel
                             </button>
@@ -458,6 +526,7 @@ const styles = {
     statusTag: { padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     select: { padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '0.85rem', color: '#333', cursor: 'pointer', outline: 'none' },
     cancelBtnSmall: { padding: '10px', backgroundColor: '#eee', color: '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' },
+    errorText: { color: '#e74c3c', fontSize: '0.75rem', fontWeight: '700', marginTop: '4px' }
 };
 
 export default AgentAssignment;

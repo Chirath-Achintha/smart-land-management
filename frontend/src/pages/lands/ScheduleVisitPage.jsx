@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { PinIcon } from '../landing/LandingIcons';
 import API_BASE_URL from '../../apiConfig';
 
@@ -9,6 +9,9 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const ScheduleVisitPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const editId = queryParams.get('edit');
 
     const [land, setLand] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -40,6 +43,24 @@ const ScheduleVisitPage = () => {
             });
     }, [id]);
 
+    useEffect(() => {
+        if (!editId) return;
+        const token = localStorage.getItem('access_token');
+        fetch(`${API}/visits/my-requests`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(r => r.json())
+        .then(data => {
+            const v = data.find(item => item.id === editId);
+            if (v) {
+                setVisitType(v.visit_type);
+                setDate(v.visit_date);
+                setTime(v.visit_time);
+                setMessage(v.message || '');
+            }
+        });
+    }, [editId]);
+
     // Fetch Availability
     useEffect(() => {
         if (!id) return;
@@ -66,10 +87,12 @@ const ScheduleVisitPage = () => {
         }
 
         const landId = land?._id || land?.id || id;
+        const url = editId ? `${API}/visits/${editId}/update` : `${API}/visits/`;
+        const method = editId ? 'PUT' : 'POST';
 
         try {
-            const res = await fetch(`${API}/visits/`, {
-                method: 'POST',
+            const res = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -85,11 +108,14 @@ const ScheduleVisitPage = () => {
 
             if (!res.ok) {
                 const err = await res.json();
-                setError(err.detail || 'Failed to book visit.');
+                setError(err.detail || 'Failed to process visit request.');
             } else {
-                setSuccess(`✓ ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit request sent for ${date} at ${time}. Waiting for seller confirmation.`);
+                setSuccess(editId 
+                    ? `✓ Visit schedule has been updated successfully!` 
+                    : `✓ ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit request sent for ${date} at ${time}. Waiting for seller confirmation.`
+                );
                 setTimeout(() => {
-                    navigate(`/lands/${id}`);
+                    navigate('/dashboard/buyer/visits');
                 }, 3000);
             }
         } catch {

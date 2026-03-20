@@ -134,7 +134,7 @@ const SellerAvailabilityPage = () => {
                         <label style={S.sectionLabel}>Select Property</label>
                         <select value={selectedId} onChange={e => setSelectedId(e.target.value)} style={S.select}>
                             {listings.length === 0 ? <option disabled>No listings found</option> :
-                                listings.map(l => <option key={l.id} value={String(l.id)}>{l.name}</option>)}
+                                listings.map(l => <option key={l._id || l.id} value={String(l._id || l.id)}>{l.name}</option>)}
                         </select>
                         {selectedListing && (
                             <span style={S.locationTag}>{selectedListing.village}, {selectedListing.district}</span>

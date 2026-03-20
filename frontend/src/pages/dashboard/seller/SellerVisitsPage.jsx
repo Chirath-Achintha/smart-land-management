@@ -180,7 +180,7 @@ const SellerVisitsPage = () => {
                                             <div>
                                                 <div style={S.buyerName}>{visit.buyer_name || 'Buyer'}</div>
                                                 <div style={{ ...S.typeLabel, color: visit.visit_type === 'self_visit' ? '#1565c0' : '#7b1fa2' }}>
-                                                    {visit.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Scheduled'}
+                                                    {visit.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'}
                                                 </div>
                                             </div>
                                             <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>
@@ -239,7 +239,7 @@ const SellerVisitsPage = () => {
                                         )}
 
                                         {/* Assigned Agent info */}
-                                        {visit.agent_name && (
+                                        {(visit.status === 'Accepted' || visit.status === 'Completed') && visit.agent_name && (
                                             <div style={{ ...S.messageWrapper, background: '#F5F5F5', marginTop: '16px', border: '1px solid #E0E0E0' }}>
                                                 <div style={{ ...S.messageKey, color: '#616161' }}>ASSIGNED AGENT</div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
@@ -327,6 +327,8 @@ const SellerVisitsPage = () => {
                                     <th style={S.th}>Time</th>
                                     <th style={S.th}>Land</th>
                                     <th style={S.th}>Buyer</th>
+                                    <th style={S.th}>Visit Type</th>
+                                    <th style={S.th}>Agent Details</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -338,9 +340,40 @@ const SellerVisitsPage = () => {
                                                     {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
                                                 </td>
                                             ) : null}
-                                            <td style={S.td}>{v.visit_time}</td>
+                                            <td style={{ ...S.td, fontWeight: '700', color: '#1A1A1A' }}>{v.visit_time}</td>
                                             <td style={S.td}>{v.land_name}</td>
-                                            <td style={S.td}>{v.buyer_name}</td>
+                                            <td style={{ ...S.td, fontWeight: '600' }}>
+                                                {v.buyer_name}
+                                                <div style={{ fontSize: '0.75rem', color: '#777', marginTop: '2px', fontWeight: '500' }}>{v.buyer_phone || 'No phone'}</div>
+                                            </td>
+                                            <td style={S.td}>
+                                                <span style={{ 
+                                                    padding: '4px 10px', 
+                                                    borderRadius: '6px', 
+                                                    fontSize: '0.7rem', 
+                                                    fontWeight: '800',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.05em',
+                                                    background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
+                                                    color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'
+                                                }}>
+                                                    {v.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'}
+                                                </span>
+                                            </td>
+                                            <td style={S.td}>
+                                                {v.visit_type === 'agent_visit' ? (
+                                                    (v.status === 'Accepted' || v.status === 'Completed') && v.agent_name ? (
+                                                        <div>
+                                                            <div style={{ fontWeight: '700', color: '#3498db', fontSize: '0.85rem' }}>{v.agent_name}</div>
+                                                            <div style={{ color: '#555', fontSize: '0.75rem', fontWeight: '600', marginTop: '2px' }}>{v.agent_phone}</div>
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ color: '#aaa', fontSize: '0.75rem', fontWeight: '600', fontStyle: 'italic' }}>Pending Assignment</span>
+                                                    )
+                                                ) : (
+                                                    <span style={{ color: '#ccc', fontSize: '0.9rem', fontWeight: '700' }}>—</span>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))
                                 ))}

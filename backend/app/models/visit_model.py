@@ -11,6 +11,7 @@ class VisitStatus(str, enum.Enum):
     Accepted = "Accepted"
     Rejected = "Rejected"
     Completed = "Completed"
+    Cancelled = "Cancelled"
 
 class VisitType(str, enum.Enum):
     SelfVisit  = "self_visit"

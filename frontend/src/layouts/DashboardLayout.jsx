@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import API_BASE_URL from '../apiConfig';
 import { useAuth } from '../context/AuthContext';
+import { BellIcon } from '../pages/landing/LandingIcons';
 
 const DashboardLayout = ({ role }) => {
     const navigate = useNavigate();
@@ -16,6 +17,69 @@ const DashboardLayout = ({ role }) => {
     const [showWelcome, setShowWelcome] = useState(false);
     const [profile, setProfile] = useState(null);
     const [draft, setDraft] = useState({ full_name: '', email: '', nic_number: '', address: '', phone: '', role: '' });
+    
+    // Notifications State
+    const [notifications, setNotifications] = useState([]);
+    const [showNotif, setShowNotif] = useState(false);
+
+    const fetchNotifications = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/notifications/`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            setNotifications(Array.isArray(data) ? data : []);
+        } catch {
+            setNotifications([]);
+        }
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+        const t = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(t);
+    }, []);
+
+    const markAllRead = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        try {
+            await fetch(`${API_BASE_URL}/notifications/read-all`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            fetchNotifications();
+        } catch {}
+    };
+
+    const handleNotificationClick = async (n) => {
+        // Optimistically mark as read in local state
+        if (!n.is_read) {
+            setNotifications(prev => prev.map(item => 
+                (item.id || item._id) === (n.id || n._id) ? { ...item, is_read: true } : item
+            ));
+            
+            // Update on server in background
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                try {
+                    await fetch(`${API_BASE_URL}/notifications/${n.id || n._id}/read`, {
+                        method: 'PUT',
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                } catch {}
+            }
+        }
+        
+        setShowNotif(false);
+        if (n.link) {
+            navigate(n.link);
+        }
+    };
+
+    const unreadCount = notifications.filter(n => !n.is_read).length;
 
     const loadProfile = async () => {
         const token = localStorage.getItem('access_token');
@@ -181,6 +245,41 @@ const DashboardLayout = ({ role }) => {
                 <div style={styles.topbar}>
                     <div style={styles.topbarTitle}>Dashboard</div>
                     <div style={styles.topbarActions}>
+                        {/* Notification Center */}
+                        <div style={styles.notifWrapper}>
+                            <button type="button" style={styles.bellBtn} onClick={() => setShowNotif(!showNotif)} title="Notifications">
+                                <BellIcon />
+                                {unreadCount > 0 && <span style={styles.bellBadge}></span>}
+                            </button>
+                            {showNotif && (
+                                <div style={styles.notifDropdown}>
+                                    <div style={styles.notifHead}>
+                                        <strong>Notifications</strong>
+                                        {unreadCount > 0 && <button style={styles.notifMarkBtn} onClick={markAllRead}>Mark all read</button>}
+                                    </div>
+                                    <div style={styles.notifBody}>
+                                        {notifications.length === 0 ? (
+                                            <div style={styles.emptyText}>No notifications yet.</div>
+                                        ) : (
+                                            notifications.slice(0, 8).map(n => (
+                                                <div 
+                                                    key={n.id || n._id} 
+                                                    onClick={() => handleNotificationClick(n)}
+                                                    style={{ ...styles.notifItem, opacity: n.is_read ? 0.7 : 1 }}
+                                                >
+                                                    <div style={{ ...styles.notifDot, opacity: n.is_read ? 0 : 1 }}></div>
+                                                    <div>
+                                                        <div style={styles.notifTitle}>{n.title}</div>
+                                                        <div style={styles.notifMsg}>{n.message}</div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <div style={styles.welcomeWrap}>
                             {showWelcome && <span style={styles.welcomeText}>{welcomeTitle}</span>}
                             <span style={styles.userName}>{displayName}</span>
@@ -283,7 +382,22 @@ const styles = {
     main: { flex: 1, backgroundColor: 'var(--sage-bg)', overflowY: 'auto' },
     topbar: { position: 'sticky', top: 0, zIndex: 20, height: '68px', background: 'rgba(250, 246, 241, 0.92)', borderBottom: '1px solid rgba(85, 107, 47, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', backdropFilter: 'blur(8px)' },
     topbarTitle: { fontSize: '1rem', fontWeight: '800', color: 'var(--sage-text-dark)' },
-    topbarActions: { display: 'flex', alignItems: 'center', gap: '12px' },
+    topbarActions: { display: 'flex', alignItems: 'center', gap: '16px' },
+    
+    // Notifications styles
+    notifWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
+    bellBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#6f7e62', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', transition: 'color 0.2s', outline: 'none' },
+    bellBadge: { position: 'absolute', top: '7px', right: '7px', width: '9px', height: '9px', background: '#e74c3c', borderRadius: '50%', border: '2px solid rgba(250, 246, 241, 0.92)' },
+    notifDropdown: { position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '320px', background: '#fff', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.12)', border: '1px solid rgba(85, 107, 47, 0.1)', overflow: 'hidden', zIndex: 100 },
+    notifHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(85, 107, 47, 0.08)', background: '#FAFAF8', color: '#1d2a12', fontSize: '0.9rem' },
+    notifMarkBtn: { background: 'none', border: 'none', color: '#556B2F', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline' },
+    notifBody: { maxHeight: '320px', overflowY: 'auto', padding: '10px' },
+    notifItem: { display: 'flex', gap: '12px', padding: '12px', borderRadius: '10px', marginBottom: '8px', background: '#fff', border: '1px solid rgba(85, 107, 47, 0.05)', transition: 'all 0.2s', cursor: 'pointer' },
+    notifDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#e74c3c', marginTop: '6px', flexShrink: 0, transition: 'opacity 0.2s' },
+    notifTitle: { fontSize: '0.85rem', fontWeight: '800', color: '#1d2a12', marginBottom: '4px' },
+    notifMsg: { fontSize: '0.8rem', color: '#66735d', lineHeight: '1.4' },
+    emptyText: { padding: '24px', textAlign: 'center', color: '#999', fontSize: '0.85rem' },
+
     welcomeWrap: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.05, maxWidth: '220px' },
     welcomeText: { fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6f7e62', fontWeight: '700' },
     userName: { fontSize: '0.9rem', color: '#2f3e1a', fontWeight: '800', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },

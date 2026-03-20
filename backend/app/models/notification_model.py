@@ -12,7 +12,7 @@ class NotificationType(str, enum.Enum):
 
 class Notification(Document):
     user_id: PydanticObjectId
-    type: NotificationType = NotificationType.general
+    type: str = "general"
     title: str = Field(max_length=255)
     message: str
     link: Optional[str] = None  # Frontend link to relevant page

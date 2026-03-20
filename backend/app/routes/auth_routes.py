@@ -71,6 +71,7 @@ async def register(user_data: UserRegister):
     new_user = User(
         full_name=user_data.full_name,
         nic_number=user_data.nic_number,
+        phone=user_data.phone,
         role=user_data.role,
         address=user_data.address,
         email=user_data.email,

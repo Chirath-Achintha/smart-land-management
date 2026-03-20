@@ -188,6 +188,9 @@ const AdminDashboard = () => {
                             <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/users')}>
                                 User Directory
                             </button>
+                            <button className="btn-dark" style={{ ...S.actionBtn, background: '#e74c3c' }} onClick={() => navigate('/dashboard/admin/complaints')}>
+                                Inquiry Inbox 📩
+                            </button>
                         </div>
                     </div>
 

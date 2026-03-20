@@ -17,6 +17,12 @@ const InquiryPage = () => {
     const [inquiries, setInquiries] = useState([]);
     const [loadingList, setLoadingList] = useState(false);
 
+    // Edit state
+    const [editingId, setEditingId] = useState(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editType, setEditType] = useState('General');
+    const [editMessage, setEditMessage] = useState('');
+
     const token = localStorage.getItem('access_token');
 
     // Fetch buyer's own inquiries
@@ -35,6 +41,64 @@ const InquiryPage = () => {
     };
 
     useEffect(() => { fetchInquiries(); }, []);
+
+    const handleEditClick = (inq) => {
+        setEditingId(inq._id);
+        setEditTitle(inq.title);
+        setEditType(inq.inquiry_type);
+        setEditMessage(inq.message);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+    };
+
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        setSubmitError(''); setSubmitMsg('');
+        try {
+            const res = await fetch(`${API_BASE_URL}/inquiries/${editingId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ title: editTitle, inquiry_type: editType, message: editMessage }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                setSubmitError(err.detail || 'Failed to update. Please try again.');
+            } else {
+                setSubmitMsg('✅ Your inquiry has been updated.');
+                setEditingId(null);
+                fetchInquiries();
+                setTimeout(() => setSubmitMsg(''), 5000);
+            }
+        } catch {
+            setSubmitError('Cannot reach the server. Please check your connection.');
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this inquiry?')) return;
+        setSubmitError(''); setSubmitMsg('');
+        try {
+            const res = await fetch(`${API_BASE_URL}/inquiries/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                setSubmitError(err.detail || 'Failed to delete.');
+            } else {
+                setSubmitMsg('✅ Inquiry deleted successfully.');
+                fetchInquiries();
+                setTimeout(() => setSubmitMsg(''), 5000);
+            }
+        } catch {
+            setSubmitError('Cannot reach the server.');
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -166,47 +230,99 @@ const InquiryPage = () => {
                         ) : (
                             <div style={S.inquiryList}>
                                 {inquiries.map(inq => (
-                                    <div key={inq.id} style={S.inquiryItem}>
-                                        {/* Header row */}
-                                        <div style={S.inqHeader}>
-                                            <span style={S.inqType}>{inq.inquiry_type}</span>
-                                            <span style={{
-                                                ...S.statusBadge,
-                                                backgroundColor: getStatusColor(inq.status) + '18',
-                                                color: getStatusColor(inq.status),
-                                                border: `1px solid ${getStatusColor(inq.status)}40`,
-                                            }}>
-                                                {inq.status}
-                                            </span>
-                                        </div>
-
-                                        <h3 style={S.inqTitle}>{inq.title}</h3>
-
-                                        {/* Buyer's message */}
-                                        <div style={S.messageBox}>
-                                            <p style={S.msgLabel}>
-                                                Your Inquiry ({inq.created_at ? new Date(inq.created_at).toLocaleDateString() : ''}):
-                                            </p>
-                                            <p style={S.msgContent}>{inq.message}</p>
-                                        </div>
-
-                                        {/* Admin reply or waiting */}
-                                        {inq.admin_reply ? (
-                                            <div style={S.replyBox}>
-                                                <div style={S.replyHeader}>
-                                                    <span style={S.replyTag}>Admin Reply</span>
+                                    <div key={inq._id} style={S.inquiryItem}>
+                                        {editingId === inq._id ? (
+                                            /* ── Inline Edit Form ── */
+                                            <form onSubmit={handleUpdate} style={S.form}>
+                                                <h3 style={{ ...S.inqTitle, marginBottom: '10px' }}>Edit Inquiry</h3>
+                                                <div style={S.inputGroup}>
+                                                    <label style={S.label}>Subject / Title</label>
+                                                    <input
+                                                        style={S.input}
+                                                        value={editTitle}
+                                                        onChange={e => setEditTitle(e.target.value)}
+                                                        required
+                                                    />
                                                 </div>
-                                                <p style={S.replyContent}>{inq.admin_reply}</p>
-                                            </div>
+                                                <div style={S.inputGroup}>
+                                                    <label style={S.label}>Inquiry Type</label>
+                                                    <select
+                                                        style={S.input}
+                                                        value={editType}
+                                                        onChange={e => setEditType(e.target.value)}
+                                                    >
+                                                        <option value="Listing">About a Listing</option>
+                                                        <option value="Service">About a Service</option>
+                                                        <option value="General">General Complaint</option>
+                                                    </select>
+                                                </div>
+                                                <div style={S.inputGroup}>
+                                                    <label style={S.label}>Message Details</label>
+                                                    <textarea
+                                                        style={{ ...S.input, height: '100px', resize: 'vertical' }}
+                                                        value={editMessage}
+                                                        onChange={e => setEditMessage(e.target.value)}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                    <button type="submit" style={{ ...S.submitBtn, flex: 1, marginTop: 0 }}>Save Changes</button>
+                                                    <button type="button" onClick={handleCancelEdit} style={{ ...S.submitBtn, flex: 1, marginTop: 0, background: '#EEE', color: '#333' }}>Cancel</button>
+                                                </div>
+                                            </form>
                                         ) : (
-                                            <div style={S.waitingBox}>
-                                                <p style={S.waitingText}>⏳ Waiting for admin reply. Please check back later.</p>
-                                            </div>
-                                        )}
+                                            /* ── Normal View ── */
+                                            <>
+                                                {/* Header row */}
+                                                <div style={S.inqHeader}>
+                                                    <span style={S.inqType}>{inq.inquiry_type}</span>
+                                                    <span style={{
+                                                        ...S.statusBadge,
+                                                        backgroundColor: getStatusColor(inq.status) + '18',
+                                                        color: getStatusColor(inq.status),
+                                                        border: `1px solid ${getStatusColor(inq.status)}40`,
+                                                    }}>
+                                                        {inq.status}
+                                                    </span>
+                                                </div>
 
-                                        <div style={S.inqFooter}>
-                                            <span style={S.inqId}>Ticket ID: #{inq.id}</span>
-                                        </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                    <h3 style={S.inqTitle}>{inq.title}</h3>
+                                                    {!inq.admin_reply && (
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button onClick={() => handleEditClick(inq)} style={S.actionBtn}>✏️ Edit</button>
+                                                            <button onClick={() => handleDelete(inq._id)} style={{ ...S.actionBtn, color: '#d32f2f' }}>🗑️ Delete</button>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Buyer's message */}
+                                                <div style={S.messageBox}>
+                                                    <p style={S.msgLabel}>
+                                                        Your Inquiry ({inq.created_at ? new Date(inq.created_at).toLocaleDateString() : ''}):
+                                                    </p>
+                                                    <p style={S.msgContent}>{inq.message}</p>
+                                                </div>
+
+                                                {/* Admin reply or waiting */}
+                                                {inq.admin_reply ? (
+                                                    <div style={S.replyBox}>
+                                                        <div style={S.replyHeader}>
+                                                            <span style={S.replyTag}>Admin Reply</span>
+                                                        </div>
+                                                        <p style={S.replyContent}>{inq.admin_reply}</p>
+                                                    </div>
+                                                ) : (
+                                                    <div style={S.waitingBox}>
+                                                        <p style={S.waitingText}>⏳ Waiting for admin reply. Please check back later.</p>
+                                                    </div>
+                                                )}
+
+                                                <div style={S.inqFooter}>
+                                                    <span style={S.inqId}>Ticket ID: #{inq._id}</span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -260,6 +376,7 @@ const S = {
 
     inqFooter: { marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #F0F0F0', display: 'flex', justifyContent: 'flex-end' },
     inqId: { fontSize: '0.72rem', color: '#CCC', fontWeight: '600' },
+    actionBtn: { background: 'none', border: 'none', color: '#2196F3', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', transition: 'background 0.2s' },
 
     loginNoticeBox: { textAlign: 'center', marginTop: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' },
     loginNotice: { color: '#666', fontSize: '0.95rem' },

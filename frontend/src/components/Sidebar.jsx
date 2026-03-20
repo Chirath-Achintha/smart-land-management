@@ -23,6 +23,7 @@ const NAV = {
         { to: '/dashboard/clients', label: 'My Clients' },
     ],
     admin: [
+        { to: '/dashboard/admin/complaints', label: 'Complaints & Support' },
         { to: '/dashboard', label: 'Dashboard Overview' },
         { to: '/dashboard/users', label: 'Manage Users' },
         { to: '/dashboard/admin/agents', label: 'Agent Assignment' },
@@ -40,7 +41,7 @@ const Sidebar = ({ role }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { logout } = useAuth();
-    const links = NAV[role] || [{ to: '/dashboard', label: 'Dashboard' }];
+    const links = NAV[role?.toLowerCase()] || [{ to: '/dashboard', label: 'Dashboard' }];
     const [notifications, setNotifications] = useState([]);
     const [showNotif, setShowNotif] = useState(false);
 

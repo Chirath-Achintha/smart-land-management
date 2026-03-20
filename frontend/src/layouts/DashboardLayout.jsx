@@ -171,7 +171,7 @@ const DashboardLayout = ({ role }) => {
         admin: 'Welcome ',
         constructor_manager: 'Welcome'
     };
-    const welcomeTitle = roleWelcomeText[role] || 'Welcome';
+    const welcomeTitle = roleWelcomeText[role?.toLowerCase()] || 'Welcome';
     const initials = (profile?.full_name || role || 'U').trim().charAt(0).toUpperCase();
 
     return (
@@ -185,7 +185,7 @@ const DashboardLayout = ({ role }) => {
                             {showWelcome && <span style={styles.welcomeText}>{welcomeTitle}</span>}
                             <span style={styles.userName}>{displayName}</span>
                         </div>
-                        <span style={styles.rolePill}>{(role || 'user').replace('_', ' ')}</span>
+                        <span style={styles.rolePill}>{(role || 'user')}</span>
                         <button type="button" style={styles.avatarBtn} onClick={openProfile} title="Profile">
                             {initials}
                         </button>

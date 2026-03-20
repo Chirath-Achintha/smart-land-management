@@ -15,6 +15,7 @@ class UserRole(str, Enum):
 class UserRegister(BaseModel):
     full_name: str
     nic_number: str
+    phone: str
     role: UserRole
     address: str
     email: EmailStr

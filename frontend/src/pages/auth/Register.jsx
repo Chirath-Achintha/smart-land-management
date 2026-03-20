@@ -7,6 +7,7 @@ const Register = () => {
     const [formData, setFormData] = useState({
         full_name: '',
         nic_number: '',
+        phone: '',
         role: 'buyer',
         address: '',
         email: '',
@@ -74,17 +75,31 @@ const Register = () => {
                     />
                 </div>
 
-                <div style={styles.formGroup}>
-                    <label style={styles.label}>NIC Number</label>
-                    <input
-                        type="text"
-                        name="nic_number"
-                        placeholder="Enter your NIC"
-                        style={styles.input}
-                        value={formData.nic_number}
-                        onChange={handleChange}
-                        required
-                    />
+                <div style={styles.formRow}>
+                    <div style={{ ...styles.formGroup, flex: 1, marginRight: '10px' }}>
+                        <label style={styles.label}>NIC Number</label>
+                        <input
+                            type="text"
+                            name="nic_number"
+                            placeholder="Enter your NIC"
+                            style={styles.input}
+                            value={formData.nic_number}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    <div style={{ ...styles.formGroup, flex: 1 }}>
+                        <label style={styles.label}>Phone Number</label>
+                        <input
+                            type="text"
+                            name="phone"
+                            placeholder="07X XXX XXXX"
+                            style={styles.input}
+                            value={formData.phone}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
                 </div>
 
                 <div style={styles.formGroup}>
@@ -97,7 +112,6 @@ const Register = () => {
                     >
                         <option value="buyer">Buyer</option>
                         <option value="seller">Seller</option>
-                        <option value="constructor_manager">Constructor Manager</option>
                     </select>
                 </div>
 

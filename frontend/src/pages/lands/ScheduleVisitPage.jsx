@@ -115,7 +115,7 @@ const ScheduleVisitPage = () => {
                     : `✓ ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit request sent for ${date} at ${time}. Waiting for seller confirmation.`
                 );
                 setTimeout(() => {
-                    navigate('/dashboard/buyer/visits');
+                    navigate('/dashboard/visits');
                 }, 3000);
             }
         } catch {

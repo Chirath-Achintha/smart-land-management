@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { SearchIcon, UserIcon, BrandLogo, LockIcon, BellIcon } from '../../pages/landing/LandingIcons';
+import { SearchIcon, UserIcon, BrandLogo, LockIcon } from '../../pages/landing/LandingIcons';
 import { NAV } from '../../pages/landing/landingData.jsx';
 import { useAuth } from '../../context/AuthContext';
 import '../../pages/landing/LandingPage.css';
@@ -97,19 +97,6 @@ const Header = () => {
             </ul>
             <div className="nav-actions">
                 <button className="nav-icon" style={{ color: '#556B2F' }}><SearchIcon /></button>
-                <button className="nav-icon" style={{ color: '#556B2F', position: 'relative' }} title="Notifications">
-                    <BellIcon />
-                    <span style={{ 
-                        position: 'absolute', 
-                        top: '8px', 
-                        right: '8px', 
-                        width: '8px', 
-                        height: '8px', 
-                        background: '#e74c3c', 
-                        borderRadius: '50%', 
-                        border: '2px solid #fff' 
-                    }}></span>
-                </button>
 
                 {user ? (
                     <>

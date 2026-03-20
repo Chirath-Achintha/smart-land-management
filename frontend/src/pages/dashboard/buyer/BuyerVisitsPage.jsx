@@ -105,7 +105,8 @@ const BuyerVisitsPage = () => {
             });
             if (res.ok) {
                 const updated = await res.json();
-                setMyVisits(myVisits.map(v => v.id === updated.id ? updated : v));
+                const uId = updated._id || updated.id;
+                setMyVisits(myVisits.map(v => (v._id || v.id) === uId ? updated : v));
                 setUpdatingVisit(null);
                 alert('Schedule updated successfully!');
             } else {
@@ -187,7 +188,7 @@ const BuyerVisitsPage = () => {
                                     <div>
                                         <h3 style={S.landName}>{visit.land_name || `Land #${visit.land_id}`}</h3>
                                         <div style={{ ...S.typeTag, color: visit.visit_type === 'self_visit' ? '#1565c0' : '#7b1fa2' }}>
-                                            {visit.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Scheduled'}
+                                            {visit.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'}
                                         </div>
                                     </div>
                                     <span style={{ ...S.statusBadge, background: sc.bg, color: sc.color }}>
@@ -252,7 +253,7 @@ const BuyerVisitsPage = () => {
                                     )}
 
                                     {/* Agent Details */}
-                                    {visit.agent_name && (
+                                    {(visit.status === 'Accepted' || visit.status === 'Completed') && visit.agent_name && (
                                         <div style={{ ...S.messageBox, background: '#F5F5F5', marginTop: '16px', border: '1px solid #E0E0E0' }}>
                                             <span style={S.messageTitle}>Assigned Agent</span>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>

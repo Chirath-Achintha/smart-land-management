@@ -31,5 +31,5 @@ class InquiryResponse(BaseModel):
 
 
 class InquiryAdminReply(BaseModel):
-    admin_reply: str
-    status: Optional[str] = "In Progress"  # "In Progress" | "Resolved"
+    admin_reply: Optional[str] = None
+    status: Optional[str] = "In Progress"

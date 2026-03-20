@@ -1,119 +1,213 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../../../apiConfig';
 
 const ComplaintsManagement = () => {
-    const [complaints, setComplaints] = useState([
-        { id: 'CMP001', user: 'Mark Thorne', subject: 'Late Site Visit', status: 'Open', date: '2026-02-20', content: 'The agent didn\'t show up on time for the scheduled visit.', adminReply: '' },
-        { id: 'CMP002', user: 'Sarah Jenkins', subject: 'Payment Issue', status: 'In Progress', date: '2026-02-21', content: 'My bidding deposit is not reflecting in the dashboard.', adminReply: 'We are checking with the bank.' },
-        { id: 'CMP003', user: 'Unknown', subject: 'SPAM: Win a Prize', status: 'Open', date: '2026-02-22', content: 'Click here to win a free lot in Mars!', adminReply: '' },
-    ]);
-
+    const [inquiries, setInquiries] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('buyer'); // 'buyer' | 'seller'
     const [replyText, setReplyText] = useState({});
+    const [submitting, setSubmitting] = useState({});
 
-    const handleStatusChange = (id, newStatus) => {
-        setComplaints(complaints.map(c => c.id === id ? { ...c, status: newStatus } : c));
+    const token = localStorage.getItem('access_token');
+
+    const fetchInquiries = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/inquiries/all`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            setInquiries(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Failed to fetch inquiries:", error);
+        }
+        setLoading(false);
     };
 
-    const handleRemove = (id) => {
-        if (window.confirm('Are you sure you want to remove this entry?')) {
-            setComplaints(complaints.filter(c => c.id !== id));
+    useEffect(() => {
+        fetchInquiries();
+    }, []);
+
+    const handleSendReply = async (id, status = 'In Progress') => {
+        const text = replyText[id] || '';
+        
+        // If status is still 'Open' but we are sending a reply, move it to 'In Progress'
+        const finalStatus = status === 'Open' ? 'In Progress' : status;
+
+        const payload = { status: finalStatus };
+        if (text) {
+            payload.admin_reply = text;
+        }
+
+        setSubmitting({ ...submitting, [id]: true });
+        try {
+            const res = await fetch(`${API_BASE_URL}/inquiries/${id}/reply`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                setReplyText({ ...replyText, [id]: '' });
+                fetchInquiries(); // Refresh list
+            }
+        } catch (error) {
+            console.error("Reply failed:", error);
+        }
+        setSubmitting({ ...submitting, [id]: false });
+    };
+
+    const handleRemove = async (id) => {
+        if (!window.confirm('Are you sure you want to permanently delete this inquiry?')) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/inquiries/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) fetchInquiries();
+        } catch (error) {
+            console.error("Delete failed:", error);
         }
     };
 
-    const handleSendReply = (id) => {
-        if (!replyText[id]) return;
-        setComplaints(complaints.map(c =>
-            c.id === id ? { ...c, adminReply: replyText[id], status: 'In Progress' } : c
-        ));
-        setReplyText({ ...replyText, [id]: '' });
-    };
+    // Filter inquiries by active tab
+    const filteredInquiries = inquiries.filter(inq => {
+        const role = inq.buyer_role || 'buyer';
+        return role.toLowerCase() === activeTab;
+    });
 
     return (
         <div style={styles.container}>
             <header style={styles.header}>
                 <h2 style={styles.title}>Complaints & Inquiry Management</h2>
-                <p style={styles.subtitle}>Review and resolve issues submitted by buyers, sellers, and agents.</p>
+                <p style={styles.subtitle}>Review and resolve issues submitted by consumers and property owners.</p>
             </header>
 
-            <div style={styles.list}>
-                {complaints.map(item => (
-                    <div key={item.id} style={styles.card}>
-                        <div style={styles.cardHeader}>
-                            <div>
-                                <span style={styles.id}>{item.id}</span>
-                                <h4 style={styles.subject}>{item.subject}</h4>
-                                <p style={styles.user}>From: {item.user} • {item.date}</p>
-                            </div>
-                            <div style={styles.actions}>
-                                <select
-                                    style={{
-                                        ...styles.statusSelect,
-                                        color: item.status === 'Resolved' ? '#059669' : item.status === 'In Progress' ? '#d97706' : '#dc2626'
-                                    }}
-                                    value={item.status}
-                                    onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                                >
-                                    <option value="Open">Open</option>
-                                    <option value="In Progress">In Progress</option>
-                                    <option value="Resolved">Resolved</option>
-                                </select>
-                                <button style={styles.deleteBtn} onClick={() => handleRemove(item.id)}>Remove</button>
-                            </div>
-                        </div>
-
-                        <div style={styles.cardBody}>
-                            <p style={styles.content}>{item.content}</p>
-                        </div>
-
-                        {item.adminReply && (
-                            <div style={styles.replyBox}>
-                                <p style={styles.replyHeader}>Admin Reply:</p>
-                                <p style={styles.replyContent}>{item.adminReply}</p>
-                            </div>
-                        )}
-
-                        <div style={styles.replyForm}>
-                            <textarea
-                                placeholder="Type your reply here..."
-                                style={styles.textarea}
-                                value={replyText[item.id] || ''}
-                                onChange={(e) => setReplyText({ ...replyText, [item.id]: e.target.value })}
-                            />
-                            <button
-                                style={styles.sendBtn}
-                                onClick={() => handleSendReply(item.id)}
-                            >
-                                Send Reply
-                            </button>
-                        </div>
-                    </div>
-                ))}
+            {/* Tab navigation */}
+            <div style={styles.tabs}>
+                <button
+                    style={activeTab === 'buyer' ? styles.activeTab : styles.tab}
+                    onClick={() => setActiveTab('buyer')}
+                >
+                    Buyer Inquiries ({inquiries.filter(i => (i.buyer_role || 'buyer') === 'buyer').length})
+                </button>
+                <button
+                    style={activeTab === 'seller' ? styles.activeTab : styles.tab}
+                    onClick={() => setActiveTab('seller')}
+                >
+                    Seller Inquiries ({inquiries.filter(i => i.buyer_role === 'seller').length})
+                </button>
             </div>
+
+            {loading ? (
+                <p style={styles.loading}>Loading inquiries...</p>
+            ) : filteredInquiries.length === 0 ? (
+                <div style={styles.emptyState}>
+                    <p>No inquiries found for this category.</p>
+                </div>
+            ) : (
+                <div style={styles.list}>
+                    {filteredInquiries.map(item => (
+                        <div key={item._id} style={styles.card}>
+                            <div style={styles.cardHeader}>
+                                <div>
+                                    <span style={styles.id}>#{item._id}</span>
+                                    <h4 style={styles.subject}>{item.title}</h4>
+                                    <p style={styles.user}>
+                                        From: <strong>{item.buyer_name}</strong> ({item.buyer_email}) • {new Date(item.created_at).toLocaleDateString()}
+                                    </p>
+                                    <span style={styles.typeTag}>{item.inquiry_type}</span>
+                                </div>
+                                <div style={styles.actions}>
+                                    <select
+                                        style={{
+                                            ...styles.statusSelect,
+                                            color: item.status === 'Resolved' ? '#059669' : item.status === 'In Progress' ? '#d97706' : '#dc2626'
+                                        }}
+                                        value={item.status}
+                                        onChange={(e) => handleSendReply(item._id, e.target.value)}
+                                        disabled={submitting[item._id]}
+                                    >
+                                        <option value="Open">Open</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Resolved">Resolved</option>
+                                    </select>
+                                    <button style={styles.deleteBtn} onClick={() => handleRemove(item._id)}>Remove</button>
+                                </div>
+                            </div>
+
+                            <div style={styles.cardBody}>
+                                <p style={styles.content}>{item.message}</p>
+                            </div>
+
+                            {item.admin_reply && (
+                                <div style={styles.replyBox}>
+                                    <p style={styles.replyHeader}>Admin Reply:</p>
+                                    <p style={styles.replyContent}>{item.admin_reply}</p>
+                                </div>
+                            )}
+
+                            <div style={styles.replyForm}>
+                                <textarea
+                                    placeholder="Type your reply here..."
+                                    style={styles.textarea}
+                                    value={replyText[item._id] || ''}
+                                    onChange={(e) => setReplyText({ ...replyText, [item._id]: e.target.value })}
+                                />
+                                <button
+                                    style={styles.sendBtn}
+                                    onClick={() => handleSendReply(item._id, item.status)}
+                                    disabled={submitting[item._id] || !replyText[item._id]}
+                                >
+                                    {submitting[item._id] ? 'Sending...' : 'Send Reply'}
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
 
 const styles = {
-    container: { padding: '32px' },
+    container: { padding: '32px', maxWidth: '1200px', margin: '0 auto' },
     header: { marginBottom: '32px' },
     title: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
     subtitle: { color: '#666', fontSize: '0.95rem' },
-    list: { display: 'flex', flexDirection: 'column', gap: '20px' },
-    card: { backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #ede8e1', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' },
+
+    tabs: { display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid #ede8e1', paddingBottom: '1px' },
+    tab: { padding: '10px 20px', backgroundColor: 'transparent', border: 'none', color: '#666', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600' },
+    activeTab: { padding: '10px 20px', backgroundColor: '#fff', border: '1px solid #ede8e1', borderBottom: '2px solid #1A1A1A', color: '#1A1A1A', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '700' },
+
+    list: { display: 'flex', flexDirection: 'column', gap: '24px' },
+    card: { backgroundColor: '#fff', borderRadius: '16px', border: '1px solid #ede8e1', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' },
-    id: { fontSize: '0.7rem', fontWeight: '800', color: '#bbb', textTransform: 'uppercase' },
-    subject: { fontSize: '1.1rem', fontWeight: '700', color: '#1A1A1A', margin: '4px 0' },
-    user: { fontSize: '0.85rem', color: '#666' },
+    id: { fontSize: '0.7rem', fontWeight: '800', color: '#bbb', textTransform: 'uppercase', display: 'block', marginBottom: '4px' },
+    subject: { fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A', margin: '4px 0' },
+    user: { fontSize: '0.85rem', color: '#666', marginBottom: '8px' },
+    typeTag: { fontSize: '0.7rem', backgroundColor: '#F3F4F6', color: '#374151', padding: '2px 8px', borderRadius: '4px', fontWeight: '700', textTransform: 'uppercase' },
+
     actions: { display: 'flex', gap: '12px' },
-    statusSelect: { padding: '8px 12px', borderRadius: '6px', border: '1px solid #eee', fontSize: '0.85rem', fontWeight: '700', outline: 'none', cursor: 'pointer' },
-    deleteBtn: { padding: '8px 12px', backgroundColor: '#fff', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' },
-    cardBody: { padding: '16px', backgroundColor: '#F9FAFB', borderRadius: '8px', marginBottom: '16px' },
-    content: { fontSize: '0.95rem', color: '#444', lineHeight: '1.6' },
-    replyBox: { padding: '16px', backgroundColor: '#eef2ff', borderRadius: '8px', marginBottom: '16px', borderLeft: '4px solid #4f46e5' },
-    replyHeader: { fontSize: '0.8rem', fontWeight: '800', color: '#4338ca', marginBottom: '4px', textTransform: 'uppercase' },
-    replyContent: { fontSize: '0.9rem', color: '#1e1b4b' },
+    statusSelect: { padding: '8px 12px', borderRadius: '8px', border: '1px solid #eee', fontSize: '0.85rem', fontWeight: '700', outline: 'none', cursor: 'pointer', backgroundColor: '#fff' },
+    deleteBtn: { padding: '8px 12px', backgroundColor: '#fff', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' },
+
+    cardBody: { padding: '20px', backgroundColor: '#F9FAFB', borderRadius: '12px', marginBottom: '16px' },
+    content: { fontSize: '0.95rem', color: '#444', lineHeight: '1.6', margin: 0 },
+
+    replyBox: { padding: '16px', backgroundColor: '#eef2ff', borderRadius: '12px', marginBottom: '16px', borderLeft: '4px solid #4f46e5' },
+    replyHeader: { fontSize: '0.75rem', fontWeight: '800', color: '#4338ca', marginBottom: '4px', textTransform: 'uppercase' },
+    replyContent: { fontSize: '0.9rem', color: '#1e1b4b', margin: 0 },
+
     replyForm: { display: 'flex', gap: '12px', alignItems: 'flex-end' },
-    textarea: { flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #eee', fontSize: '0.9rem', minHeight: '60px', fontFamily: 'inherit' },
-    sendBtn: { padding: '10px 20px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }
+    textarea: { flex: 1, padding: '14px', borderRadius: '10px', border: '1px solid #eee', fontSize: '0.92rem', minHeight: '80px', fontFamily: 'inherit', outline: 'none', transition: 'border 0.2s' },
+    sendBtn: { padding: '12px 24px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem', transition: 'opacity 0.2s' },
+
+    loading: { textAlign: 'center', padding: '40px', color: '#666' },
+    emptyState: { textAlign: 'center', padding: '60px', backgroundColor: '#F9FAFB', borderRadius: '20px', border: '2px dashed #ede8e1', color: '#999' }
 };
 
 export default ComplaintsManagement;

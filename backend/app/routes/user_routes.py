@@ -33,7 +33,10 @@ async def get_admin_stats(admin: User = Depends(check_admin)):
     total_users = await User.count()
     pending_visits = await Visit.find(Visit.status == "Pending").count()
     active_services = await ServiceBooking.find(ServiceBooking.status == "Approved").count()
-    open_inquiries = await Inquiry.count() # Or filter by status if available
+    try:
+        open_inquiries = await Inquiry.find(Inquiry.inquiry_type != InquiryType.winner_contact).count()
+    except:
+        open_inquiries = 0
     
     return [
         {"label": "Pending Requests", "count": str(pending_visits), "color": "#3498db", "route": "/dashboard/admin/agents"},

@@ -253,7 +253,7 @@ const DashboardLayout = ({ role }) => {
                             </button>
                             {showNotif && (
                                 <div style={styles.notifDropdown}>
-                                    <div style={styles.notifHead}>
+                                     <div style={styles.notifHead}>
                                         <strong>Notifications</strong>
                                         {unreadCount > 0 && <button style={styles.notifMarkBtn} onClick={markAllRead}>Mark all read</button>}
                                     </div>

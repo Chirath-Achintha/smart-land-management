@@ -15,6 +15,7 @@ from app.routes.inquiry_routes      import router as inquiry_router
 from app.routes.service_booking_routes import router as service_booking_router
 from app.routes.user_routes import router as user_router
 from app.routes.notification_routes import router as notification_router
+from app.routes.constructor_team_routes import router as constructor_team_router
 
 app = FastAPI(
     title="Smart Land Management API",
@@ -55,6 +56,7 @@ app.include_router(inquiry_router)
 app.include_router(service_booking_router)
 app.include_router(user_router)
 app.include_router(notification_router)
+app.include_router(constructor_team_router)
 
 @app.get("/")
 async def health_check():

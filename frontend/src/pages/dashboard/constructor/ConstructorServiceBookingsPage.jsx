@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 const STATUS_STYLE = {
+    Requested: { color: '#92400e', background: '#FEF3C7' },
+    Approved: { color: '#1D4ED8', background: '#DBEAFE' },
     Scheduled: { color: '#1565c0', background: '#E3F2FD' },
     'In Progress': { color: '#e65100', background: '#FFF3E0' },
     Completed: { color: '#2e7d32', background: '#E8F5E9' },
@@ -59,7 +62,7 @@ const ConstructorServiceBookingsPage = () => {
 
             {/* Filter tabs */}
             <div style={S.filterRow}>
-                {['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled'].map(f => (
+                {['All', 'Approved', 'In Progress', 'Completed', 'Cancelled'].map(f => (
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
@@ -108,7 +111,7 @@ const ConstructorServiceBookingsPage = () => {
                                         <td style={S.td}>
                                             <div style={S.actRow}>
                                                 <button style={S.viewBtn} onClick={() => setActive(b)}>View</button>
-                                                {b.status === 'Scheduled' && (
+                                                {(b.status === 'Approved' || b.status === 'Scheduled') && (
                                                     <button style={S.acceptBtn} disabled={updating === b.id}
                                                         onClick={() => updateStatus(b.id, 'In Progress')}>
                                                         {updating === b.id ? '…' : 'Accept'}
@@ -150,7 +153,7 @@ const ConstructorServiceBookingsPage = () => {
                             {active.notes && <div style={S.notesBox}>📝 {active.notes}</div>}
                         </div>
                         <div style={S.modalFoot}>
-                            {active.status === 'Scheduled' && (
+                            {(active.status === 'Approved' || active.status === 'Scheduled') && (
                                 <button style={S.mAcceptBtn} disabled={updating === active.id}
                                     onClick={() => updateStatus(active.id, 'In Progress')}>
                                     {updating === active.id ? '…' : 'Accept Request'}

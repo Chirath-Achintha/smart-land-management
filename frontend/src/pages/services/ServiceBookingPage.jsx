@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE_URL from '../../apiConfig';
 
-const API = 'http://127.0.0.1:8000';
+const API = API_BASE_URL;
 
 const STATUS_STYLE = {
+    Requested: { bg: '#FEF3C7', color: '#92400E' },
+    Approved: { bg: '#DBEAFE', color: '#1D4ED8' },
     Scheduled: { bg: '#E3F2FD', color: '#1565c0' },
     'In Progress': { bg: '#FFF3E0', color: '#e65100' },
     Completed: { bg: '#E8F5E9', color: '#2e7d32' },
@@ -95,7 +98,7 @@ const ServiceBookingPage = () => {
                         <div style={S.bookingList}>
                             {bookings.map(b => {
                                 const sc = STATUS_STYLE[b.status] || STATUS_STYLE.Scheduled;
-                                const canEdit = b.status === 'Scheduled';
+                                const canEdit = b.status === 'Requested' || b.status === 'Scheduled';
                                 return (
                                     <div key={b.id} style={S.bookingCard}>
                                         <div style={S.bCardTop}>
@@ -112,7 +115,14 @@ const ServiceBookingPage = () => {
                                             <div style={S.bCell}><span style={S.bLabel}>📅 Date</span><span style={S.bVal}>{b.preferred_date}</span></div>
                                             <div style={S.bCell}><span style={S.bLabel}>🕐 Time</span><span style={S.bVal}>{b.preferred_time}</span></div>
                                             <div style={S.bCell}><span style={S.bLabel}>📋 Status</span><span style={S.bVal}>{b.status}</span></div>
+                                            <div style={S.bCell}><span style={S.bLabel}>👷 Team</span><span style={S.bVal}>{b.constructor_name || 'Awaiting assignment'}</span></div>
                                         </div>
+                                        {b.constructor_name && (
+                                            <div style={S.teamInfo}>
+                                                <div><strong>Assigned Team:</strong> {b.constructor_name}</div>
+                                                <div>{b.constructor_phone ? `Phone: ${b.constructor_phone}` : ''}{b.constructor_phone && b.constructor_email ? ' | ' : ''}{b.constructor_email ? `Email: ${b.constructor_email}` : ''}</div>
+                                            </div>
+                                        )}
                                         {b.notes && <p style={S.bNotes}>"{b.notes}"</p>}
                                         <p style={S.bDate}>Submitted: {new Date(b.created_at).toLocaleString('en-LK', { dateStyle: 'medium', timeStyle: 'short' })}</p>
                                         {canEdit && (
@@ -200,6 +210,7 @@ const S = {
     bCell: { background: '#FAF6F1', borderRadius: '10px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '4px' },
     bLabel: { fontSize: '0.72rem', color: '#999', fontWeight: '700' },
     bVal: { fontSize: '0.95rem', fontWeight: '700', color: '#1A1A1A' },
+    teamInfo: { backgroundColor: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '10px', padding: '10px 14px', color: '#1e3a8a', marginBottom: '12px', fontSize: '0.86rem' },
     bNotes: { fontStyle: 'italic', color: '#666', fontSize: '0.88rem', backgroundColor: '#FAF6F1', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px' },
     bDate: { fontSize: '0.75rem', color: '#CCC', marginBottom: '16px' },
     bActions: { display: 'flex', gap: '12px' },

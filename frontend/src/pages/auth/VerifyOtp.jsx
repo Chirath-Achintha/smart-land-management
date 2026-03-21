@@ -19,6 +19,30 @@ const VerifyOtp = () => {
         }
     }, [email, navigate]);
 
+    const handleResendOtp = async () => {
+        setError('');
+        setMsg('');
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                setError(data.detail || 'Failed to resend OTP.');
+            } else {
+                setMsg(data.message);
+            }
+        } catch (err) {
+            setError('Server error.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -81,24 +105,26 @@ const VerifyOtp = () => {
             </form>
 
             <p style={styles.footerText}>
-                Didn't receive the email? <span onClick={() => navigate('/forgot-password')} style={styles.footerLink}>Try again</span>
+                Didn't receive the email? <span onClick={handleResendOtp} style={styles.footerLink} disabled={loading}>Resend OTP</span>
+                <br /><br />
+                <span onClick={() => navigate('/forgot-password')} style={{...styles.footerLink, fontSize: '0.8rem', color: '#888'}}>Change Email</span>
             </p>
         </div>
     );
 };
 
 const styles = {
-    title: { textAlign: 'center', marginBottom: '10px', fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A' },
-    subtitle: { textAlign: 'center', color: '#555', marginBottom: '32px', fontSize: '0.9rem' },
-    error: { color: '#d32f2f', backgroundColor: '#fdecea', border: '1px solid #d32f2f', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.875rem' },
-    success: { color: '#2e7d32', backgroundColor: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.875rem' },
+    title: { textAlign: 'center', marginBottom: '8px', fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', letterSpacing: '-0.02em' },
+    subtitle: { textAlign: 'center', color: '#666', marginBottom: '32px', fontSize: '1rem', lineHeight: '1.5' },
+    error: { color: '#d32f2f', backgroundColor: '#fdecea', border: '1px solid rgba(211, 47, 47, 0.2)', borderRadius: '12px', padding: '12px 16px', marginBottom: '24px', fontSize: '0.875rem', fontWeight: '500' },
+    success: { color: '#2e7d32', backgroundColor: '#e8f5e9', border: '1px solid rgba(46, 125, 50, 0.2)', borderRadius: '12px', padding: '12px 16px', marginBottom: '24px', fontSize: '0.875rem', fontWeight: '500' },
     form: { display: 'flex', flexDirection: 'column' },
-    formGroup: { marginBottom: '20px', display: 'flex', flexDirection: 'column' },
-    label: { fontSize: '0.875rem', fontWeight: '600', color: '#1A1A1A', marginBottom: '8px', textAlign: 'center' },
-    input: { padding: '12px 16px', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '8px', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' },
-    button: { padding: '12px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', width: '100%', fontSize: '0.95rem', fontWeight: '600', transition: 'background 0.2s' },
-    footerText: { textAlign: 'center', marginTop: '24px', fontSize: '0.9rem', color: '#555' },
-    footerLink: { color: '#1A1A1A', fontWeight: '700', textDecoration: 'none', cursor: 'pointer' }
+    formGroup: { marginBottom: '24px', display: 'flex', flexDirection: 'column' },
+    label: { fontSize: '0.9rem', fontWeight: '600', color: '#1A1A1A', marginBottom: '10px', textAlign: 'center' },
+    input: { padding: '16px', border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: '12px', fontFamily: 'inherit', outline: 'none', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', backgroundColor: '#fcfcfc', textAlign: 'center', letterSpacing: '8px', fontSize: '1.5rem', fontWeight: '700' },
+    button: { padding: '14px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', cursor: 'pointer', width: '100%', fontSize: '1rem', fontWeight: '600', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
+    footerText: { textAlign: 'center', marginTop: '32px', fontSize: '0.95rem', color: '#666' },
+    footerLink: { color: '#1A1A1A', fontWeight: '700', textDecoration: 'none', cursor: 'pointer', borderBottom: '2px solid #1A1A1A', paddingBottom: '2px' }
 };
 
 export default VerifyOtp;

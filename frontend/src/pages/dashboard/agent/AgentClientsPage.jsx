@@ -6,10 +6,14 @@ import API_BASE_URL from '../../../apiConfig';
 const AgentClientsPage = () => {
     const { user } = useAuth();
     const [clients, setClients] = useState([]);
+    const [allVisits, setAllVisits] = useState([]); // Raw visit data
     const [editingNotes, setEditingNotes] = useState(null); // ID of buyer
     const [tempNotes, setTempNotes] = useState('');
 
     const [loading, setLoading] = useState(false);
+    const [viewMode, setViewMode] = useState('calendar');
+    const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 21)); // Mar 21, 2026
+    const [highlightedClient, setHighlightedClient] = useState(null);
 
     useEffect(() => {
         const fetchClients = async () => {
@@ -20,6 +24,7 @@ const AgentClientsPage = () => {
                 });
                 const data = await res.json();
                 if (res.ok && Array.isArray(data)) {
+                    setAllVisits(data);
                     // Unique buyers from all assignments (Assigned, Accepted, Completed)
                     const buyersMap = {};
                     data.forEach(v => {
@@ -71,6 +76,90 @@ const AgentClientsPage = () => {
         }
     };
 
+    const getDaysInMonth = (month, year) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (month, year) => new Date(year, month, 1).getDay();
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    const goToToday = () => setCurrentDate(new Date(2026, 2, 21));
+
+    // Accepted visits for Agent
+    const activeSchedule = allVisits.filter(v => v.status === 'Accepted' || v.status === 'Completed' || v.status === 'SellerAccepted');
+    const scheduleByDate = activeSchedule.reduce((acc, v) => {
+        const date = v.visit_date;
+        if (!acc[date]) acc[date] = [];
+        acc[date].push(v);
+        return acc;
+    }, {});
+    const sortedDates = Object.keys(scheduleByDate).sort((a, b) => new Date(a) - new Date(b));
+
+    const scrollToClient = (buyerName) => {
+        setHighlightedClient(buyerName);
+        const element = document.getElementById(`client-${buyerName.replace(/\s+/g, '-').toLowerCase()}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Remove highlight after a few seconds
+            setTimeout(() => setHighlightedClient(null), 3000);
+        }
+    };
+
+    const renderCalendar = () => {
+        const month = currentDate.getMonth();
+        const year = currentDate.getFullYear();
+        const daysInMonth = getDaysInMonth(month, year);
+        const firstDay = getFirstDayOfMonth(month, year);
+        const prevMonthDays = getDaysInMonth(month - 1, year);
+        const days = [];
+        for (let i = firstDay - 1; i >= 0; i--) days.push({ day: prevMonthDays - i, currentMonth: false, dateStr: `${year}-${month}-${prevMonthDays - i}` });
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            days.push({ day: i, currentMonth: true, dateStr: dStr });
+        }
+        const totalCells = 42;
+        const remaining = totalCells - days.length;
+        for (let i = 1; i <= remaining; i++) days.push({ day: i, currentMonth: false, dateStr: `${year}-${month + 2}-${i}` });
+
+        return (
+            <div style={S.calendarRoot}>
+                <div style={S.calHeader}>
+                    <h2 style={S.calTitle}>{monthNames[month]} {year}</h2>
+                    <div style={S.calNav}>
+                        <button style={S.calNavBtn} onClick={prevMonth}>&lt;</button>
+                        <button style={{ ...S.calNavBtn, ...S.todayBtn }} onClick={goToToday}>Today</button>
+                        <button style={S.calNavBtn} onClick={nextMonth}>&gt;</button>
+                    </div>
+                </div>
+                <div style={S.calGrid}>
+                    {weekDays.map(wd => <div key={wd} style={S.weekDayHead}>{wd}</div>)}
+                    {days.map((d, i) => {
+                        const dayVisits = activeSchedule.filter(v => v.visit_date === d.dateStr);
+                        const isToday = d.dateStr === '2026-03-21';
+                        return (
+                            <div key={i} style={{ ...S.dayCell, opacity: d.currentMonth ? 1 : 0.4 }}>
+                                <div style={S.dayNum}><span style={isToday ? S.todayCircle : {}}>{d.day}</span></div>
+                                <div style={S.eventList}>
+                                    {dayVisits.map(v => (
+                                        <div 
+                                            key={v.id || v._id} 
+                                            style={{ ...S.eventTag, cursor: 'pointer' }}
+                                            onClick={() => scrollToClient(v.buyer_name)}
+                                            title="Click to see client details"
+                                        >
+                                            <span style={S.eventDot}></span>
+                                            {v.visit_time} - {v.buyer_name} - {v.land_name}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div style={S.root}>
             <div style={S.header}>
@@ -83,7 +172,17 @@ const AgentClientsPage = () => {
                     <div style={S.emptyBox}>No active clients found in your assignments.</div>
                 ) : (
                     clients.map((c, i) => (
-                        <div key={i} style={S.clientCard}>
+                        <div 
+                            key={i} 
+                            id={`client-${c.name.replace(/\s+/g, '-').toLowerCase()}`}
+                            style={{
+                                ...S.clientCard,
+                                border: highlightedClient === c.name ? '2px solid #3498db' : '1px solid #F0F0F0',
+                                boxShadow: highlightedClient === c.name ? '0 12px 32px rgba(52, 152, 219, 0.2)' : '0 4px 20px rgba(0,0,0,0.03)',
+                                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                transform: highlightedClient === c.name ? 'scale(1.02)' : 'scale(1)'
+                            }}
+                        >
                             <div style={S.cardTop}>
                                 <div style={S.avatar}>{c.name.charAt(0)}</div>
                                 <div style={S.mainInfo}>
@@ -137,6 +236,16 @@ const AgentClientsPage = () => {
                     ))
                 )}
             </div>
+            <div style={S.scheduleSection}>
+                <div style={S.scheduleHeader}>
+                    <div>
+                        <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
+                        <p style={S.sectionSubtitle}>A visual overview of all your upcoming property visits.</p>
+                    </div>
+                </div>
+
+                {renderCalendar()}
+            </div>
         </div>
     );
 };
@@ -175,7 +284,39 @@ const S = {
     notesContent: { margin: 0, fontSize: '0.8rem', color: '#888', lineHeight: '1.5', fontStyle: 'italic' },
     notesInput: { width: '100%', minHeight: '60px', padding: '8px', border: '1px solid #DDD', borderRadius: '8px', fontSize: '0.85rem', fontFamily: 'inherit', resize: 'vertical' },
 
-    emptyBox: { gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#AAA', fontWeight: '600' }
+    emptyBox: { gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#AAA', fontWeight: '600' },
+
+    // Schedule Styling
+    scheduleSection: { marginTop: '80px', background: '#fff', padding: '48px', borderRadius: '32px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
+    scheduleHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' },
+    sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px', margin: 0 },
+    sectionSubtitle: { fontSize: '1rem', color: '#777', margin: 0 },
+    viewToggle: { display: 'flex', background: '#F0F0F0', padding: '4px', borderRadius: '12px', gap: '4px' },
+    toggleBtn: { padding: '8px 16px', border: 'none', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', background: 'transparent', color: '#666', transition: 'all 0.2s' },
+    toggleBtnActive: { background: '#fff', color: '#1A1A1A', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
+    
+    // Table Styling
+    tableWrapper: { overflowX: 'auto' },
+    table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
+    th: { padding: '16px 20px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid #F0F0F0' },
+    tr: { borderBottom: '1px solid #F7F7F7', transition: 'background 0.2s' },
+    td: { padding: '20px', fontSize: '0.95rem', color: '#333', fontWeight: '600' },
+
+    // Calendar Specific Styles
+    calendarRoot: { border: '1px solid #F0EBE4', borderRadius: '32px', overflow: 'hidden', background: '#fff' },
+    calHeader: { padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F0F0F0' },
+    calTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    calNav: { display: 'flex', gap: '8px' },
+    calNavBtn: { padding: '8px 16px', border: '1px solid #E5E0DA', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#1A1A1A' },
+    todayBtn: { padding: '8px 20px', background: '#1A1A1A', color: '#fff', border: 'none' },
+    calGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(140px, auto)' },
+    weekDayHead: { padding: '16px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', borderBottom: '1px solid #F0F0F0', background: '#FAF9F7' },
+    dayCell: { borderRight: '1px solid #F0F0F0', borderBottom: '1px solid #F0F0F0', padding: '12px', minHeight: '140px' },
+    dayNum: { textAlign: 'right', fontSize: '0.85rem', fontWeight: '800', color: '#666', marginBottom: '8px' },
+    todayCircle: { background: '#00B4D8', color: '#fff', padding: '4px 8px', borderRadius: '50%', fontSize: '0.75rem' },
+    eventList: { display: 'flex', flexDirection: 'column', gap: '4px' },
+    eventTag: { padding: '6px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', background: '#F3E5F5', color: '#7B1FA2', borderLeft: '3px solid #7B1FA2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '6px' },
+    eventDot: { width: '4px', height: '4px', borderRadius: '50%', background: 'currentColor' }
 };
 
 export default AgentClientsPage;

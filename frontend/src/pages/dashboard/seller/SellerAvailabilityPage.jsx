@@ -50,6 +50,14 @@ const SellerAvailabilityPage = () => {
             .catch(() => setPropertySlots([]));
     }, [selectedId]);
 
+    // Auto-dismiss success message
+    useEffect(() => {
+        if (saved) {
+            const timer = setTimeout(() => setSaved(false), 4000); // 4 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [saved]);
+
     const formatTimeStr = (t24) => {
         if (!t24) return '';
         const [h, m] = t24.split(':');
@@ -60,11 +68,41 @@ const SellerAvailabilityPage = () => {
     };
 
     const addSlot = () => {
+        if (!selectedId) { setError('Please select a property first.'); return; }
         if (!startTime || !endTime) { setError('Please select both start and end times.'); return; }
+
+        const startMins = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+        const endMins = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+
+        if (endMins <= startMins) {
+            setError('End time must be after start time.');
+            return;
+        }
+
         const timeRange = `${formatTimeStr(startTime)} – ${formatTimeStr(endTime)}`;
 
-        const dup = propertySlots.find(s => s.day === slotDay && s.time_slot === timeRange);
-        if (dup) { setError('This slot already exists.'); return; }
+        // Overlap Check
+        const isOverlapping = propertySlots.some(s => {
+            if (s.day !== slotDay) return false;
+            // Parse existing "09:00 AM – 05:00 PM"
+            const [exStartStr, exEndStr] = s.time_slot.split(' – ');
+            const parseDisplayStr = (str) => {
+                const [time, ampm] = str.split(' ');
+                let [h, m] = time.split(':').map(Number);
+                if (ampm === 'PM' && h !== 12) h += 12;
+                if (ampm === 'AM' && h === 12) h = 0;
+                return h * 60 + m;
+            };
+            const exStart = parseDisplayStr(exStartStr);
+            const exEnd = parseDisplayStr(exEndStr);
+
+            return (startMins < exEnd && endMins > exStart);
+        });
+
+        if (isOverlapping) {
+            setError(`This time slot overlaps with an existing ${slotDay} appointment.`);
+            return;
+        }
 
         const newSlot = { day: slotDay, time_slot: timeRange };
         setPropertySlots([...propertySlots, newSlot]);
@@ -155,7 +193,14 @@ const SellerAvailabilityPage = () => {
                             <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ ...S.input, flex: '1 1 120px' }} />
                             <span style={{ color: '#888', fontWeight: 'bold' }}>to</span>
                             <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ ...S.input, flex: '1 1 120px' }} />
-                            <button type="button" style={S.addBtn} onClick={addSlot}>Add Slot</button>
+                            <button 
+                                type="button" 
+                                style={{ ...S.addBtn, opacity: selectedId ? 1 : 0.5 }} 
+                                onClick={addSlot}
+                                disabled={!selectedId}
+                            >
+                                Add Slot
+                            </button>
                         </div>
                     </div>
 

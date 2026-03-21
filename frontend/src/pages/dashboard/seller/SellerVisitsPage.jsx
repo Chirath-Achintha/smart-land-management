@@ -20,6 +20,8 @@ const SellerVisitsPage = () => {
     const [replyTexts, setReplyTexts] = useState({});
     const [rejectingVisit, setRejectingVisit] = useState(null);
     const [rejectMessage, setRejectMessage] = useState('');
+    const [viewMode, setViewMode] = useState('calendar'); // Default to the new calendar view
+    const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 21)); // Mar 21, 2026
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
@@ -104,6 +106,85 @@ const SellerVisitsPage = () => {
     }, {});
 
     const sortedDates = Object.keys(scheduleByDate).sort((a, b) => new Date(a) - new Date(b));
+
+    // Calendar logic
+    const getDaysInMonth = (month, year) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (month, year) => new Date(year, month, 1).getDay();
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    const goToToday = () => setCurrentDate(new Date(2026, 2, 21));
+
+    const renderCalendar = () => {
+        const month = currentDate.getMonth();
+        const year = currentDate.getFullYear();
+        const daysInMonth = getDaysInMonth(month, year);
+        const firstDay = getFirstDayOfMonth(month, year);
+        
+        const prevMonthDays = getDaysInMonth(month - 1, year);
+        const days = [];
+
+        // Prev month padding
+        for (let i = firstDay - 1; i >= 0; i--) {
+            days.push({ day: prevMonthDays - i, currentMonth: false, dateStr: `${year}-${month}-${prevMonthDays - i}` });
+        }
+
+        // Current month
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            days.push({ day: i, currentMonth: true, dateStr: dStr });
+        }
+
+        // Next month padding
+        const totalCells = 42;
+        const remaining = totalCells - days.length;
+        for (let i = 1; i <= remaining; i++) {
+            days.push({ day: i, currentMonth: false, dateStr: `${year}-${month + 2}-${i}` });
+        }
+
+        return (
+            <div style={S.calendarRoot}>
+                <div style={S.calHeader}>
+                    <h2 style={S.calTitle}>{monthNames[month]} {year}</h2>
+                    <div style={S.calNav}>
+                        <button style={S.calNavBtn} onClick={prevMonth}>&lt;</button>
+                        <button style={{ ...S.calNavBtn, ...S.todayBtn }} onClick={goToToday}>Today</button>
+                        <button style={S.calNavBtn} onClick={nextMonth}>&gt;</button>
+                    </div>
+                </div>
+                <div style={S.calGrid}>
+                    {weekDays.map(wd => <div key={wd} style={S.weekDayHead}>{wd}</div>)}
+                    {days.map((d, i) => {
+                        const dayVisits = activeSchedule.filter(v => v.visit_date === d.dateStr);
+                        const isToday = d.dateStr === '2026-03-21';
+                        return (
+                            <div key={i} style={{ ...S.dayCell, opacity: d.currentMonth ? 1 : 0.4 }}>
+                                <div style={S.dayNum}>
+                                    <span style={isToday ? S.todayCircle : {}}>{d.day}</span>
+                                </div>
+                                <div style={S.eventList}>
+                                    {dayVisits.map(v => (
+                                        <div key={v.id || v._id} style={{ 
+                                            ...S.eventTag, 
+                                            background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
+                                            color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2',
+                                            borderLeft: `3px solid ${v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'}`
+                                        }}>
+                                            <span style={S.eventDot}></span>
+                                            {v.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'} — {v.visit_time} - {v.land_name}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div style={S.root}>
@@ -316,70 +397,90 @@ const SellerVisitsPage = () => {
             {/* Daily Schedule Summary Table */}
             {activeSchedule.length > 0 && (
                 <div style={S.scheduleSection}>
-                    <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
-                    <p style={S.sectionSubtitle}>A quick overview of all your upcoming site visits.</p>
-
-                    <div style={S.tableWrapper}>
-                        <table style={S.table}>
-                            <thead>
-                                <tr>
-                                    <th style={S.th}>Date</th>
-                                    <th style={S.th}>Time</th>
-                                    <th style={S.th}>Land</th>
-                                    <th style={S.th}>Buyer</th>
-                                    <th style={S.th}>Visit Type</th>
-                                    <th style={S.th}>Agent Details</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sortedDates.map(date => (
-                                    scheduleByDate[date].sort((a, b) => a.visit_time.localeCompare(b.visit_time)).map((v, idx) => (
-                                        <tr key={v._id || v.id} style={S.tr}>
-                                            {idx === 0 ? (
-                                                <td style={{ ...S.td, fontWeight: '800', borderLeft: '4px solid #1A1A1A' }} rowSpan={scheduleByDate[date].length}>
-                                                    {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
-                                                </td>
-                                            ) : null}
-                                            <td style={{ ...S.td, fontWeight: '700', color: '#1A1A1A' }}>{v.visit_time}</td>
-                                            <td style={S.td}>{v.land_name}</td>
-                                            <td style={{ ...S.td, fontWeight: '600' }}>
-                                                {v.buyer_name}
-                                                <div style={{ fontSize: '0.75rem', color: '#777', marginTop: '2px', fontWeight: '500' }}>{v.buyer_phone || 'No phone'}</div>
-                                            </td>
-                                            <td style={S.td}>
-                                                <span style={{ 
-                                                    padding: '4px 10px', 
-                                                    borderRadius: '6px', 
-                                                    fontSize: '0.7rem', 
-                                                    fontWeight: '800',
-                                                    textTransform: 'uppercase',
-                                                    letterSpacing: '0.05em',
-                                                    background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
-                                                    color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'
-                                                }}>
-                                                    {v.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'}
-                                                </span>
-                                            </td>
-                                            <td style={S.td}>
-                                                {v.visit_type === 'agent_visit' ? (
-                                                    (v.status === 'Accepted' || v.status === 'Completed') && v.agent_name ? (
-                                                        <div>
-                                                            <div style={{ fontWeight: '700', color: '#3498db', fontSize: '0.85rem' }}>{v.agent_name}</div>
-                                                            <div style={{ color: '#555', fontSize: '0.75rem', fontWeight: '600', marginTop: '2px' }}>{v.agent_phone}</div>
-                                                        </div>
-                                                    ) : (
-                                                        <span style={{ color: '#aaa', fontSize: '0.75rem', fontWeight: '600', fontStyle: 'italic' }}>Pending Assignment</span>
-                                                    )
-                                                ) : (
-                                                    <span style={{ color: '#ccc', fontSize: '0.9rem', fontWeight: '700' }}>—</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))
-                                ))}
-                            </tbody>
-                        </table>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
+                        <div>
+                            <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
+                            <p style={S.sectionSubtitle}>A quick overview of all your upcoming site visits{viewMode === 'calendar' ? ' in a monthly view' : ''}.</p>
+                        </div>
+                        <div style={S.viewToggle}>
+                            <button 
+                                onClick={() => setViewMode('list')}
+                                style={{ ...S.toggleBtn, ...(viewMode === 'list' ? S.toggleBtnActive : {}) }}
+                            >
+                                List View
+                            </button>
+                            <button 
+                                onClick={() => setViewMode('calendar')}
+                                style={{ ...S.toggleBtn, ...(viewMode === 'calendar' ? S.toggleBtnActive : {}) }}
+                            >
+                                Calendar View
+                            </button>
+                        </div>
                     </div>
+
+                    {viewMode === 'calendar' ? renderCalendar() : (
+                        <div style={S.tableWrapper}>
+                            <table style={S.table}>
+                                <thead>
+                                    <tr>
+                                        <th style={S.th}>Date</th>
+                                        <th style={S.th}>Time</th>
+                                        <th style={S.th}>Land</th>
+                                        <th style={S.th}>Buyer</th>
+                                        <th style={S.th}>Visit Type</th>
+                                        <th style={S.th}>Agent Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sortedDates.map(date => (
+                                        scheduleByDate[date].sort((a, b) => a.visit_time.localeCompare(b.visit_time)).map((v, idx) => (
+                                            <tr key={v._id || v.id} style={S.tr}>
+                                                {idx === 0 ? (
+                                                    <td style={{ ...S.td, fontWeight: '800', borderLeft: '4px solid #1A1A1A' }} rowSpan={scheduleByDate[date].length}>
+                                                        {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
+                                                    </td>
+                                                ) : null}
+                                                <td style={{ ...S.td, fontWeight: '700', color: '#1A1A1A' }}>{v.visit_time}</td>
+                                                <td style={S.td}>{v.land_name}</td>
+                                                <td style={{ ...S.td, fontWeight: '600' }}>
+                                                    {v.buyer_name}
+                                                    <div style={{ fontSize: '0.75rem', color: '#777', marginTop: '2px', fontWeight: '500' }}>{v.buyer_phone || 'No phone'}</div>
+                                                </td>
+                                                <td style={S.td}>
+                                                    <span style={{ 
+                                                        padding: '4px 10px', 
+                                                        borderRadius: '6px', 
+                                                        fontSize: '0.7rem', 
+                                                        fontWeight: '800',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em',
+                                                        background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
+                                                        color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'
+                                                    }}>
+                                                        {v.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'}
+                                                    </span>
+                                                </td>
+                                                <td style={S.td}>
+                                                    {v.visit_type === 'agent_visit' ? (
+                                                        (v.status === 'Accepted' || v.status === 'Completed') && v.agent_name ? (
+                                                            <div>
+                                                                <div style={{ fontWeight: '700', color: '#3498db', fontSize: '0.85rem' }}>{v.agent_name}</div>
+                                                                <div style={{ color: '#555', fontSize: '0.75rem', fontWeight: '600', marginTop: '2px' }}>{v.agent_phone}</div>
+                                                            </div>
+                                                        ) : (
+                                                            <span style={{ color: '#aaa', fontSize: '0.75rem', fontWeight: '600', fontStyle: 'italic' }}>Pending Assignment</span>
+                                                        )
+                                                    ) : (
+                                                        <span style={{ color: '#ccc', fontSize: '0.9rem', fontWeight: '700' }}>—</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -448,6 +549,27 @@ const S = {
     modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
     cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
     confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' },
+
+    // View Toggle
+    viewToggle: { display: 'flex', background: '#F0F0F0', padding: '4px', borderRadius: '12px', gap: '4px' },
+    toggleBtn: { padding: '8px 16px', border: 'none', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', background: 'transparent', color: '#666', transition: 'all 0.2s' },
+    toggleBtnActive: { background: '#fff', color: '#1A1A1A', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
+
+    // Calendar Specific Styles
+    calendarRoot: { border: '1px solid #F0EBE4', borderRadius: '32px', overflow: 'hidden', background: '#fff' },
+    calHeader: { padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F0F0F0' },
+    calTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    calNav: { display: 'flex', gap: '8px' },
+    calNavBtn: { padding: '8px 16px', border: '1px solid #E5E0DA', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#1A1A1A', hover: { background: '#F9F9F9' } },
+    todayBtn: { padding: '8px 20px', background: '#1A1A1A', color: '#fff', border: 'none' },
+    calGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(140px, auto)' },
+    weekDayHead: { padding: '16px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', borderBottom: '1px solid #F0F0F0', background: '#FAF9F7' },
+    dayCell: { borderRight: '1px solid #F0F0F0', borderBottom: '1px solid #F0F0F0', padding: '12px', position: 'relative', minHeight: '140px' },
+    dayNum: { textAlign: 'right', fontSize: '0.85rem', fontWeight: '800', color: '#666', marginBottom: '8px' },
+    todayCircle: { background: '#00B4D8', color: '#fff', padding: '4px 8px', borderRadius: '50%', fontSize: '0.75rem' },
+    eventList: { display: 'flex', flexDirection: 'column', gap: '4px' },
+    eventTag: { padding: '6px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', lineHeight: '1.2', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+    eventDot: { width: '4px', height: '4px', borderRadius: '50%', background: 'currentColor' }
 };
 
 export default SellerVisitsPage;

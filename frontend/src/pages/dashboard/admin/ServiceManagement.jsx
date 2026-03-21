@@ -1,376 +1,480 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import API_BASE_URL from '../../../apiConfig';
+
+const API = API_BASE_URL;
+
+const STATUS_COLORS = {
+    Requested: { bg: '#fef3c7', fg: '#92400e' },
+    Approved: { bg: '#dbeafe', fg: '#1d4ed8' },
+    Scheduled: { bg: '#dbeafe', fg: '#1d4ed8' },
+    'In Progress': { bg: '#ffedd5', fg: '#9a3412' },
+    Completed: { bg: '#dcfce7', fg: '#166534' },
+    Cancelled: { bg: '#fee2e2', fg: '#991b1b' },
+};
 
 const ServiceManagement = () => {
-    // Bookings Data
+    const token = localStorage.getItem('access_token');
+    const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
     const [bookings, setBookings] = useState([]);
-
-    useEffect(() => {
-        const storedBookings = localStorage.getItem('all_service_bookings');
-        if (storedBookings) {
-            setBookings(JSON.parse(storedBookings));
-        } else {
-            const defaultBookings = [
-                { id: 'BK001', buyerName: 'Alice Wong', service: 'Construction', land: 'Ocean View Ridge', date: '2026-03-10', provider: 'BuildRight Ltd.', status: 'Scheduled' },
-                { id: 'BK002', buyerName: 'Bob Miller', service: 'Land Development', land: 'N/A', date: '2026-03-12', provider: 'Terra-Form Co.', status: 'In Progress' },
-            ];
-            setBookings(defaultBookings);
-            localStorage.setItem('all_service_bookings', JSON.stringify(defaultBookings));
-        }
-    }, []);
-
-    // Service Crews (Teams) Data
-    const [crews, setCrews] = useState([
-        {
-            id: 1,
-            companyName: 'BuildRight Ltd.',
-            address: '123 Industrial Way, Colombo 03',
-            size: 15,
-            location: 'Colombo',
-            details: 'ISO Certified, Grade A Construction License',
-            email: 'admin@buildright.com',
-            phone: '0112345678',
-            managerName: 'Ruwan Perera',
-            status: 'Available'
-        },
-        {
-            id: 2,
-            companyName: 'Terra-Form Co.',
-            address: '45 Green Park, Gampaha',
-            size: 8,
-            location: 'Western Province',
-            details: 'Specialize in Land leveling and Drainage',
-            email: 'info@terraform.com',
-            phone: '0334455667',
-            managerName: 'Sunil Dharmadasa',
-            status: 'Busy'
-        },
-    ]);
-
-    const serviceTypes = ['Construction', 'Land Development'];
-
-    // Form states
-    const [isEditingCrew, setIsEditingCrew] = useState(false);
-    const [currentCrew, setCurrentCrew] = useState({
-        id: '',
-        companyName: '',
-        address: '',
-        size: '',
-        location: '',
-        details: '',
+    const [constructorsByBooking, setConstructorsByBooking] = useState({});
+    const [selectedConstructor, setSelectedConstructor] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [assigningId, setAssigningId] = useState('');
+    const [error, setError] = useState('');
+    const [teams, setTeams] = useState([]);
+    const [teamLoading, setTeamLoading] = useState(true);
+    const [creatingTeam, setCreatingTeam] = useState(false);
+    const [showTeamsModal, setShowTeamsModal] = useState(false);
+    const [districtOptions, setDistrictOptions] = useState([]);
+    const [teamForm, setTeamForm] = useState({
+        team_name: '',
+        manager_name: '',
+        district: '',
+        phone: '',
         email: '',
         password: '',
-        phone: '',
-        managerName: '',
-        status: 'Available'
     });
 
-    const handleUpdateBooking = (id, field, value) => {
-        const updated = bookings.map(book => {
-            if (book.id === id) {
-                const newBook = { ...book, [field]: value };
-                if (field === 'provider' && value !== 'Pending Assignment' && value !== '') {
-                    newBook.status = 'Scheduled'; // or In Progress
-                }
-                return newBook;
-            }
-            return book;
-        });
-        setBookings(updated);
-        localStorage.setItem('all_service_bookings', JSON.stringify(updated));
-    };
+    const fetchBookings = async () => {
+        if (!token) {
+            setError('Please log in as admin to manage service bookings.');
+            setLoading(false);
+            return;
+        }
 
-    const handleCancelBooking = (id) => {
-        if (window.confirm('Are you sure you want to cancel this booking?')) {
-            const updated = bookings.map(book =>
-                book.id === id ? { ...book, status: 'Cancelled' } : book
-            );
-            setBookings(updated);
-            localStorage.setItem('all_service_bookings', JSON.stringify(updated));
+        setLoading(true);
+        setError('');
+        try {
+            const res = await fetch(`${API}/service-bookings/admin`, { headers: authH });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Failed to fetch bookings');
+            setBookings(Array.isArray(data) ? data : []);
+        } catch (e) {
+            setBookings([]);
+            setError(e.message || 'Failed to fetch bookings');
+        } finally {
+            setLoading(false);
         }
     };
 
-    // Crew CRUD
-    const handleSaveCrew = (e) => {
+    const fetchConstructorsForBooking = async (booking) => {
+        const district = booking.land_district || '';
+        try {
+            const q = district ? `?district=${encodeURIComponent(district)}` : '';
+            const res = await fetch(`${API}/service-bookings/constructors${q}`, { headers: authH });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Failed to load teams');
+            setConstructorsByBooking((prev) => ({ ...prev, [booking.id]: Array.isArray(data) ? data : [] }));
+        } catch {
+            setConstructorsByBooking((prev) => ({ ...prev, [booking.id]: [] }));
+        }
+    };
+
+    const fetchTeams = async () => {
+        if (!token) {
+            setTeamLoading(false);
+            return;
+        }
+
+        setTeamLoading(true);
+        try {
+            const res = await fetch(`${API}/admin/constructor-teams/`, { headers: authH });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Failed to fetch constructor teams');
+            setTeams(Array.isArray(data) ? data : []);
+        } catch {
+            setTeams([]);
+        } finally {
+            setTeamLoading(false);
+        }
+    };
+
+    const fetchDistrictOptions = async () => {
+        if (!token) return;
+
+        try {
+            const res = await fetch(`${API}/lands/admin/all`, { headers: authH });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Failed to fetch districts');
+
+            const districtsFromLands = (Array.isArray(data) ? data : [])
+                .map((land) => (land?.district || '').trim())
+                .filter(Boolean);
+
+            setDistrictOptions((prev) => {
+                const merged = [...prev, ...districtsFromLands];
+                return Array.from(new Set(merged)).sort((a, b) => a.localeCompare(b));
+            });
+        } catch {
+            // Keep existing options from teams/bookings when lands endpoint is unavailable.
+        }
+    };
+
+    const handleCreateTeam = async (e) => {
         e.preventDefault();
-        if (isEditingCrew) {
-            setCrews(crews.map(c => c.id === currentCrew.id ? currentCrew : c));
-            setIsEditingCrew(false);
-        } else {
-            setCrews([...crews, { ...currentCrew, id: Date.now() }]);
+        setCreatingTeam(true);
+        try {
+            const payload = {
+                ...teamForm,
+                // Backend expects state and address; district-only UI derives these values.
+                state: 'N/A',
+                address: teamForm.district,
+            };
+            const res = await fetch(`${API}/admin/constructor-teams/`, {
+                method: 'POST',
+                headers: authH,
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Failed to create constructor team');
+
+            setTeamForm({
+                team_name: '',
+                manager_name: '',
+                district: '',
+                phone: '',
+                email: '',
+                password: '',
+            });
+            await fetchTeams();
+            await fetchBookings();
+        } catch (e1) {
+            alert(e1.message || 'Failed to create constructor team');
+        } finally {
+            setCreatingTeam(false);
         }
-        resetForm();
     };
 
-    const resetForm = () => {
-        setCurrentCrew({
-            id: '', companyName: '', address: '', size: '', location: '',
-            details: '', email: '', password: '', phone: '', managerName: '', status: 'Available'
+    useEffect(() => {
+        fetchBookings();
+        fetchTeams();
+        fetchDistrictOptions();
+    }, []);
+
+    useEffect(() => {
+        const districtsFromTeams = teams.map((team) => (team?.district || '').trim()).filter(Boolean);
+        const districtsFromBookings = bookings.map((booking) => (booking?.land_district || '').trim()).filter(Boolean);
+
+        setDistrictOptions((prev) => {
+            const merged = [...prev, ...districtsFromTeams, ...districtsFromBookings];
+            return Array.from(new Set(merged)).sort((a, b) => a.localeCompare(b));
         });
-        setIsEditingCrew(false);
-    };
+    }, [teams, bookings]);
 
-    const handleEditCrew = (crew) => {
-        setIsEditingCrew(true);
-        setCurrentCrew({ ...crew, password: '' });
-    };
+    useEffect(() => {
+        bookings.forEach((booking) => {
+            if (!constructorsByBooking[booking.id]) {
+                fetchConstructorsForBooking(booking);
+            }
+        });
+    }, [bookings]);
 
-    const handleDeleteCrew = (id) => {
-        if (window.confirm('Delete this constructor team and all its login credentials?')) {
-            setCrews(crews.filter(c => c.id !== id));
+    const sortedBookings = useMemo(
+        () => [...bookings].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
+        [bookings]
+    );
+
+    const teamsByUserId = useMemo(
+        () => Object.fromEntries(teams.map((t) => [t.user_id, t])),
+        [teams]
+    );
+
+    const handleAssign = async (bookingId) => {
+        const constructorId = selectedConstructor[bookingId];
+        if (!constructorId) {
+            alert('Please choose a constructor team first.');
+            return;
         }
+
+        setAssigningId(bookingId);
+        try {
+            const res = await fetch(`${API}/service-bookings/${bookingId}/assign`, {
+                method: 'PATCH',
+                headers: authH,
+                body: JSON.stringify({ constructor_id: constructorId }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Assignment failed');
+
+            setBookings((prev) => prev.map((b) => (b.id === bookingId ? data : b)));
+            setSelectedConstructor((prev) => ({ ...prev, [bookingId]: '' }));
+        } catch (e) {
+            alert(e.message || 'Assignment failed');
+        } finally {
+            setAssigningId('');
+        }
+    };
+
+    const getRegisteredOptionsForBooking = (bookingId) => {
+        const raw = constructorsByBooking[bookingId] || [];
+        const availabilityByUserId = Object.fromEntries(
+            raw.map((opt) => [opt.id || opt._id, opt])
+        );
+
+        return teams
+            .map((team) => {
+                const availability = availabilityByUserId[team.user_id] || {};
+                return {
+                    id: team.user_id,
+                    team_name: team.team_name,
+                    manager_name: team.manager_name,
+                    district: team.district,
+                    phone: team.phone,
+                    email: team.email,
+                    district_match: availability.district_match ?? true,
+                    is_available: availability.is_available ?? true,
+                    active_assignments: availability.active_assignments ?? 0,
+                };
+            })
+            .sort((a, b) => {
+                const aKey = `${a.district_match ? 0 : 1}-${a.is_available ? 0 : 1}-${a.team_name}`;
+                const bKey = `${b.district_match ? 0 : 1}-${b.is_available ? 0 : 1}-${b.team_name}`;
+                return aKey.localeCompare(bKey);
+            });
+    };
+
+    const renderRegisteredTeamsModal = () => {
+        if (!showTeamsModal) return null;
+        return (
+            <div style={styles.overlay}>
+                <div style={styles.modal}>
+                    <div style={styles.modalHead}>
+                        <h3 style={styles.modalTitle}>Registered Constructor Teams</h3>
+                        <button style={styles.closeBtn} onClick={() => setShowTeamsModal(false)}>Close</button>
+                    </div>
+
+                    {teamLoading ? (
+                        <div style={styles.metaText}>Loading teams...</div>
+                    ) : teams.length === 0 ? (
+                        <div style={styles.metaText}>No constructor teams created yet.</div>
+                    ) : (
+                        <div style={styles.modalTableWrap}>
+                            <table style={styles.table}>
+                                <thead>
+                                    <tr style={styles.thRow}>
+                                        <th style={styles.th}>Team Name</th>
+                                        <th style={styles.th}>Manager</th>
+                                        <th style={styles.th}>District</th>
+                                        <th style={styles.th}>Email</th>
+                                        <th style={styles.th}>Phone</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {teams.map((team) => (
+                                        <tr key={team.id} style={styles.tr}>
+                                            <td style={styles.td}>{team.team_name}</td>
+                                            <td style={styles.td}>{team.manager_name}</td>
+                                            <td style={styles.td}>{team.district}</td>
+                                            <td style={styles.td}>{team.email}</td>
+                                            <td style={styles.td}>{team.phone || '-'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
     };
 
     return (
         <div style={styles.container}>
             <header style={styles.header}>
-                <h2 style={styles.title}>Constructor & Service Management</h2>
-                <p style={styles.subtitle}>Register construction teams, manage legal profiles, and handle login accounts.</p>
+                <h2 style={styles.title}>Construction Service Assignments</h2>
+                <p style={styles.subtitle}>
+                    Assign constructor teams by district and availability. Once assigned, buyers and constructor teams will see the same booking details.
+                </p>
             </header>
 
-            <div style={styles.grid}>
-                {/* Left Side: Elaborate Crew Management */}
-                <div style={styles.card}>
-                    <h3 style={styles.cardTitle}>{isEditingCrew ? 'Edit Team Details' : 'Register New Team'}</h3>
-                    <form onSubmit={handleSaveCrew} style={styles.formArea}>
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Company Name</label>
-                            <input
-                                style={styles.input}
-                                value={currentCrew.companyName}
-                                onChange={(e) => setCurrentCrew({ ...currentCrew, companyName: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Registered Address</label>
-                            <textarea
-                                style={{ ...styles.input, height: '60px' }}
-                                value={currentCrew.address}
-                                onChange={(e) => setCurrentCrew({ ...currentCrew, address: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div style={styles.formRow}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Team Size</label>
-                                <input
-                                    type="number"
-                                    style={styles.input}
-                                    value={currentCrew.size}
-                                    onChange={(e) => setCurrentCrew({ ...currentCrew, size: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Team Location</label>
-                                <input
-                                    style={styles.input}
-                                    value={currentCrew.location}
-                                    onChange={(e) => setCurrentCrew({ ...currentCrew, location: e.target.value })}
-                                    required
-                                />
-                            </div>
-                        </div>
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Qualifications & Legal Details</label>
-                            <textarea
-                                placeholder="Licenses, Certifications, etc."
-                                style={{ ...styles.input, height: '60px' }}
-                                value={currentCrew.details}
-                                onChange={(e) => setCurrentCrew({ ...currentCrew, details: e.target.value })}
-                                required
-                            />
-                        </div>
-
-                        <div style={{ padding: '16px', backgroundColor: '#F3F4F6', borderRadius: '8px', marginTop: '8px' }}>
-                            <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#6B7280', marginBottom: '12px', textTransform: 'uppercase' }}>Login & Coordination Details</p>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Site Manager/Foreman Name</label>
-                                <input
-                                    style={styles.input}
-                                    value={currentCrew.managerName}
-                                    onChange={(e) => setCurrentCrew({ ...currentCrew, managerName: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div style={styles.formRow}>
-                                <div style={styles.formGroup}>
-                                    <label style={styles.label}>Login Email</label>
-                                    <input
-                                        type="email"
-                                        style={styles.input}
-                                        value={currentCrew.email}
-                                        autoComplete="off"
-                                        onChange={(e) => setCurrentCrew({ ...currentCrew, email: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                                <div style={styles.formGroup}>
-                                    <label style={styles.label}>Password</label>
-                                    <input
-                                        type="password"
-                                        style={styles.input}
-                                        placeholder={isEditingCrew ? "Keep blank" : "Password"}
-                                        value={currentCrew.password}
-                                        autoComplete="new-password"
-                                        onChange={(e) => setCurrentCrew({ ...currentCrew, password: e.target.value })}
-                                        required={!isEditingCrew}
-                                    />
-                                </div>
-                            </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Phone Number</label>
-                                <input
-                                    style={styles.input}
-                                    value={currentCrew.phone}
-                                    onChange={(e) => setCurrentCrew({ ...currentCrew, phone: e.target.value })}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <button type="submit" style={styles.submitBtn}>
-                            {isEditingCrew ? 'Update Profile' : 'Register Constructor'}
-                        </button>
-                    </form>
-
-                    <h3 style={{ ...styles.cardTitle, marginTop: '32px' }}>Active Crews</h3>
-                    <div style={styles.teamList}>
-                        {crews.map(crew => (
-                            <div key={crew.id} style={styles.crewCardSmall}>
-                                <div style={{ flex: 1 }}>
-                                    <span style={styles.teamName}>{crew.companyName}</span>
-                                    <div style={{ fontSize: '0.75rem', color: '#666' }}>
-                                        Manager: {crew.managerName} • 📍 {crew.location}
-                                    </div>
-                                </div>
-                                <div style={styles.crewActions}>
-                                    <button onClick={() => handleEditCrew(crew)} style={styles.iconBtn}>✏️</button>
-                                    <button onClick={() => handleDeleteCrew(crew.id)} style={styles.iconBtn}>🗑️</button>
-                                </div>
-                            </div>
+            <div style={styles.card}>
+                <h3 style={styles.sectionTitle}>Register Constructor Team</h3>
+                <form style={styles.formGrid} onSubmit={handleCreateTeam}>
+                    <input style={styles.input} placeholder="Team name" value={teamForm.team_name} onChange={(e) => setTeamForm((p) => ({ ...p, team_name: e.target.value }))} required />
+                    <input style={styles.input} placeholder="Manager name" value={teamForm.manager_name} onChange={(e) => setTeamForm((p) => ({ ...p, manager_name: e.target.value }))} required />
+                    <select
+                        style={styles.input}
+                        value={teamForm.district}
+                        onChange={(e) => setTeamForm((p) => ({ ...p, district: e.target.value }))}
+                        required
+                    >
+                        <option value="">Select District</option>
+                        {districtOptions.map((district) => (
+                            <option key={district} value={district}>{district}</option>
                         ))}
+                    </select>
+                    <input style={styles.input} placeholder="Phone" value={teamForm.phone} onChange={(e) => setTeamForm((p) => ({ ...p, phone: e.target.value }))} />
+                    <input style={styles.input} type="email" placeholder="Login email" value={teamForm.email} onChange={(e) => setTeamForm((p) => ({ ...p, email: e.target.value }))} required />
+                    <input style={styles.input} type="password" placeholder="Login password" value={teamForm.password} onChange={(e) => setTeamForm((p) => ({ ...p, password: e.target.value }))} required />
+                    <button style={styles.primaryBtn} disabled={creatingTeam} type="submit">
+                        {creatingTeam ? 'Creating team...' : 'Create Team Login'}
+                    </button>
+                </form>
+
+                <div style={styles.teamListWrap}>
+                    <div style={styles.teamListHeaderRow}>
+                        <div style={styles.teamListHead}>Registered Teams</div>
+                        <button style={styles.viewBtn} onClick={() => setShowTeamsModal(true)} type="button">View Registered Teams</button>
                     </div>
+                    {teamLoading ? (
+                        <div style={styles.metaText}>Loading teams...</div>
+                    ) : teams.length === 0 ? (
+                        <div style={styles.metaText}>No constructor teams created yet.</div>
+                    ) : (
+                        teams.map((team) => (
+                            <div key={team.id} style={styles.teamRow}>
+                                <div>
+                                    <div style={styles.assignedName}>{team.team_name}</div>
+                                    <div style={styles.metaText}>Manager: {team.manager_name}</div>
+                                    <div style={styles.metaText}>{team.district}</div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={styles.metaText}>{team.email}</div>
+                                    <div style={styles.metaText}>{team.phone || '-'}</div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            <div style={styles.card}>
+                <div style={styles.toolbar}>
+                    <button style={styles.refreshBtn} onClick={() => { fetchBookings(); fetchTeams(); }}>Refresh</button>
                 </div>
 
-                {/* Right Side: Service Requests */}
-                <div style={styles.card}>
-                    <h3 style={styles.cardTitle}>Service Requests</h3>
-                    <div style={styles.tableWrapper}>
+                {loading ? (
+                    <div style={styles.empty}>Loading bookings...</div>
+                ) : error ? (
+                    <div style={styles.error}>{error}</div>
+                ) : sortedBookings.length === 0 ? (
+                    <div style={styles.empty}>No service bookings available.</div>
+                ) : (
+                    <div style={styles.tableWrap}>
                         <table style={styles.table}>
                             <thead>
                                 <tr style={styles.thRow}>
-                                    <th style={styles.th}>Request Info</th>
-                                    <th style={styles.th}>Assign Team</th>
-                                    <th style={styles.th}>Date</th>
+                                    <th style={styles.th}>Request</th>
+                                    <th style={styles.th}>Project Location</th>
+                                    <th style={styles.th}>Assign Constructor Team</th>
                                     <th style={styles.th}>Status</th>
-                                    <th style={styles.th}>Actions</th>
+                                    <th style={styles.th}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {bookings.map((book) => (
-                                    <tr key={book.id} style={styles.tr}>
-                                        <td style={styles.td}>
-                                            <div style={{ fontWeight: '700' }}>{book.id}</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#666' }}>{book.buyerName}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#999' }}>{book.land || 'N/A'}</div>
-                                        </td>
-                                        <td style={styles.td}>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: '700', marginBottom: '8px' }}>
-                                                {book.service}
-                                            </div>
-                                            <select
-                                                style={{ ...styles.inlineSelect, borderColor: (!book.provider || book.provider === 'Pending Assignment') ? '#ef4444' : '#eee', outline: 'none' }}
-                                                value={(!book.provider || book.provider === 'Pending Assignment') ? "" : book.provider}
-                                                onChange={(e) => handleUpdateBooking(book.id, 'provider', e.target.value)}
-                                            >
-                                                <option value="" disabled>Select Team To Assign</option>
-                                                {crews.map(t => <option key={t.companyName} value={t.companyName}>{t.companyName}</option>)}
-                                            </select>
-                                        </td>
-                                        <td style={styles.td}>
-                                            <input
-                                                type="date"
-                                                style={styles.dateInput}
-                                                value={book.date}
-                                                onChange={(e) => handleUpdateBooking(book.id, 'date', e.target.value)}
-                                            />
-                                        </td>
-                                        <td style={styles.td}>
-                                            <span style={{
-                                                ...styles.status,
-                                                backgroundColor: book.status === 'Cancelled' ? '#fde8e8' : (!book.provider || book.provider === 'Pending Assignment') ? '#fef3c7' : '#e1effe',
-                                                color: book.status === 'Cancelled' ? '#9b1c1c' : (!book.provider || book.provider === 'Pending Assignment') ? '#92400e' : '#1e429f'
-                                            }}>
-                                                {(!book.provider || book.provider === 'Pending Assignment') && book.status !== 'Cancelled' ? 'Pending Assignment' : book.status}
-                                            </span>
-                                        </td>
-                                        <td style={styles.td}>
-                                            {book.status !== 'Cancelled' && (
-                                                <button style={styles.cancelBtn} onClick={() => handleCancelBooking(book.id)}>Cancel</button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                {sortedBookings.map((booking) => {
+                                    const options = getRegisteredOptionsForBooking(booking.id);
+                                    const selectedId = selectedConstructor[booking.id] || '';
+                                    const palette = STATUS_COLORS[booking.status] || STATUS_COLORS.Requested;
+                                    const alreadyAssigned = Boolean(booking.constructor_id);
+
+                                    return (
+                                        <tr key={booking.id} style={styles.tr}>
+                                            <td style={styles.td}>
+                                                <div style={{ fontWeight: 700 }}>{booking.service_type}</div>
+                                                <div style={styles.metaText}>{booking.buyer_name || `Buyer #${booking.buyer_id}`}</div>
+                                                <div style={styles.metaText}>{booking.land_name || 'No linked land'}</div>
+                                                <div style={styles.metaText}>#{booking.id}</div>
+                                            </td>
+                                            <td style={styles.td}>
+                                                <div>{booking.land_district || 'District unavailable'}</div>
+                                                <div style={styles.metaText}>{booking.preferred_date} at {booking.preferred_time}</div>
+                                            </td>
+                                            <td style={styles.td}>
+                                                {alreadyAssigned ? (
+                                                    <div>
+                                                        <div style={styles.assignedName}>{booking.constructor_name || 'Assigned Team'}</div>
+                                                        <div style={styles.metaText}>{booking.constructor_email || '-'}</div>
+                                                        <div style={styles.metaText}>{booking.constructor_phone || '-'}</div>
+                                                    </div>
+                                                ) : (
+                                                    <select
+                                                        style={styles.select}
+                                                        value={selectedId}
+                                                        onChange={(e) => setSelectedConstructor((prev) => ({ ...prev, [booking.id]: e.target.value }))}
+                                                    >
+                                                        <option value="">Select a registered team</option>
+                                                        {options.map((team) => (
+                                                            <option key={team.id} value={team.id}>
+                                                                    {(team.team_name || team.full_name)} | {team.district || 'district n/a'} | {team.district_match ? 'district-match' : 'other district'} | {team.is_available ? 'free' : `busy (${team.active_assignments})`}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                )}
+                                                {!alreadyAssigned && options.length === 0 && (
+                                                    <div style={styles.warnText}>No registered constructor teams available for this request.</div>
+                                                )}
+                                            </td>
+                                            <td style={styles.td}>
+                                                <span style={{ ...styles.status, backgroundColor: palette.bg, color: palette.fg }}>
+                                                    {booking.status}
+                                                </span>
+                                            </td>
+                                            <td style={styles.td}>
+                                                {alreadyAssigned ? (
+                                                    <span style={styles.doneTag}>Assigned</span>
+                                                ) : (
+                                                    <button
+                                                        style={styles.assignBtn}
+                                                        disabled={assigningId === booking.id || !selectedId}
+                                                        onClick={() => handleAssign(booking.id)}
+                                                    >
+                                                        {assigningId === booking.id ? 'Assigning...' : 'Assign'}
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                )}
             </div>
+            {renderRegisteredTeamsModal()}
         </div>
     );
 };
 
 const styles = {
     container: { padding: '32px' },
-    header: { marginBottom: '32px' },
-    title: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#666', fontSize: '0.95rem' },
-    grid: { display: 'grid', gridTemplateColumns: '450px 1fr', gap: '24px' },
-    card: { backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #ede8e1', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', height: 'fit-content' },
-    cardTitle: { fontSize: '1.1rem', fontWeight: '700', marginBottom: '20px', color: '#1A1A1A' },
-    formArea: { display: 'flex', flexDirection: 'column', gap: '20px' },
-    formRow: { display: 'flex', gap: '16px', width: '100%', boxSizing: 'border-box' },
-    formGroup: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 0 },
-    label: { fontSize: '0.75rem', fontWeight: '700', color: '#4b5563' },
-    input: {
-        width: '100%',
-        padding: '12px 16px',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-        fontSize: '0.85rem',
-        outline: 'none',
-        fontFamily: 'inherit',
-        boxSizing: 'border-box',
-        backgroundColor: '#fff'
-    },
-    submitBtn: {
-        width: '100%',
-        padding: '14px',
-        backgroundColor: '#1A1A1A',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        fontWeight: '700',
-        marginTop: '12px',
-        boxSizing: 'border-box'
-    },
-    teamList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-    crewCardSmall: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#F9FAFB', borderRadius: '8px' },
-    teamName: { fontSize: '0.85rem', fontWeight: '700' },
-    crewActions: { display: 'flex', gap: '8px' },
-    iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' },
-    tableWrapper: { overflowX: 'auto' },
+    header: { marginBottom: '20px' },
+    title: { margin: 0, fontSize: '1.7rem', color: '#1A1A1A' },
+    subtitle: { marginTop: '8px', color: '#666', maxWidth: '760px' },
+    card: { background: '#fff', borderRadius: '14px', border: '1px solid #ebe7e0', padding: '20px', marginBottom: '20px' },
+    sectionTitle: { margin: '0 0 14px', fontSize: '1.1rem', color: '#1A1A1A' },
+    formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' },
+    input: { border: '1px solid #d9d9d9', borderRadius: '8px', padding: '10px 12px', fontSize: '0.9rem' },
+    primaryBtn: { border: 'none', background: '#111827', color: '#fff', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontWeight: 700, width: '220px' },
+    teamListWrap: { marginTop: '18px', borderTop: '1px solid #f1f1f1', paddingTop: '14px' },
+    teamListHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
+    teamListHead: { fontSize: '0.85rem', color: '#555', fontWeight: 700, marginBottom: '10px' },
+    teamRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f7f7f7' },
+    viewBtn: { border: '1px solid #d1d5db', background: '#fff', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 },
+    toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' },
+    refreshBtn: { border: '1px solid #ddd', background: '#fff', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontWeight: 600 },
+    tableWrap: { overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    thRow: { borderBottom: '2px solid #f0f0f0' },
-    th: { textAlign: 'left', padding: '12px 16px', fontSize: '0.75rem', color: '#777', textTransform: 'uppercase' },
-    tr: { borderBottom: '1px solid #f0f0f0' },
-    td: { padding: '16px', fontSize: '0.85rem' },
-    inlineSelect: { display: 'block', width: '100%', padding: '6px', border: '1px solid #eee', borderRadius: '4px', marginBottom: '4px', fontSize: '0.8rem' },
-    dateInput: { border: '1px solid #eee', borderRadius: '4px', padding: '6px', fontSize: '0.8rem' },
-    status: { padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '700' },
-    cancelBtn: { padding: '6px 12px', backgroundColor: '#fff', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' },
+    thRow: { borderBottom: '1px solid #f0f0f0' },
+    th: { textAlign: 'left', color: '#7a7a7a', fontSize: '0.76rem', textTransform: 'uppercase', padding: '12px' },
+    tr: { borderBottom: '1px solid #f6f6f6' },
+    td: { padding: '14px 12px', verticalAlign: 'top', fontSize: '0.9rem', color: '#1d1d1d' },
+    metaText: { fontSize: '0.78rem', color: '#777', marginTop: '4px' },
+    assignedName: { fontWeight: 700 },
+    select: { width: '100%', minWidth: '280px', border: '1px solid #d9d9d9', borderRadius: '8px', padding: '8px 10px' },
+    status: { borderRadius: '999px', padding: '6px 12px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-block' },
+    assignBtn: { border: 'none', background: '#111827', color: '#fff', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontWeight: 700 },
+    warnText: { fontSize: '0.76rem', color: '#b45309', marginTop: '6px' },
+    doneTag: { fontSize: '0.78rem', color: '#166534', fontWeight: 700 },
+    empty: { textAlign: 'center', color: '#8a8a8a', padding: '42px' },
+    error: { border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', padding: '12px 14px', borderRadius: '10px' },
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 },
+    modal: { width: 'min(980px, 92vw)', maxHeight: '82vh', overflow: 'auto', background: '#fff', borderRadius: '14px', padding: '18px', border: '1px solid #ebe7e0' },
+    modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
+    modalTitle: { margin: 0, fontSize: '1rem', color: '#1A1A1A' },
+    closeBtn: { border: '1px solid #d1d5db', background: '#fff', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', fontWeight: 700 },
+    modalTableWrap: { overflowX: 'auto' },
 };
 
 export default ServiceManagement;

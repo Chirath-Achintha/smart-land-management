@@ -96,18 +96,20 @@ const Header = () => {
                 })}
             </ul>
             <div className="nav-actions">
-                <button className="nav-icon" style={{ color: '#556B2F' }}><SearchIcon /></button>
-
+                <button className="nav-icon"><SearchIcon /></button>
+                
                 {user ? (
                     <>
-                        <button className="nav-icon" onClick={() => navigate('/dashboard')} title="Dashboard" style={{ color: '#556B2F' }}>
+                        <button className="nav-icon" onClick={() => navigate('/dashboard')} title="Dashboard">
                             <UserIcon />
                         </button>
-                        <button className="btn-outline" onClick={handleLogout}>Logout</button>
+                        <div style={{ width: '1px', height: '24px', backgroundColor: '#E5E7EB', margin: '0 4px' }}></div>
+                        <button className="btn-dark" onClick={handleLogout}>Logout</button>
                     </>
                 ) : (
                     <>
-                        <button className="nav-icon" onClick={() => handleAuthClick('/login')} style={{ color: '#556B2F' }}><UserIcon /></button>
+                        <button className="nav-icon" onClick={() => handleAuthClick('/login')}><UserIcon /></button>
+                        <div style={{ width: '1px', height: '24px', backgroundColor: '#E5E7EB', margin: '0 4px' }}></div>
                         <button className="btn-dark" onClick={() => handleAuthClick('/login')}>Sign in</button>
                     </>
                 )}

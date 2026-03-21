@@ -253,7 +253,7 @@ const DashboardLayout = ({ role }) => {
                             </button>
                             {showNotif && (
                                 <div style={styles.notifDropdown}>
-                                    <div style={styles.notifHead}>
+                                     <div style={styles.notifHead}>
                                         <strong>Notifications</strong>
                                         {unreadCount > 0 && <button style={styles.notifMarkBtn} onClick={markAllRead}>Mark all read</button>}
                                     </div>
@@ -280,14 +280,29 @@ const DashboardLayout = ({ role }) => {
                             )}
                         </div>
 
+                        {/* Home Button */}
+                        <button onClick={() => navigate('/')} style={styles.navbarBtn}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={styles.btnIcon}>
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                            <span>Home</span>
+                        </button>
+
+                        {/* Profile Button */}
+                        <button onClick={openProfile} style={styles.navbarBtn}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={styles.btnIcon}>
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <span>Profile</span>
+                        </button>
+
+                        <div style={styles.divider}></div>
+                        
                         <div style={styles.welcomeWrap}>
-                            {showWelcome && <span style={styles.welcomeText}>{welcomeTitle}</span>}
                             <span style={styles.userName}>{displayName}</span>
                         </div>
-                        <span style={styles.rolePill}>{(role || 'user')}</span>
-                        <button type="button" style={styles.avatarBtn} onClick={openProfile} title="Profile">
-                            {initials}
-                        </button>
                     </div>
                 </div>
                 <Outlet />
@@ -382,12 +397,16 @@ const styles = {
     main: { flex: 1, backgroundColor: 'var(--sage-bg)', overflowY: 'auto' },
     topbar: { position: 'sticky', top: 0, zIndex: 20, height: '68px', background: 'rgba(250, 246, 241, 0.92)', borderBottom: '1px solid rgba(85, 107, 47, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', backdropFilter: 'blur(8px)' },
     topbarTitle: { fontSize: '1rem', fontWeight: '800', color: 'var(--sage-text-dark)' },
-    topbarActions: { display: 'flex', alignItems: 'center', gap: '16px' },
+    topbarActions: { display: 'flex', alignItems: 'center', gap: '12px' },
+    navbarBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', backgroundColor: '#fff', border: '1.5px solid #EAECEF', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', color: '#344054', transition: 'all 0.2s ease', fontFamily: 'inherit' },
+    navbarLogoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', backgroundColor: '#FF3B30', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', color: '#fff', transition: 'all 0.2s ease', fontFamily: 'inherit' },
+    btnIcon: { flexShrink: 0 },
+    divider: { width: '1px', height: '24px', backgroundColor: '#EAECEF', margin: '0 4px' },
     
     // Notifications styles
     notifWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
-    bellBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#6f7e62', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', transition: 'color 0.2s', outline: 'none' },
-    bellBadge: { position: 'absolute', top: '7px', right: '7px', width: '9px', height: '9px', background: '#e74c3c', borderRadius: '50%', border: '2px solid rgba(250, 246, 241, 0.92)' },
+    bellBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', backgroundColor: '#fff', border: '1.5px solid #EAECEF', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', outline: 'none' },
+    bellBadge: { position: 'absolute', top: '10px', right: '10px', width: '10px', height: '10px', background: '#FF3B30', borderRadius: '50%', border: '2px solid #fff' },
     notifDropdown: { position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '320px', background: '#fff', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.12)', border: '1px solid rgba(85, 107, 47, 0.1)', overflow: 'hidden', zIndex: 100 },
     notifHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(85, 107, 47, 0.08)', background: '#FAFAF8', color: '#1d2a12', fontSize: '0.9rem' },
     notifMarkBtn: { background: 'none', border: 'none', color: '#556B2F', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline' },
@@ -397,12 +416,9 @@ const styles = {
     notifTitle: { fontSize: '0.85rem', fontWeight: '800', color: '#1d2a12', marginBottom: '4px' },
     notifMsg: { fontSize: '0.8rem', color: '#66735d', lineHeight: '1.4' },
     emptyText: { padding: '24px', textAlign: 'center', color: '#999', fontSize: '0.85rem' },
-
-    welcomeWrap: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.05, maxWidth: '220px' },
-    welcomeText: { fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6f7e62', fontWeight: '700' },
-    userName: { fontSize: '0.9rem', color: '#2f3e1a', fontWeight: '800', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-    rolePill: { fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '6px 10px', borderRadius: '999px', background: '#f2f5ec', color: '#526038', fontWeight: '700' },
-    avatarBtn: { width: '40px', height: '40px', borderRadius: '50%', border: '1px solid rgba(85, 107, 47, 0.2)', background: '#fff', color: '#2f3e1a', fontWeight: '800', cursor: 'pointer' },
+ 
+    welcomeWrap: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.05 },
+    userName: { fontSize: '0.9rem', color: '#2f3e1a', fontWeight: '800' },
     overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
     modal: { width: 'min(760px, 94vw)', background: '#fff', borderRadius: '20px', border: '1px solid #eceee8', boxShadow: '0 26px 60px rgba(0,0,0,0.18)', padding: '24px' },
     modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' },

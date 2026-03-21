@@ -76,8 +76,48 @@ const ScheduleVisitPage = () => {
             });
     }, [id]);
 
+    // --- LIVE VALIDATION ---
+    useEffect(() => {
+        if (!date || !availability || availability.length === 0) {
+            setError('');
+            return;
+        }
+
+        const selectedDateObj = new Date(date);
+        const dayName = DAYS[selectedDateObj.getDay() === 0 ? 6 : selectedDateObj.getDay() - 1];
+        
+        const daySlot = availability.find(a => a.day === dayName);
+        if (!daySlot) {
+            setError(`The owner is not available on ${dayName}s. Please pick an available day.`);
+            return;
+        }
+
+        if (time) {
+            const [startStr, endStr] = daySlot.time_slot.split(' – ');
+            const parseDisplayStr = (str) => {
+                const [timePart, ampm] = str.split(' ');
+                let [h, m] = timePart.split(':').map(Number);
+                if (ampm === 'PM' && h !== 12) h += 12;
+                if (ampm === 'AM' && h === 12) h = 0;
+                return h * 60 + m;
+            };
+            const startMins = parseDisplayStr(startStr);
+            const endMins = parseDisplayStr(endStr);
+            const selectedMins = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
+
+            if (selectedMins < startMins || selectedMins > endMins) {
+                setError(`The owner's window for ${dayName} is ${daySlot.time_slot}. Please adjust your time.`);
+                return;
+            }
+        }
+
+        setError(''); // Clear error if all checks pass
+    }, [date, time, availability]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (error) return; // Prevent submission if live error exists
+        
         setError(''); setSubmitting(true);
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -237,7 +277,7 @@ const ScheduleVisitPage = () => {
                                     </div>
                                 )}
 
-                                <button type="submit" className="btn-dark" style={S.submitBtn} disabled={submitting}>
+                                <button type="submit" className="btn-dark" style={{ ...S.submitBtn, opacity: (submitting || error) ? 0.6 : 1 }} disabled={submitting || error}>
                                     {submitting ? 'Sending Request...' : `Confirm ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit`}
                                 </button>
 

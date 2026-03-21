@@ -8,10 +8,8 @@ const MainLayout = () => {
     const { user } = useAuth();
     const location = useLocation();
 
-    // Hide header/footer if role is a professional/admin role and we are in a dashboard route
     const isDashboard = location.pathname.startsWith('/dashboard');
-    const professionalRoles = ['admin', 'seller', 'agent', 'constructor_manager'];
-    const hideHeaderFooter = professionalRoles.includes(user?.role) && isDashboard;
+    const hideHeaderFooter = isDashboard;
 
     return (
         <div style={styles.container}>

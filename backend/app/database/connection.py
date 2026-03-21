@@ -27,6 +27,7 @@ async def init_db():
     from app.models.inquiry_model import Inquiry
     from app.models.service_booking_model import ServiceBooking
     from app.models.bidding_setup_model import BiddingSetup
+    from app.models.constructor_team_model import ConstructorTeam
 
     from app.models.notification_model import Notification
     
@@ -41,7 +42,8 @@ async def init_db():
             Inquiry,
             ServiceBooking,
             BiddingSetup,
-            Notification
+            Notification,
+            ConstructorTeam
         ]
     )
 

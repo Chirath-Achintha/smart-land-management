@@ -22,6 +22,34 @@ class ServiceBookingStatusUpdate(BaseModel):
     status: str   # "Scheduled" | "In Progress" | "Completed" | "Cancelled"
 
 
+class ServiceBookingAssignRequest(BaseModel):
+    constructor_id: str
+
+
+class ConstructorOptionResponse(BaseModel):
+    id: str = Field(alias="_id")
+    full_name: str
+    team_name: Optional[str] = None
+    manager_name: Optional[str] = None
+    email: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
+    district_match: bool = False
+    is_available: bool = True
+    active_assignments: int = 0
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def convert_constructor_id(cls, v: Any) -> str:
+        return str(v)
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+
 class ServiceBookingResponse(BaseModel):
     id:             str = Field(alias="_id")
     buyer_id:       str
@@ -35,6 +63,10 @@ class ServiceBookingResponse(BaseModel):
     created_at:     datetime
     buyer_name:     Optional[str] = None
     land_name:      Optional[str] = None
+    land_district:  Optional[str] = None
+    constructor_name: Optional[str] = None
+    constructor_phone: Optional[str] = None
+    constructor_email: Optional[str] = None
 
     @field_validator("id", "buyer_id", "land_id", "constructor_id", mode="before")
     @classmethod

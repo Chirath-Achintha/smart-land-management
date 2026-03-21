@@ -67,6 +67,19 @@ async def book_visit(
     if not land:
         raise HTTPException(status_code=404, detail="Land not found")
 
+    # NEW: Prevent double-booking across ALL properties
+    conflict = await Visit.find_one(
+        Visit.buyer_id == current_user.id,
+        Visit.visit_date == data.visit_date,
+        Visit.visit_time == data.visit_time,
+        {"status": {"$nin": [VisitStatus.Cancelled, VisitStatus.Rejected]}}
+    )
+    if conflict:
+        raise HTTPException(
+            status_code=409, 
+            detail=f"You already have a visit request for {data.visit_date} at {data.visit_time}. Please pick a different time slot."
+        )
+
     # Prevent duplicate pending visit of same type for same buyer/land
     existing = await Visit.find_one(
         Visit.land_id == land_id,
@@ -309,6 +322,20 @@ async def update_visit(
     if visit.buyer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this visit")
     
+    # NEW: Prevent double-booking when updating
+    conflict = await Visit.find_one(
+        Visit.buyer_id == current_user.id,
+        Visit.visit_date == data.visit_date,
+        Visit.visit_time == data.visit_time,
+        Visit.id != visit_id, # Don't check against self
+        {"status": {"$nin": [VisitStatus.Cancelled, VisitStatus.Rejected]}}
+    )
+    if conflict:
+        raise HTTPException(
+            status_code=409, 
+            detail=f"You already have a visit scheduled for {data.visit_date} at {data.visit_time}. Please pick another slot."
+        )
+
     # Logic: Only allow updates if still Pending (Seller hasn't seen it) or SellerAccepted (Admin hasn't assigned agent yet)
     # If it's already 'Assigned' or 'Accepted', the Buyer should cancel and re-book to avoid schedule conflicts.
     if visit.status not in [VisitStatus.Pending, VisitStatus.SellerAccepted]:

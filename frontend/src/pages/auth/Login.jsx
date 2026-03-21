@@ -110,19 +110,19 @@ const Login = () => {
 };
 
 const styles = {
-    title: { textAlign: 'center', marginBottom: '10px', fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A' },
-    subtitle: { textAlign: 'center', color: '#555', marginBottom: '32px', fontSize: '0.9rem' },
-    infoBox: { backgroundColor: '#E8F5E9', color: '#2E7D32', border: '1px solid #A5D6A7', borderRadius: '12px', padding: '12px 16px', marginBottom: '24px', fontSize: '0.9rem', textAlign: 'center', fontWeight: '600' },
-    error: { color: '#d32f2f', backgroundColor: '#fdecea', border: '1px solid #d32f2f', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.875rem' },
+    title: { textAlign: 'center', marginBottom: '8px', fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', letterSpacing: '-0.02em' },
+    subtitle: { textAlign: 'center', color: '#666', marginBottom: '32px', fontSize: '1rem', lineHeight: '1.5' },
+    infoBox: { backgroundColor: '#E8F5E9', color: '#2E7D32', border: '1px solid rgba(46, 125, 50, 0.2)', borderRadius: '12px', padding: '12px 16px', marginBottom: '24px', fontSize: '0.9rem', textAlign: 'center', fontWeight: '600' },
+    error: { color: '#d32f2f', backgroundColor: '#fdecea', border: '1px solid rgba(211, 47, 47, 0.2)', borderRadius: '12px', padding: '12px 16px', marginBottom: '24px', fontSize: '0.875rem', fontWeight: '500' },
     form: { display: 'flex', flexDirection: 'column' },
-    formGroup: { marginBottom: '20px', display: 'flex', flexDirection: 'column' },
-    label: { fontSize: '0.875rem', fontWeight: '600', color: '#1A1A1A', marginBottom: '8px' },
-    input: { padding: '12px 16px', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' },
+    formGroup: { marginBottom: '24px', display: 'flex', flexDirection: 'column' },
+    label: { fontSize: '0.9rem', fontWeight: '600', color: '#1A1A1A', marginBottom: '10px' },
+    input: { padding: '14px 18px', border: '1.5px solid rgba(0,0,0,0.08)', borderRadius: '12px', fontSize: '1rem', fontFamily: 'inherit', outline: 'none', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', backgroundColor: '#fcfcfc' },
     forgotPassWrapper: { textAlign: 'right', marginBottom: '24px' },
-    forgotLink: { fontSize: '0.85rem', color: '#555', textDecoration: 'none', fontWeight: '500' },
-    button: { padding: '12px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', width: '100%', fontSize: '0.95rem', fontWeight: '600', transition: 'background 0.2s' },
-    footerText: { textAlign: 'center', marginTop: '24px', fontSize: '0.9rem', color: '#555' },
-    footerLink: { color: '#1A1A1A', fontWeight: '700', textDecoration: 'none' }
+    forgotLink: { fontSize: '0.85rem', color: '#666', textDecoration: 'none', fontWeight: '600', transition: 'color 0.2s' },
+    button: { padding: '14px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', cursor: 'pointer', width: '100%', fontSize: '1rem', fontWeight: '600', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
+    footerText: { textAlign: 'center', marginTop: '32px', fontSize: '0.95rem', color: '#666' },
+    footerLink: { color: '#1A1A1A', fontWeight: '700', textDecoration: 'none', borderBottom: '2px solid #1A1A1A', paddingBottom: '2px' }
 };
 
 export default Login;

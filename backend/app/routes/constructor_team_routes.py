@@ -27,6 +27,7 @@ async def _team_response(team: ConstructorTeam) -> ConstructorTeamResponse:
         district=team.district,
         state=team.state,
         address=team.address,
+        specialization=team.specialization,
         phone=team.phone,
         email=user.email if user else "",
         is_active=team.is_active,
@@ -61,6 +62,7 @@ async def create_constructor_team(
         district=payload.district,
         state=payload.state,
         address=payload.address,
+        specialization=payload.specialization,
         phone=payload.phone,
         is_active=True,
     )

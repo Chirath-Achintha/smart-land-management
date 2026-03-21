@@ -12,6 +12,102 @@ const STATUS_COLORS = {
     Cancelled: { bg: '#fee2e2', fg: '#991b1b' },
 };
 
+const ALL_DISTRICTS = [
+    'Ampara',
+    'Anuradhapura',
+    'Badulla',
+    'Batticaloa',
+    'Colombo',
+    'Galle',
+    'Gampaha',
+    'Hambantota',
+    'Jaffna',
+    'Kalutara',
+    'Kandy',
+    'Kegalle',
+    'Kilinochchi',
+    'Kurunegala',
+    'Mannar',
+    'Matale',
+    'Matara',
+    'Monaragala',
+    'Mullaitivu',
+    'Nuwara Eliya',
+    'Polonnaruwa',
+    'Puttalam',
+    'Ratnapura',
+    'Trincomalee',
+    'Vavuniya',
+];
+
+const titleCaseDistrict = (value) => {
+    const input = (value || '').trim();
+    if (!input) return '';
+    return input
+        .toLowerCase()
+        .split(' ')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+};
+
+const mergeDistricts = (...groups) => {
+    const byKey = new Map();
+
+    groups.flat().forEach((item) => {
+        const normalized = titleCaseDistrict(item);
+        if (!normalized) return;
+        const key = normalized.toLowerCase();
+        if (!byKey.has(key)) {
+            byKey.set(key, normalized);
+        }
+    });
+
+    return Array.from(byKey.values()).sort((a, b) => a.localeCompare(b));
+};
+
+const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
+const toErrorMessage = (payload, fallback) => {
+    if (payload instanceof Error) {
+        return payload.message || fallback;
+    }
+
+    const detail = payload?.detail ?? payload?.message ?? payload?.error ?? payload;
+
+    if (typeof detail === 'string') return detail;
+
+    if (Array.isArray(detail)) {
+        const msg = detail
+            .map((item) => {
+                if (typeof item === 'string') return item;
+                if (item?.msg && Array.isArray(item?.loc)) return `${item.loc.join('.')}: ${item.msg}`;
+                if (item?.msg) return item.msg;
+                return '';
+            })
+            .filter(Boolean)
+            .join(', ');
+        return msg || fallback;
+    }
+
+    if (detail && typeof detail === 'object') {
+        if (typeof detail.msg === 'string') return detail.msg;
+        try {
+            return JSON.stringify(detail);
+        } catch {
+            return fallback;
+        }
+    }
+
+    return fallback;
+};
+
+const normalizeBooking = (booking) => ({
+    ...booking,
+    id: booking?.id || booking?._id || '',
+});
+
+const isRejectedByConstructor = (booking) => booking?.status === 'Cancelled' && Boolean(booking?.constructor_id);
+
 const ServiceManagement = () => {
     const token = localStorage.getItem('access_token');
     const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
@@ -26,11 +122,12 @@ const ServiceManagement = () => {
     const [teamLoading, setTeamLoading] = useState(true);
     const [creatingTeam, setCreatingTeam] = useState(false);
     const [showTeamsModal, setShowTeamsModal] = useState(false);
-    const [districtOptions, setDistrictOptions] = useState([]);
+    const [districtOptions, setDistrictOptions] = useState(ALL_DISTRICTS);
     const [teamForm, setTeamForm] = useState({
         team_name: '',
         manager_name: '',
         district: '',
+        specialization: '',
         phone: '',
         email: '',
         password: '',
@@ -48,11 +145,12 @@ const ServiceManagement = () => {
         try {
             const res = await fetch(`${API}/service-bookings/admin`, { headers: authH });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Failed to fetch bookings');
-            setBookings(Array.isArray(data) ? data : []);
+            if (!res.ok) throw new Error(toErrorMessage(data, 'Failed to fetch bookings'));
+            const normalized = (Array.isArray(data) ? data : []).map(normalizeBooking);
+            setBookings(normalized);
         } catch (e) {
             setBookings([]);
-            setError(e.message || 'Failed to fetch bookings');
+            setError(toErrorMessage(e, 'Failed to fetch bookings'));
         } finally {
             setLoading(false);
         }
@@ -64,7 +162,7 @@ const ServiceManagement = () => {
             const q = district ? `?district=${encodeURIComponent(district)}` : '';
             const res = await fetch(`${API}/service-bookings/constructors${q}`, { headers: authH });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Failed to load teams');
+            if (!res.ok) throw new Error(toErrorMessage(data, 'Failed to load teams'));
             setConstructorsByBooking((prev) => ({ ...prev, [booking.id]: Array.isArray(data) ? data : [] }));
         } catch {
             setConstructorsByBooking((prev) => ({ ...prev, [booking.id]: [] }));
@@ -81,7 +179,7 @@ const ServiceManagement = () => {
         try {
             const res = await fetch(`${API}/admin/constructor-teams/`, { headers: authH });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Failed to fetch constructor teams');
+            if (!res.ok) throw new Error(toErrorMessage(data, 'Failed to fetch constructor teams'));
             setTeams(Array.isArray(data) ? data : []);
         } catch {
             setTeams([]);
@@ -96,15 +194,14 @@ const ServiceManagement = () => {
         try {
             const res = await fetch(`${API}/lands/admin/all`, { headers: authH });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Failed to fetch districts');
+            if (!res.ok) throw new Error(toErrorMessage(data, 'Failed to fetch districts'));
 
             const districtsFromLands = (Array.isArray(data) ? data : [])
-                .map((land) => (land?.district || '').trim())
+                .map((land) => titleCaseDistrict(land?.district || ''))
                 .filter(Boolean);
 
             setDistrictOptions((prev) => {
-                const merged = [...prev, ...districtsFromLands];
-                return Array.from(new Set(merged)).sort((a, b) => a.localeCompare(b));
+                return mergeDistricts(ALL_DISTRICTS, prev, districtsFromLands);
             });
         } catch {
             // Keep existing options from teams/bookings when lands endpoint is unavailable.
@@ -127,12 +224,13 @@ const ServiceManagement = () => {
                 body: JSON.stringify(payload),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Failed to create constructor team');
+            if (!res.ok) throw new Error(toErrorMessage(data, 'Failed to create constructor team'));
 
             setTeamForm({
                 team_name: '',
                 manager_name: '',
                 district: '',
+                specialization: '',
                 phone: '',
                 email: '',
                 password: '',
@@ -140,7 +238,7 @@ const ServiceManagement = () => {
             await fetchTeams();
             await fetchBookings();
         } catch (e1) {
-            alert(e1.message || 'Failed to create constructor team');
+            alert(toErrorMessage(e1, 'Failed to create constructor team'));
         } finally {
             setCreatingTeam(false);
         }
@@ -153,12 +251,11 @@ const ServiceManagement = () => {
     }, []);
 
     useEffect(() => {
-        const districtsFromTeams = teams.map((team) => (team?.district || '').trim()).filter(Boolean);
-        const districtsFromBookings = bookings.map((booking) => (booking?.land_district || '').trim()).filter(Boolean);
+        const districtsFromTeams = teams.map((team) => titleCaseDistrict(team?.district || '')).filter(Boolean);
+        const districtsFromBookings = bookings.map((booking) => titleCaseDistrict(booking?.land_district || '')).filter(Boolean);
 
         setDistrictOptions((prev) => {
-            const merged = [...prev, ...districtsFromTeams, ...districtsFromBookings];
-            return Array.from(new Set(merged)).sort((a, b) => a.localeCompare(b));
+            return mergeDistricts(ALL_DISTRICTS, prev, districtsFromTeams, districtsFromBookings);
         });
     }, [teams, bookings]);
 
@@ -180,6 +277,11 @@ const ServiceManagement = () => {
         [teams]
     );
 
+    const rejectedCount = useMemo(
+        () => bookings.filter((b) => isRejectedByConstructor(b)).length,
+        [bookings]
+    );
+
     const handleAssign = async (bookingId) => {
         const constructorId = selectedConstructor[bookingId];
         if (!constructorId) {
@@ -195,43 +297,67 @@ const ServiceManagement = () => {
                 body: JSON.stringify({ constructor_id: constructorId }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Assignment failed');
+            if (!res.ok) throw new Error(toErrorMessage(data, 'Assignment failed'));
 
-            setBookings((prev) => prev.map((b) => (b.id === bookingId ? data : b)));
+            const normalizedUpdated = normalizeBooking(data);
+            setBookings((prev) => prev.map((b) => (b.id === bookingId ? normalizedUpdated : b)));
             setSelectedConstructor((prev) => ({ ...prev, [bookingId]: '' }));
         } catch (e) {
-            alert(e.message || 'Assignment failed');
+            alert(toErrorMessage(e, 'Assignment failed'));
         } finally {
             setAssigningId('');
         }
     };
 
-    const getRegisteredOptionsForBooking = (bookingId) => {
+    const getRegisteredOptionsForBooking = (booking) => {
+        const bookingId = booking.id;
         const raw = constructorsByBooking[bookingId] || [];
+        const bookingDistrict = normalizeText(booking?.land_district);
+        const bookingServiceType = (booking?.service_type || '').toLowerCase();
         const availabilityByUserId = Object.fromEntries(
-            raw.map((opt) => [opt.id || opt._id, opt])
+            raw.map((opt) => [String(opt.id || opt._id), opt])
         );
 
-        return teams
+        const mapped = teams
             .map((team) => {
-                const availability = availabilityByUserId[team.user_id] || {};
+                const availability = availabilityByUserId[String(team.user_id)] || {};
+                const specialization = team.specialization || 'Both';
+                const specializationLower = specialization.toLowerCase();
+                const serviceMatch =
+                    specializationLower === 'both'
+                    || (specializationLower === 'full construction' && bookingServiceType === 'full construction')
+                    || (specializationLower === 'land development' && bookingServiceType === 'land development');
+                const districtMatchFromAPI = availability.district_match;
+                const districtMatchFromTeam = bookingDistrict
+                    ? normalizeText(team.district) === bookingDistrict
+                    : true;
+                const districtMatch = typeof districtMatchFromAPI === 'boolean'
+                    ? districtMatchFromAPI
+                    : districtMatchFromTeam;
+
                 return {
                     id: team.user_id,
                     team_name: team.team_name,
                     manager_name: team.manager_name,
                     district: team.district,
+                    specialization,
                     phone: team.phone,
                     email: team.email,
-                    district_match: availability.district_match ?? true,
+                    district_match: districtMatch,
+                    service_match: serviceMatch,
                     is_available: availability.is_available ?? true,
                     active_assignments: availability.active_assignments ?? 0,
                 };
-            })
-            .sort((a, b) => {
-                const aKey = `${a.district_match ? 0 : 1}-${a.is_available ? 0 : 1}-${a.team_name}`;
-                const bKey = `${b.district_match ? 0 : 1}-${b.is_available ? 0 : 1}-${b.team_name}`;
-                return aKey.localeCompare(bKey);
             });
+
+        const districtMatched = mapped.filter((team) => team.district_match);
+        const filtered = bookingDistrict ? districtMatched : mapped;
+
+        return filtered.sort((a, b) => {
+            const aKey = `${a.service_match ? 0 : 1}-${a.is_available ? 0 : 1}-${a.team_name}`;
+            const bKey = `${b.service_match ? 0 : 1}-${b.is_available ? 0 : 1}-${b.team_name}`;
+            return aKey.localeCompare(bKey);
+        });
     };
 
     const renderRegisteredTeamsModal = () => {
@@ -256,6 +382,7 @@ const ServiceManagement = () => {
                                         <th style={styles.th}>Team Name</th>
                                         <th style={styles.th}>Manager</th>
                                         <th style={styles.th}>District</th>
+                                        <th style={styles.th}>Specialization</th>
                                         <th style={styles.th}>Email</th>
                                         <th style={styles.th}>Phone</th>
                                     </tr>
@@ -266,6 +393,7 @@ const ServiceManagement = () => {
                                             <td style={styles.td}>{team.team_name}</td>
                                             <td style={styles.td}>{team.manager_name}</td>
                                             <td style={styles.td}>{team.district}</td>
+                                            <td style={styles.td}>{team.specialization || 'Both'}</td>
                                             <td style={styles.td}>{team.email}</td>
                                             <td style={styles.td}>{team.phone || '-'}</td>
                                         </tr>
@@ -304,6 +432,17 @@ const ServiceManagement = () => {
                             <option key={district} value={district}>{district}</option>
                         ))}
                     </select>
+                    <select
+                        style={styles.input}
+                        value={teamForm.specialization}
+                        onChange={(e) => setTeamForm((p) => ({ ...p, specialization: e.target.value }))}
+                        required
+                    >
+                        <option value="">Service Specialization</option>
+                        <option value="Full Construction">Full Construction</option>
+                        <option value="Land Development">Land Development</option>
+                        <option value="Both">Both</option>
+                    </select>
                     <input style={styles.input} placeholder="Phone" value={teamForm.phone} onChange={(e) => setTeamForm((p) => ({ ...p, phone: e.target.value }))} />
                     <input style={styles.input} type="email" placeholder="Login email" value={teamForm.email} onChange={(e) => setTeamForm((p) => ({ ...p, email: e.target.value }))} required />
                     <input style={styles.input} type="password" placeholder="Login password" value={teamForm.password} onChange={(e) => setTeamForm((p) => ({ ...p, password: e.target.value }))} required />
@@ -317,30 +456,17 @@ const ServiceManagement = () => {
                         <div style={styles.teamListHead}>Registered Teams</div>
                         <button style={styles.viewBtn} onClick={() => setShowTeamsModal(true)} type="button">View Registered Teams</button>
                     </div>
-                    {teamLoading ? (
-                        <div style={styles.metaText}>Loading teams...</div>
-                    ) : teams.length === 0 ? (
-                        <div style={styles.metaText}>No constructor teams created yet.</div>
-                    ) : (
-                        teams.map((team) => (
-                            <div key={team.id} style={styles.teamRow}>
-                                <div>
-                                    <div style={styles.assignedName}>{team.team_name}</div>
-                                    <div style={styles.metaText}>Manager: {team.manager_name}</div>
-                                    <div style={styles.metaText}>{team.district}</div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={styles.metaText}>{team.email}</div>
-                                    <div style={styles.metaText}>{team.phone || '-'}</div>
-                                </div>
-                            </div>
-                        ))
-                    )}
+                    <div style={styles.metaText}>Use the button to view team details in a popup.</div>
                 </div>
             </div>
 
             <div style={styles.card}>
                 <div style={styles.toolbar}>
+                    {rejectedCount > 0 && (
+                        <div style={styles.attentionBadge}>
+                            {rejectedCount} constructor-rejected request{rejectedCount > 1 ? 's' : ''} need reassignment
+                        </div>
+                    )}
                     <button style={styles.refreshBtn} onClick={() => { fetchBookings(); fetchTeams(); }}>Refresh</button>
                 </div>
 
@@ -364,10 +490,11 @@ const ServiceManagement = () => {
                             </thead>
                             <tbody>
                                 {sortedBookings.map((booking) => {
-                                    const options = getRegisteredOptionsForBooking(booking.id);
+                                    const options = getRegisteredOptionsForBooking(booking);
                                     const selectedId = selectedConstructor[booking.id] || '';
                                     const palette = STATUS_COLORS[booking.status] || STATUS_COLORS.Requested;
-                                    const alreadyAssigned = Boolean(booking.constructor_id);
+                                    const rejectedByConstructor = isRejectedByConstructor(booking);
+                                    const alreadyAssigned = Boolean(booking.constructor_id) && !rejectedByConstructor;
 
                                     return (
                                         <tr key={booking.id} style={styles.tr}>
@@ -394,13 +521,16 @@ const ServiceManagement = () => {
                                                         value={selectedId}
                                                         onChange={(e) => setSelectedConstructor((prev) => ({ ...prev, [booking.id]: e.target.value }))}
                                                     >
-                                                        <option value="">Select a registered team</option>
+                                                        <option value="">{rejectedByConstructor ? 'Select a new team for reassignment' : 'Select a registered team'}</option>
                                                         {options.map((team) => (
                                                             <option key={team.id} value={team.id}>
-                                                                    {(team.team_name || team.full_name)} | {team.district || 'district n/a'} | {team.district_match ? 'district-match' : 'other district'} | {team.is_available ? 'free' : `busy (${team.active_assignments})`}
+                                                                    {(team.team_name || team.full_name)} | {team.specialization || 'Both'} | {team.district || 'district n/a'} | {team.service_match ? 'service-match' : 'service-mismatch'} | {team.district_match ? 'district-match' : 'other district'} | {team.is_available ? 'free' : `busy (${team.active_assignments})`}
                                                             </option>
                                                         ))}
                                                     </select>
+                                                )}
+                                                {rejectedByConstructor && (
+                                                    <div style={styles.rejectedText}>Rejected by constructor team. Please reassign this request.</div>
                                                 )}
                                                 {!alreadyAssigned && options.length === 0 && (
                                                     <div style={styles.warnText}>No registered constructor teams available for this request.</div>
@@ -410,6 +540,9 @@ const ServiceManagement = () => {
                                                 <span style={{ ...styles.status, backgroundColor: palette.bg, color: palette.fg }}>
                                                     {booking.status}
                                                 </span>
+                                                {rejectedByConstructor && (
+                                                    <div style={styles.statusMention}>Mention: Rejected by assigned constructor</div>
+                                                )}
                                             </td>
                                             <td style={styles.td}>
                                                 {alreadyAssigned ? (
@@ -420,7 +553,7 @@ const ServiceManagement = () => {
                                                         disabled={assigningId === booking.id || !selectedId}
                                                         onClick={() => handleAssign(booking.id)}
                                                     >
-                                                        {assigningId === booking.id ? 'Assigning...' : 'Assign'}
+                                                        {assigningId === booking.id ? 'Assigning...' : rejectedByConstructor ? 'Reassign' : 'Assign'}
                                                     </button>
                                                 )}
                                             </td>
@@ -453,6 +586,7 @@ const styles = {
     teamRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f7f7f7' },
     viewBtn: { border: '1px solid #d1d5db', background: '#fff', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 },
     toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' },
+    attentionBadge: { marginRight: 'auto', background: '#fff7ed', color: '#9a3412', border: '1px solid #fdba74', padding: '8px 12px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700 },
     refreshBtn: { border: '1px solid #ddd', background: '#fff', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontWeight: 600 },
     tableWrap: { overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse' },
@@ -466,6 +600,8 @@ const styles = {
     status: { borderRadius: '999px', padding: '6px 12px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-block' },
     assignBtn: { border: 'none', background: '#111827', color: '#fff', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontWeight: 700 },
     warnText: { fontSize: '0.76rem', color: '#b45309', marginTop: '6px' },
+    rejectedText: { fontSize: '0.76rem', color: '#991b1b', marginTop: '6px', fontWeight: 700 },
+    statusMention: { fontSize: '0.72rem', color: '#991b1b', marginTop: '6px', fontWeight: 700 },
     doneTag: { fontSize: '0.78rem', color: '#166534', fontWeight: 700 },
     empty: { textAlign: 'center', color: '#8a8a8a', padding: '42px' },
     error: { border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', padding: '12px 14px', borderRadius: '10px' },

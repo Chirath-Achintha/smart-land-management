@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 from datetime import datetime
 
 
@@ -9,6 +9,7 @@ class ConstructorTeamCreate(BaseModel):
     district: str
     state: str
     address: str
+    specialization: Literal["Full Construction", "Land Development", "Both"] = "Both"
     phone: Optional[str] = None
     email: EmailStr
     password: str
@@ -22,6 +23,7 @@ class ConstructorTeamResponse(BaseModel):
     district: str
     state: str
     address: str
+    specialization: str
     phone: Optional[str] = None
     email: str
     is_active: bool

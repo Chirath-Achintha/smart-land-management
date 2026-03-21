@@ -39,6 +39,8 @@ async def _build_response(b: ServiceBooking) -> ServiceBookingResponse:
         buyer_name=buyer.full_name if buyer else None,
         land_name=land.name if land else None,
         land_district=land.district if land else None,
+        land_location=land.location if land else None,
+        land_price=land.total_price if land else None,
         constructor_name=team.team_name if team else (constructor.full_name if constructor else None),
         constructor_phone=team.phone if team else (constructor.phone if constructor else None),
         constructor_email=constructor.email if constructor else None,

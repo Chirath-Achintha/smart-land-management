@@ -5,7 +5,6 @@ const API = API_BASE_URL;
 
 const BuyerBidsPage = () => {
     const [myBids, setMyBids] = useState([]);
-    const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showContactModal, setShowContactModal] = useState(false);
     const [selectedBid, setSelectedBid] = useState(null);
@@ -17,15 +16,9 @@ const BuyerBidsPage = () => {
     const fetchData = async () => {
         if (!tok) { setLoading(false); return; }
         try {
-            const [bidsRes, notifsRes] = await Promise.all([
-                fetch(`${API}/bids/my-bids`, { headers: { 'Authorization': `Bearer ${tok}` } }),
-                fetch(`${API}/notifications/`, { headers: { 'Authorization': `Bearer ${tok}` } })
-            ]);
+            const bidsRes = await fetch(`${API}/bids/my-bids`, { headers: { 'Authorization': `Bearer ${tok}` } });
             const bids = await bidsRes.json();
-            const notifs = await notifsRes.json();
-
             setMyBids(Array.isArray(bids) ? bids : []);
-            setNotifications(Array.isArray(notifs) ? notifs : []);
         } catch (e) {
             console.error("Fetch error", e);
         } finally {
@@ -39,13 +32,6 @@ const BuyerBidsPage = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const markAllRead = async () => {
-        await fetch(`${API}/notifications/read-all`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${tok}` }
-        });
-        fetchData();
-    };
 
     const handleContactSeller = async () => {
         if (!contactMessage.trim()) return;
@@ -74,30 +60,9 @@ const BuyerBidsPage = () => {
         }
     };
 
-    const unreadCount = notifications.filter(n => !n.is_read).length;
 
     return (
         <div style={S.root}>
-            {/* ── Notifications Header ── */}
-            {notifications.length > 0 && (
-                <div style={S.notifPanel}>
-                    <div style={S.notifHeader}>
-                        <h2 style={S.notifTitle}>🔔 Notifications {unreadCount > 0 && <span style={S.unreadBadge}>{unreadCount} new</span>}</h2>
-                        <button onClick={markAllRead} style={S.readAllBtn}>Mark all read</button>
-                    </div>
-                    <div style={S.notifList}>
-                        {notifications.slice(0, 3).map(n => (
-                            <div key={n.id} style={{ ...S.notifItem, opacity: n.is_read ? 0.6 : 1 }}>
-                                <div style={S.notifDot}></div>
-                                <div>
-                                    <div style={S.notifText}><strong>{n.title}</strong></div>
-                                    <div style={S.notifSub}>{n.message}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             <div style={S.header}>
                 <div>
@@ -187,16 +152,6 @@ const BuyerBidsPage = () => {
 const S = {
     root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
 
-    notifPanel: { background: '#FFF5F5', border: '1px solid #FFE4E4', borderRadius: '20px', padding: '20px', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' },
-    notifHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
-    notifTitle: { fontSize: '1rem', fontWeight: '800', margin: 0 },
-    unreadBadge: { fontSize: '0.7rem', background: '#FF4D4D', color: '#FFF', padding: '2px 8px', borderRadius: '10px', marginLeft: '8px' },
-    readAllBtn: { background: 'none', border: 'none', color: '#666', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' },
-    notifList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-    notifItem: { display: 'flex', gap: '12px', alignItems: 'center', background: '#FFF', padding: '12px', borderRadius: '12px', border: '1px solid #F0EBE4' },
-    notifDot: { width: '8px', height: '8px', background: '#FF4D4D', borderRadius: '50%' },
-    notifText: { fontSize: '0.9rem', color: '#1A1A1A' },
-    notifSub: { fontSize: '0.8rem', color: '#666' },
 
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
     title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px', letterSpacing: '-0.02em' },

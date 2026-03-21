@@ -59,8 +59,9 @@ async def register(user_data: UserRegister):
     if user_data.password != user_data.confirm_password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match")
 
+    email = user_data.email.lower().strip()
     # Check if email already in use
-    if await User.find_one(User.email == user_data.email):
+    if await User.find_one(User.email == email):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     # Check if NIC already in use
@@ -74,7 +75,7 @@ async def register(user_data: UserRegister):
         phone=user_data.phone,
         role=user_data.role,
         address=user_data.address,
-        email=user_data.email,
+        email=email,
         hashed_password=hash_password(user_data.password)
     )
     await new_user.insert()
@@ -85,7 +86,8 @@ async def register(user_data: UserRegister):
 
 @router.post("/login", response_model=Token)
 async def login(credentials: UserLogin):
-    user = await User.find_one(User.email == credentials.email)
+    email = credentials.email.lower().strip()
+    user = await User.find_one(User.email == email)
 
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
@@ -148,7 +150,8 @@ async def delete_me(current_user: User = Depends(get_current_user)):
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 async def forgot_password(request: ForgotPasswordRequest):
-    user = await User.find_one(User.email == request.email)
+    email = request.email.lower().strip()
+    user = await User.find_one(User.email == email)
     if not user:
         # We don't want to leak if an email exists or not directly, just return success
         return {"message": "If that email is registered, you will receive an OTP shortly."}
@@ -162,13 +165,17 @@ async def forgot_password(request: ForgotPasswordRequest):
     await user.save()
     
     # Send email
-    send_otp_email(user.email, otp)
+    sent = send_otp_email(user.email, otp)
+    
+    if not sent:
+        return {"message": "Identity confirmed but we couldn't send the email right now. For demo purposes, we've printed the OTP to the console."}
     
     return {"message": "OTP sent to your email."}
 
 @router.post("/verify-otp", status_code=status.HTTP_200_OK)
 async def verify_otp(request: VerifyOtpRequest):
-    user = await User.find_one(User.email == request.email)
+    email = request.email.lower().strip()
+    user = await User.find_one(User.email == email)
     if not user or user.reset_otp != request.otp:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP")
     
@@ -182,7 +189,8 @@ async def reset_password(request: ResetPasswordRequest):
     if request.new_password != request.confirm_password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match")
         
-    user = await User.find_one(User.email == request.email)
+    email = request.email.lower().strip()
+    user = await User.find_one(User.email == email)
     
     # Extra check for OTP to ensure secure reset
     if not user or user.reset_otp != request.otp or not user.reset_otp_expiry or user.reset_otp_expiry < datetime.utcnow():

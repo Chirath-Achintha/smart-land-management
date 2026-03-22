@@ -54,6 +54,26 @@ async def delete_user(user_id: str, admin: User = Depends(check_admin)):
     await user.delete()
     return None
 
+
+@router.patch("/users/{user_id}/status", response_model=UserResponse)
+async def update_user_status(user_id: str, payload: dict, admin: User = Depends(check_admin)):
+    """Admin can activate/deactivate a user account."""
+    requested_status = payload.get("is_active")
+    if requested_status is None or not isinstance(requested_status, bool):
+        raise HTTPException(status_code=400, detail="'is_active' boolean is required")
+
+    user = await User.get(PydanticObjectId(user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if str(user.id) == str(admin.id) and requested_status is False:
+        raise HTTPException(status_code=400, detail="Admin cannot deactivate their own account")
+
+    user.is_active = requested_status
+    user.updated_at = datetime.utcnow()
+    await user.save()
+    return user
+
 @router.get("/agents", response_model=List[UserResponse])
 async def list_agents(admin: User = Depends(check_admin)):
     """List all agents in the system."""

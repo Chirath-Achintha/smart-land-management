@@ -12,6 +12,8 @@ const STATUS_STYLE = {
     Cancelled: { color: '#991B1B', background: '#FEE2E2' },
 };
 
+const isAcceptedWork = (status) => status === 'In Progress' || status === 'Completed' || status === 'Cancelled';
+
 const ConstructorManagerDashboard = () => {
     const navigate = useNavigate();
     const token = localStorage.getItem('access_token');
@@ -34,7 +36,8 @@ const ConstructorManagerDashboard = () => {
             const res = await fetch(`${API}/service-bookings/assigned`, { headers: authH });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Failed to load assigned work');
-            setBookings(Array.isArray(data) ? data : []);
+            const filtered = (Array.isArray(data) ? data : []).filter((b) => isAcceptedWork(b.status));
+            setBookings(filtered);
         } catch (e) {
             setBookings([]);
             setError(e.message || 'Failed to load assigned work');
@@ -47,14 +50,27 @@ const ConstructorManagerDashboard = () => {
         fetchAssignedBookings();
     }, []);
 
+    useEffect(() => {
+        if (!token) return undefined;
+
+        const intervalId = setInterval(fetchAssignedBookings, 15000);
+        const onFocus = () => fetchAssignedBookings();
+        window.addEventListener('focus', onFocus);
+
+        return () => {
+            clearInterval(intervalId);
+            window.removeEventListener('focus', onFocus);
+        };
+    }, [token]);
+
     const stats = useMemo(() => {
         const active = bookings.filter((b) => b.status === 'In Progress').length;
-        const pending = bookings.filter((b) => b.status === 'Approved' || b.status === 'Scheduled').length;
         const completed = bookings.filter((b) => b.status === 'Completed').length;
+        const cancelled = bookings.filter((b) => b.status === 'Cancelled').length;
         return [
             { label: 'Active Work', value: active, color: '#1A1A1A' },
-            { label: 'Pending Approvals', value: pending, color: '#1D4ED8' },
             { label: 'Completed Jobs', value: completed, color: '#166534' },
+            { label: 'Rejected Jobs', value: cancelled, color: '#991B1B' },
         ];
     }, [bookings]);
 

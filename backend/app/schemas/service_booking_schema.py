@@ -64,6 +64,8 @@ class ServiceBookingResponse(BaseModel):
     buyer_name:     Optional[str] = None
     land_name:      Optional[str] = None
     land_district:  Optional[str] = None
+    land_location:  Optional[str] = None
+    land_price:     Optional[float] = None
     constructor_name: Optional[str] = None
     constructor_phone: Optional[str] = None
     constructor_email: Optional[str] = None

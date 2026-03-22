@@ -2,14 +2,16 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from app.core.config import settings
 import dns.resolver
+import os
 
-# Force Google's DNS (8.8.8.8) to resolve the MongoDB Atlas SRV link
-# This is required if the system DNS (default) fails to resolve the SRV record.
-try:
-    dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
-    dns.resolver.default_resolver.nameservers = ['8.8.8.8']
-except Exception as e:
-    print(f"Warning: Could not force Google DNS for DB connection: {e}")
+# Keep system DNS by default. Some networks block public resolvers like 8.8.8.8.
+# Set USE_GOOGLE_DNS_FOR_MONGO=true in .env only when SRV resolution fails locally.
+if os.getenv("USE_GOOGLE_DNS_FOR_MONGO", "false").lower() == "true":
+    try:
+        dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
+        dns.resolver.default_resolver.nameservers = ["8.8.8.8"]
+    except Exception as e:
+        print(f"Warning: Could not force Google DNS for DB connection: {e}")
 
 
 # Export the database client and initialization function
@@ -31,6 +33,8 @@ async def init_db():
 
     from app.models.notification_model import Notification
     
+    await client.admin.command("ping")
+
     await init_beanie(
         database=db,
         document_models=[

@@ -12,6 +12,29 @@ const STATUS_STYLE = {
     Cancelled: { color: '#c62828', background: '#FFEBEE' },
 };
 
+const isPendingRequest = (status) => status === 'Approved' || status === 'Scheduled';
+
+const toErrorMessage = (payload, fallback) => {
+    const detail = payload?.detail ?? payload?.message ?? payload;
+
+    if (typeof detail === 'string') return detail;
+
+    if (Array.isArray(detail)) {
+        const msg = detail
+            .map((item) => (typeof item === 'string' ? item : item?.msg || ''))
+            .filter(Boolean)
+            .join(', ');
+        return msg || fallback;
+    }
+
+    return fallback;
+};
+
+const normalizeBooking = (booking) => ({
+    ...booking,
+    id: booking?.id || booking?._id || '',
+});
+
 const ConstructorServiceBookingsPage = () => {
     const token = localStorage.getItem('access_token');
     const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
@@ -24,13 +47,30 @@ const ConstructorServiceBookingsPage = () => {
 
     const fetchBookings = () => {
         fetch(`${API}/service-bookings/assigned`, { headers: authH })
-            .then(r => r.json())
-            .then(d => setBookings(Array.isArray(d) ? d : []))
+            .then(r => r.json().then((body) => ({ ok: r.ok, body })))
+            .then(({ ok, body }) => {
+                if (!ok) throw new Error(toErrorMessage(body, 'Failed to load service requests'));
+                const normalized = (Array.isArray(body) ? body : []).map(normalizeBooking);
+                setBookings(normalized);
+            })
             .catch(() => setBookings([]))
             .finally(() => setLoading(false));
     };
 
     useEffect(() => { fetchBookings(); }, []);
+
+    useEffect(() => {
+        if (!token) return undefined;
+
+        const intervalId = setInterval(fetchBookings, 15000);
+        const onFocus = () => fetchBookings();
+        window.addEventListener('focus', onFocus);
+
+        return () => {
+            clearInterval(intervalId);
+            window.removeEventListener('focus', onFocus);
+        };
+    }, [token]);
 
     const updateStatus = async (id, newStatus) => {
         setUpdating(id);
@@ -40,15 +80,27 @@ const ConstructorServiceBookingsPage = () => {
                 headers: authH,
                 body: JSON.stringify({ status: newStatus }),
             });
-            if (!res.ok) { alert('Failed to update'); setUpdating(null); return; }
-            const updated = await res.json();
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                alert(toErrorMessage(data, 'Failed to update request status'));
+                setUpdating(null);
+                return;
+            }
+
+            const updated = normalizeBooking(data);
             setBookings(prev => prev.map(b => b.id === id ? updated : b));
             if (active?.id === id) setActive(updated);
-        } catch { alert('Server error'); }
+        } catch {
+            alert('Server error while updating request status');
+        }
         setUpdating(null);
     };
 
-    const filtered = filter === 'All' ? bookings : bookings.filter(b => b.status === filter);
+    const filtered = filter === 'All'
+        ? bookings
+        : filter === 'Pending'
+            ? bookings.filter((b) => isPendingRequest(b.status))
+            : bookings.filter((b) => b.status === filter);
 
     return (
         <div style={S.root}>
@@ -62,7 +114,7 @@ const ConstructorServiceBookingsPage = () => {
 
             {/* Filter tabs */}
             <div style={S.filterRow}>
-                {['All', 'Approved', 'In Progress', 'Completed', 'Cancelled'].map(f => (
+                {['All', 'Pending', 'In Progress', 'Completed', 'Cancelled'].map(f => (
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
@@ -72,7 +124,11 @@ const ConstructorServiceBookingsPage = () => {
                         }}>
                         {f}
                         {f !== 'All' && (
-                            <span style={S.filterCount}>{bookings.filter(b => b.status === f).length}</span>
+                            <span style={S.filterCount}>
+                                {f === 'Pending'
+                                    ? bookings.filter((b) => isPendingRequest(b.status)).length
+                                    : bookings.filter((b) => b.status === f).length}
+                            </span>
                         )}
                     </button>
                 ))}
@@ -117,6 +173,12 @@ const ConstructorServiceBookingsPage = () => {
                                                         {updating === b.id ? '…' : 'Accept'}
                                                     </button>
                                                 )}
+                                                {(b.status === 'Approved' || b.status === 'Scheduled') && (
+                                                    <button style={S.rejectBtn} disabled={updating === b.id}
+                                                        onClick={() => updateStatus(b.id, 'Cancelled')}>
+                                                        {updating === b.id ? '…' : 'Reject'}
+                                                    </button>
+                                                )}
                                                 {b.status === 'In Progress' && (
                                                     <button style={S.completeBtn} disabled={updating === b.id}
                                                         onClick={() => updateStatus(b.id, 'Completed')}>
@@ -159,6 +221,12 @@ const ConstructorServiceBookingsPage = () => {
                                     {updating === active.id ? '…' : 'Accept Request'}
                                 </button>
                             )}
+                            {(active.status === 'Approved' || active.status === 'Scheduled') && (
+                                <button style={S.mRejectBtn} disabled={updating === active.id}
+                                    onClick={() => updateStatus(active.id, 'Cancelled')}>
+                                    {updating === active.id ? '…' : 'Reject Request'}
+                                </button>
+                            )}
                             {active.status === 'In Progress' && (
                                 <button style={S.mCompleteBtn} disabled={updating === active.id}
                                     onClick={() => updateStatus(active.id, 'Completed')}>
@@ -198,6 +266,7 @@ const S = {
     actRow: { display: 'flex', gap: '8px' },
     viewBtn: { padding: '6px 14px', background: '#F5F5F5', color: '#1A1A1A', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
     acceptBtn: { padding: '6px 14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
+    rejectBtn: { padding: '6px 14px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
     completeBtn: { padding: '6px 14px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
     overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
     modal: { background: '#fff', borderRadius: '28px', padding: '36px', width: '100%', maxWidth: '520px', boxShadow: '0 24px 60px rgba(0,0,0,0.15)' },
@@ -211,6 +280,7 @@ const S = {
     notesBox: { background: '#FAF6F1', borderRadius: '10px', padding: '12px 16px', fontSize: '0.88rem', color: '#555', fontStyle: 'italic' },
     modalFoot: { display: 'flex', gap: '12px' },
     mAcceptBtn: { flex: 2, padding: '13px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
+    mRejectBtn: { flex: 2, padding: '13px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
     mCompleteBtn: { flex: 2, padding: '13px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
     mCloseBtn: { flex: 1, padding: '13px', background: '#F5F5F5', color: '#333', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
 };

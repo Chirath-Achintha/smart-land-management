@@ -11,6 +11,7 @@ class ConstructorTeam(Document):
     district: str
     state: str
     address: str
+    specialization: str = "Both"
     phone: Optional[str] = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)

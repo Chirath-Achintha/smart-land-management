@@ -48,6 +48,8 @@ async def get_current_user(
     user = await User.find_one(User.email == email)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Your account has been deactivated")
     return user
 
 
@@ -94,6 +96,11 @@ async def login(credentials: UserLogin):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"}
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been deactivated"
         )
 
     # In Beanie, user.id is a PydanticObjectId. Convert it to string for the token payload

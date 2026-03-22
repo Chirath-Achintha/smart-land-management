@@ -95,7 +95,16 @@ const AppRoutes = () => {
                 />
 
                 <Route path="/inquiry" element={<InquiryPage />} />
-                <Route path="/services" element={<ServiceBookingPage />} />
+                <Route
+                    path="/services"
+                    element={
+                        !user
+                            ? <Navigate to="/login" replace state={{ from: '/services' }} />
+                            : role === 'buyer'
+                                ? <Navigate to="/dashboard/services" replace />
+                                : <Navigate to="/dashboard" replace />
+                    }
+                />
 
                 {/* Auth Routes */}
                 <Route element={<AuthLayout />}>
@@ -118,6 +127,10 @@ const AppRoutes = () => {
                     {/* Buyer Sub-pages */}
                     <Route path="/dashboard/bids" element={<BuyerBidsPage />} />
                     <Route path="/dashboard/visits" element={<BuyerVisitsPage />} />
+                    <Route
+                        path="/dashboard/services"
+                        element={role === 'buyer' ? <ServiceBookingPage /> : <Navigate to="/dashboard" replace />}
+                    />
                     <Route path="/dashboard/users" element={<UserManagement />} />
                     <Route path="/dashboard/seller/listings" element={<SellerListingsPage />} />
                     <Route path="/dashboard/seller/bids" element={<SellerBidsPage />} />

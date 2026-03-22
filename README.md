@@ -13,3 +13,7 @@ uvicorn app.main:app --reload
         Buyer	buyer@gmail.com	buyer123
 
         seller1@gmail.com = 12345
+
+       Construction teams
+       sanuvi@gmail.com = 123321
+       Shan@gmail.com = shan123 

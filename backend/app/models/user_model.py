@@ -19,6 +19,7 @@ class User(Document):
     address: str = Field(alias="Address")
     email: EmailStr = Field(unique=True)
     hashed_password: str = Field(alias="password")
+    is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
     reset_otp: Optional[str] = None

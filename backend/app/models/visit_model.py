@@ -10,6 +10,7 @@ class VisitStatus(str, enum.Enum):
     Assigned = "Assigned"
     Accepted = "Accepted"
     Rejected = "Rejected"
+    AgentDeclined = "AgentDeclined"
     Completed = "Completed"
     Cancelled = "Cancelled"
 

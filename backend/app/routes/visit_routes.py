@@ -289,6 +289,18 @@ async def update_visit_status(
                 link="/dashboard/admin/agent-visits"
             )
 
+    # Agent Declines Assignment
+    if current_user.role == "agent" and data.status == VisitStatus.AgentDeclined:
+        land = await Land.get(visit.land_id)
+        buyer = await User.get(visit.buyer_id)
+        
+        # Notify Admin
+        await _notify_admins(
+            title="Action Required: Agent Declined Assignment",
+            message=f"Agent {current_user.full_name} has declined the assignment for '{land.name}' (Buyer: {buyer.full_name if buyer else 'N/A'}) on {visit.visit_date}. Reason: {data.seller_message or 'No reason provided.'}. Please re-assign or cancel.",
+            link="/dashboard/admin/agent-visits"
+        )
+
     return await _build_response(visit)
 
 

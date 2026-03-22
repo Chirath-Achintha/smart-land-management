@@ -10,6 +10,7 @@ const STATUS_COLORS = {
     Accepted: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
     Completed: { bg: '#E8F5E9', color: '#1B5E20', border: '#C8E6C9' },
     Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
+    AgentDeclined: { bg: '#fff3e0', color: '#f57c00', border: '#ffe0b2' },
 };
 
 const AgentVisitsPage = () => {
@@ -109,7 +110,7 @@ const AgentVisitsPage = () => {
     const filtered = filter === 'All' 
         ? visits 
         : filter === 'To Assign' 
-            ? visits.filter(v => v.status === 'SellerAccepted')
+            ? visits.filter(v => v.status === 'SellerAccepted' || v.status === 'AgentDeclined')
             : visits.filter(v => v.status === filter);
 
     return (
@@ -119,13 +120,13 @@ const AgentVisitsPage = () => {
                     <h1 style={S.title}>Agent Site Requests</h1>
                     <p style={S.subtitle}>Manage site visit requests assigned for agent assistance.</p>
                 </div>
-                <div style={S.countBadge}>{visits.filter(v => v.status === 'SellerAccepted').length} To Assign</div>
+                <div style={S.countBadge}>{visits.filter(v => v.status === 'SellerAccepted' || v.status === 'AgentDeclined').length} To Assign</div>
             </div>
 
             {error && <div style={S.errBox}>{error}</div>}
 
             <div style={S.filterRow}>
-                {['All', 'To Assign', 'Assigned', 'Accepted', 'Completed', 'Rejected'].map(f => (
+                {['All', 'To Assign', 'Assigned', 'Accepted', 'Completed', 'Rejected', 'AgentDeclined'].map(f => (
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
@@ -137,7 +138,7 @@ const AgentVisitsPage = () => {
                         {f !== 'All' && (
                             <span style={S.filterCount}>
                                 {visits.filter(v => 
-                                    f === 'To Assign' ? v.status === 'SellerAccepted' : v.status === f
+                                    f === 'To Assign' ? (v.status === 'SellerAccepted' || v.status === 'AgentDeclined') : v.status === f
                                 ).length}
                             </span>
                         )}
@@ -238,6 +239,12 @@ const AgentVisitsPage = () => {
                                                     <div style={S.messageContent}>{visit.message}</div>
                                                 </div>
                                             )}
+                                            {visit.admin_message && (
+                                                <div style={{ ...S.messageWrapper, marginTop: '8px', background: visit.status === 'AgentDeclined' ? '#fff3e0' : '#F9F7F5' }}>
+                                                    <div style={S.messageKey}>{visit.status === 'AgentDeclined' ? 'AGENT DECLINE REASON' : 'Admin Notes'}</div>
+                                                    <div style={S.messageContent}>{visit.admin_message}</div>
+                                                </div>
+                                            )}
                                         </>
                                     )}
                                 </div>
@@ -249,13 +256,13 @@ const AgentVisitsPage = () => {
                                         </span>
                                     </div>
 
-                                    {visit.status === 'SellerAccepted' && (
+                                    {(visit.status === 'SellerAccepted' || visit.status === 'AgentDeclined') && (
                                         <div style={S.actionButtons}>
                                             <button
                                                 style={S.primaryBtn}
                                                 disabled={updating === vId}
                                                 onClick={() => updateStatus(vId, 'Assigned')}>
-                                                Confirm & Assign
+                                                {visit.status === 'AgentDeclined' ? 'Re-assign Agent' : 'Confirm & Assign'}
                                             </button>
                                             <button
                                                 style={S.secondaryBtn}
@@ -264,7 +271,7 @@ const AgentVisitsPage = () => {
                                                     setRejectingVisit(visit);
                                                     setRejectMessage('');
                                                 }}>
-                                                Decline
+                                                Cancel Visit
                                             </button>
                                         </div>
                                     )}

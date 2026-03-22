@@ -34,6 +34,11 @@ const AgentDashboard = () => {
     const [showProfileModal, setShowProfileModal] = useState(false);
 
     const [isUpdating, setIsUpdating] = useState(false);
+    
+    // Decline Modal State
+    const [showDeclineModal, setShowDeclineModal] = useState(false);
+    const [declineReason, setDeclineReason] = useState('');
+    const [activeDeclineVisit, setActiveDeclineVisit] = useState(null);
 
     useEffect(() => {
         const fetchAssignments = async () => {
@@ -70,6 +75,37 @@ const AgentDashboard = () => {
     };
 
     const handleConfirm = (id) => updateStatus(id, 'Accepted');
+    
+    const openDeclineModal = (visit) => {
+        setActiveDeclineVisit(visit);
+        setDeclineReason('');
+        setShowDeclineModal(true);
+    };
+
+    const handleDeclineSubmit = async () => {
+        if (!declineReason.trim()) return alert('Please provide a reason for declining.');
+        setIsUpdating(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/visits/${activeDeclineVisit._id || activeDeclineVisit.id}/status`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}` 
+                },
+                body: JSON.stringify({ 
+                    status: 'AgentDeclined',
+                    seller_message: declineReason 
+                })
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setBookings(prev => prev.map(b => (b._id || b.id) === (activeDeclineVisit._id || activeDeclineVisit.id) ? updated : b));
+                setShowDeclineModal(false);
+            }
+        } catch (err) { alert('Update failed.'); }
+        setIsUpdating(false);
+    };
+
     const handleCancel = (id) => updateStatus(id, 'Rejected');
     const handleReschedule = (id) => alert('Please contact the seller or admin to reschedule the date.');
     const handleSubmitReport = (id) => updateStatus(id, 'Completed');
@@ -151,7 +187,7 @@ const AgentDashboard = () => {
                                                         {b.status === 'Assigned' && (
                                                             <>
                                                                 <button style={S.confirmBtn} onClick={() => handleConfirm(b._id || b.id)}>Accept Visit</button>
-                                                                <button style={S.cancelBtnSmall} onClick={() => handleCancel(b._id || b.id)}>Decline</button>
+                                                                <button style={S.cancelBtnSmall} onClick={() => openDeclineModal(b)}>Decline</button>
                                                             </>
                                                         )}
                                                         {b.status === 'Accepted' && (
@@ -163,7 +199,10 @@ const AgentDashboard = () => {
                                                             <span style={S.reportBadge}>Visit Fully Completed ✅</span>
                                                         )}
                                                         {b.status === 'Rejected' && (
-                                                            <span style={{ color: '#e74c3c', fontWeight: 'bold' }}>Declined</span>
+                                                            <span style={{ color: '#e74c3c', fontWeight: 'bold' }}>Rejected</span>
+                                                        )}
+                                                        {b.status === 'AgentDeclined' && (
+                                                            <span style={{ color: '#f39c12', fontWeight: 'bold' }}>Declined (Pending Re-assignment)</span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -264,6 +303,36 @@ const AgentDashboard = () => {
                         <div style={S.modalActions}>
                             <button style={S.confirmDeleteBtn} onClick={handleDeleteAccount}>Permanently Delete</button>
                             <button style={S.cancelDeleteBtn} onClick={() => { setShowDeleteConfirm(false); setDeleteVerification(''); }}>Go Back</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Decline Reason Modal */}
+            {showDeclineModal && (
+                <div style={S.modalOverlay}>
+                    <div style={S.modalLarge}>
+                        <h2 style={S.modalTitle}>Decline Assignment</h2>
+                        <p style={S.modalSubtitle}>Please provide a reason why you cannot facilitate this site visit.</p>
+
+                        <div style={S.formGroup}>
+                            <label style={S.formLabel}>Reason for Declining</label>
+                            <textarea
+                                style={S.textarea}
+                                placeholder="I'm unavailable at this time, location too far, etc."
+                                value={declineReason}
+                                onChange={(e) => setDeclineReason(e.target.value)}
+                            ></textarea>
+                        </div>
+
+                        <div style={S.modalActionsRow}>
+                            <button 
+                                style={{ ...S.submitBtn, background: '#e74c3c' }} 
+                                onClick={handleDeclineSubmit}
+                                disabled={isUpdating}
+                            >
+                                {isUpdating ? 'Submitting...' : 'Confirm Decline'}
+                            </button>
+                            <button style={S.cancelBtn} onClick={() => setShowDeclineModal(false)}>Cancel</button>
                         </div>
                     </div>
                 </div>

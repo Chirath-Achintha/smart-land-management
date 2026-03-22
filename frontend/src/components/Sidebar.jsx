@@ -9,6 +9,7 @@ const NAV = {
         { to: '/dashboard/bids', label: 'My Biddings' },
         { to: '/dashboard/visits', label: ' My Site Visits' },
         { to: '/dashboard/properties', label: 'Saved Properties' },
+        { to: '/dashboard/services', label: 'Service Requests' },
     ],
     seller: [
         { to: '/dashboard', label: 'Overview' },

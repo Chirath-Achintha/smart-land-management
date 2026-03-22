@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import API_BASE_URL from '../../apiConfig';
 
 const API = API_BASE_URL;
@@ -13,8 +14,10 @@ const STATUS_STYLE = {
 };
 
 const ServiceBookingPage = () => {
+    const location = useLocation();
     const token = localStorage.getItem('access_token');
     const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+    const isDashboardView = location.pathname.startsWith('/dashboard');
 
     /* ── state ── */
     const [bookings, setBookings] = useState([]);
@@ -65,7 +68,7 @@ const ServiceBookingPage = () => {
     };
 
     return (
-        <div style={S.root}>
+        <div style={{ ...S.root, padding: isDashboardView ? '24px 20px 60px' : S.root.padding }}>
             <div style={S.container}>
                 <header style={S.header}>
                     <h1 style={S.pageTitle}>My Service Requests</h1>

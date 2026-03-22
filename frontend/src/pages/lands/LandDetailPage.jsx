@@ -6,6 +6,15 @@ import './LandListingPage.css';
 import API_BASE_URL from '../../apiConfig';
 
 const API = API_BASE_URL;
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80';
+
+function getImageUrls(imageUrlValue) {
+    if (!imageUrlValue) return [];
+    return imageUrlValue
+        .split(',')
+        .map((url) => url.trim())
+        .filter(Boolean);
+}
 
 
 // ── Land Detail Page ──────────────────────────────────────────────────────────
@@ -16,6 +25,8 @@ const LandDetailPage = () => {
     const [land, setLand] = useState(null);
     const [bids, setBids] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeImage, setActiveImage] = useState('');
+    const [isViewerOpen, setIsViewerOpen] = useState(false);
 
     // ── Tab state ──────────────────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState('property'); // 'property' | 'services'
@@ -78,6 +89,12 @@ const LandDetailPage = () => {
         fetchBids();
     }, [id]);
 
+    useEffect(() => {
+        if (!land) return;
+        const images = getImageUrls(land.image_url);
+        setActiveImage(images[0] || FALLBACK_IMAGE);
+    }, [land]);
+
     if (loading) return <div className="lands-root" style={{ textAlign: 'center', padding: '100px', color: '#999' }}>Loading…</div>;
     if (!land) return (
         <div className="lands-root" style={{ textAlign: 'center', padding: '100px 20px' }}>
@@ -87,6 +104,29 @@ const LandDetailPage = () => {
     );
 
     const highestBid = bids.length > 0 ? Math.max(...bids.map(b => b.amount)) : null;
+    const landImages = getImageUrls(land.image_url);
+    const heroImage = activeImage || landImages[0] || FALLBACK_IMAGE;
+
+    const openViewer = (imgUrl) => {
+        setActiveImage(imgUrl || heroImage);
+        setIsViewerOpen(true);
+    };
+
+    const closeViewer = () => setIsViewerOpen(false);
+
+    const showNextImage = () => {
+        if (landImages.length <= 1) return;
+        const currentIndex = Math.max(0, landImages.indexOf(activeImage));
+        const nextIndex = (currentIndex + 1) % landImages.length;
+        setActiveImage(landImages[nextIndex]);
+    };
+
+    const showPrevImage = () => {
+        if (landImages.length <= 1) return;
+        const currentIndex = Math.max(0, landImages.indexOf(activeImage));
+        const prevIndex = (currentIndex - 1 + landImages.length) % landImages.length;
+        setActiveImage(landImages[prevIndex]);
+    };
 
     return (
         <div style={{ background: '#FAF6F1', minHeight: '100vh', paddingBottom: '80px' }}>
@@ -96,13 +136,33 @@ const LandDetailPage = () => {
                 <div style={S.layout}>
                     {/* Image */}
                     <div style={S.imageSection}>
-                        <img
-                            src={land.image_url
-                                ? land.image_url.split(',')[0]
-                                : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80'}
-                            alt={land.name} style={S.heroImg}
-                        />
-                        <div style={S.priceBadge}>Rs. {Number(land.total_price).toLocaleString()}</div>
+                        <div style={S.heroWrap}>
+                            <img
+                                src={heroImage}
+                                alt={land.name}
+                                style={S.heroImg}
+                                onClick={() => openViewer(heroImage)}
+                                title="Click to view image"
+                            />
+                            <div style={S.priceBadge}>Rs. {Number(land.total_price).toLocaleString()}</div>
+                        </div>
+                        {landImages.length > 1 && (
+                            <div style={S.thumbStrip}>
+                                {landImages.map((imgUrl, idx) => (
+                                    <button
+                                        key={`${imgUrl}-${idx}`}
+                                        type="button"
+                                        style={{ ...S.thumbBtn, ...(heroImage === imgUrl ? S.thumbBtnActive : {}) }}
+                                        onClick={() => setActiveImage(imgUrl)}
+                                        onDoubleClick={() => openViewer(imgUrl)}
+                                        aria-label={`View image ${idx + 1}`}
+                                        title="Click to select, double-click to open"
+                                    >
+                                        <img src={imgUrl} alt={`${land.name} ${idx + 1}`} style={S.thumbImage} />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Content */}
@@ -396,6 +456,24 @@ const LandDetailPage = () => {
                     </div>
                 </div>
             )}
+
+            {isViewerOpen && (
+                <div style={IV.overlay} onClick={closeViewer}>
+                    <div style={IV.container} onClick={(e) => e.stopPropagation()}>
+                        <button type="button" style={IV.closeBtn} onClick={closeViewer}>✕</button>
+
+                        {landImages.length > 1 && (
+                            <button type="button" style={IV.navLeft} onClick={showPrevImage} aria-label="Previous image">‹</button>
+                        )}
+
+                        <img src={activeImage || heroImage} alt={land.name} style={IV.image} />
+
+                        {landImages.length > 1 && (
+                            <button type="button" style={IV.navRight} onClick={showNextImage} aria-label="Next image">›</button>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -405,9 +483,14 @@ const S = {
     container: { maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' },
     backBtn: { background: 'none', border: 'none', color: '#555', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', marginBottom: '24px', padding: 0 },
     layout: { display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', marginBottom: '40px' },
-    imageSection: { position: 'relative', width: '100%', height: '450px' },
+    imageSection: { width: '100%', background: '#fff' },
+    heroWrap: { position: 'relative', width: '100%', height: '450px' },
     heroImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
     priceBadge: { position: 'absolute', bottom: '24px', right: '24px', background: '#1A1A1A', color: '#fff', padding: '12px 24px', borderRadius: '12px', fontSize: '1.25rem', fontWeight: '800', boxShadow: '0 8px 16px rgba(0,0,0,0.2)' },
+    thumbStrip: { display: 'flex', gap: '10px', padding: '12px 16px', overflowX: 'auto', background: '#F7F7F7', borderTop: '1px solid #ececec' },
+    thumbBtn: { border: '2px solid transparent', borderRadius: '10px', background: '#fff', padding: 0, cursor: 'pointer', flex: '0 0 auto', width: '90px', height: '68px', overflow: 'hidden' },
+    thumbBtnActive: { borderColor: '#1A1A1A' },
+    thumbImage: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
     contentSection: { padding: '40px 60px', display: 'flex', flexDirection: 'column', gap: '32px' },
     tag: { display: 'inline-block', background: '#FAF6F1', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#1A1A1A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' },
     title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '10px', lineHeight: 1.1 },
@@ -453,6 +536,73 @@ const BK = {
     reviewBox: { background: '#FAF6F1', borderRadius: '14px', padding: '24px', marginBottom: '20px' },
     noticeBox: { background: '#F5F5F5', borderRadius: '10px', padding: '16px', borderLeft: '4px solid #1A1A1A', fontSize: '0.85rem', color: '#555', marginBottom: '24px' },
     err: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', fontSize: '0.88rem', marginBottom: '16px' },
+};
+
+const IV = {
+    overlay: {
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10000,
+        padding: '20px'
+    },
+    container: {
+        position: 'relative',
+        width: 'min(95vw, 1200px)',
+        height: 'min(90vh, 760px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    image: {
+        maxWidth: '100%',
+        maxHeight: '100%',
+        objectFit: 'contain',
+        borderRadius: '12px',
+        boxShadow: '0 12px 36px rgba(0,0,0,0.45)'
+    },
+    closeBtn: {
+        position: 'absolute',
+        top: '-8px',
+        right: '0',
+        width: '40px',
+        height: '40px',
+        border: 'none',
+        borderRadius: '999px',
+        background: 'rgba(255,255,255,0.15)',
+        color: '#fff',
+        fontSize: '1.2rem',
+        cursor: 'pointer'
+    },
+    navLeft: {
+        position: 'absolute',
+        left: '10px',
+        width: '44px',
+        height: '44px',
+        border: 'none',
+        borderRadius: '999px',
+        background: 'rgba(255,255,255,0.18)',
+        color: '#fff',
+        fontSize: '2rem',
+        lineHeight: 1,
+        cursor: 'pointer'
+    },
+    navRight: {
+        position: 'absolute',
+        right: '10px',
+        width: '44px',
+        height: '44px',
+        border: 'none',
+        borderRadius: '999px',
+        background: 'rgba(255,255,255,0.18)',
+        color: '#fff',
+        fontSize: '2rem',
+        lineHeight: 1,
+        cursor: 'pointer'
+    }
 };
 
 export default LandDetailPage;

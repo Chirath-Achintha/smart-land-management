@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
@@ -34,6 +35,7 @@ function getImageUrls(imageUrlValue) {
 }
 
 const SellerListingsPage = () => {
+    const navigate = useNavigate();
     const [listings, setListings] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -44,14 +46,36 @@ const SellerListingsPage = () => {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [error, setError] = useState('');
 
-    const token = localStorage.getItem('access_token');
-    const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+    const getToken = () => localStorage.getItem('access_token');
+    const getAuthHeaders = () => {
+        const token = getToken();
+        return token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } : { 'Content-Type': 'application/json' };
+    };
+
+    const handleUnauthorized = () => {
+        setError('Session expired. Please login again.');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+        navigate('/login', { replace: true, state: { from: '/dashboard/seller/listings' } });
+    };
 
     // ── Fetch seller's own listings from DB ────────────────────────────────
     const fetchListings = () => {
         setLoading(true);
+        const token = getToken();
+        if (!token) {
+            handleUnauthorized();
+            setLoading(false);
+            return;
+        }
         Promise.all([
-            fetch(`${API}/lands/my`, { headers: authHeaders }).then(r => r.json()).catch(() => []),
+            fetch(`${API}/lands/my`, { headers: getAuthHeaders() }).then(async r => {
+                if (r.status === 401) {
+                    handleUnauthorized();
+                    return [];
+                }
+                return r.json();
+            }).catch(() => []),
             fetch(`${API}/notifications/`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()).catch(() => [])
         ])
             .then(([lands, notifs]) => {
@@ -68,11 +92,20 @@ const SellerListingsPage = () => {
     useEffect(() => { fetchListings(); }, []);
 
     const markAllRead = async () => {
+        const token = getToken();
+        if (!token) {
+            handleUnauthorized();
+            return;
+        }
         try {
-            await fetch(`${API}/notifications/read-all`, {
+            const res = await fetch(`${API}/notifications/read-all`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
             fetchListings();
         } catch {
             // Ignore network failures for mark-as-read action.
@@ -92,13 +125,22 @@ const SellerListingsPage = () => {
     const [isDragging, setIsDragging] = useState(false);
 
     const uploadSingleImage = async (file) => {
+        const token = getToken();
+        if (!token) {
+            throw new Error('No auth token');
+        }
+
         const formData = new FormData();
         formData.append('file', file);
 
         const res = await fetch(`${API}/lands/upload`, {
             method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         });
+        if (res.status === 401) {
+            throw new Error('Session expired');
+        }
         if (!res.ok) throw new Error('Upload failed');
         const data = await res.json();
         return data.url;
@@ -132,8 +174,12 @@ const SellerListingsPage = () => {
             if (files.length <= remainingSlots) {
                 setError('');
             }
-        } catch {
-            setError('Image upload failed');
+        } catch (err) {
+            if (err?.message === 'Session expired' || err?.message === 'No auth token') {
+                setError('Session expired. Please login again before uploading images.');
+            } else {
+                setError('Image upload failed');
+            }
         }
     };
 
@@ -163,12 +209,24 @@ const SellerListingsPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        const perches = parseFloat(form.perches);
+        const pricePerPerch = parseFloat(form.price_per_perch);
+        if (Number.isNaN(perches) || Number.isNaN(pricePerPerch)) {
+            setError('Size and price per perch are required.');
+            return;
+        }
+        if (perches < 0 || pricePerPerch < 0) {
+            setError('Size and price per perch cannot be negative.');
+            return;
+        }
+
         setSubmitting(true);
 
         const payload = {
             ...form,
-            perches: parseFloat(form.perches),
-            price_per_perch: parseFloat(form.price_per_perch),
+            perches,
+            price_per_perch: pricePerPerch,
             starting_bid: form.starting_bid ? parseFloat(form.starting_bid) : null,
         };
 
@@ -177,20 +235,29 @@ const SellerListingsPage = () => {
             if (editingId) {
                 res = await fetch(`${API}/lands/${editingId}`, {
                     method: 'PUT',
-                    headers: authHeaders,
+                    headers: getAuthHeaders(),
                     body: JSON.stringify(payload)
                 });
             } else {
                 res = await fetch(`${API}/lands/`, {
                     method: 'POST',
-                    headers: authHeaders,
+                    headers: getAuthHeaders(),
                     body: JSON.stringify(payload)
                 });
             }
 
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
+
             if (!res.ok) {
                 const err = await res.json();
-                setError(err.detail || 'Failed to save listing');
+                if (Array.isArray(err.detail)) {
+                    setError(err.detail.map(d => d?.msg || 'Validation error').join(', '));
+                } else {
+                    setError(err.detail || 'Failed to save listing');
+                }
                 return;
             }
 
@@ -206,7 +273,11 @@ const SellerListingsPage = () => {
 
     const handleDelete = async (id) => {
         try {
-            await fetch(`${API}/lands/${id}`, { method: 'DELETE', headers: authHeaders });
+            const res = await fetch(`${API}/lands/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+            if (res.status === 401) {
+                handleUnauthorized();
+                return;
+            }
             fetchListings();
         } catch { /* ignore */ }
         setDeleteConfirm(null);
@@ -368,11 +439,11 @@ const SellerListingsPage = () => {
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Size (Perches) *</label>
-                                    <input name="perches" type="number" value={form.perches} onChange={handleFormChange} required style={S.input} />
+                                    <input name="perches" type="number" min="0" step="any" value={form.perches} onChange={handleFormChange} required style={S.input} />
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Price Per Perch (Rs.) *</label>
-                                    <input name="price_per_perch" type="number" value={form.price_per_perch} onChange={handleFormChange} required style={S.input} />
+                                    <input name="price_per_perch" type="number" min="0" step="any" value={form.price_per_perch} onChange={handleFormChange} required style={S.input} />
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Land Type</label>

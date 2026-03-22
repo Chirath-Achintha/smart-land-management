@@ -4,6 +4,24 @@ import API_BASE_URL from '../../apiConfig';
 
 const API = API_BASE_URL;
 
+const formatPrice = (value) => `Rs. ${Number(value || 0).toLocaleString()}`;
+
+const formatEnumText = (value) => {
+    const raw = String(value || '');
+    const normalized = raw.includes('.') ? raw.split('.').pop() : raw;
+    return normalized.replace(/_/g, ' ').trim();
+};
+
+const toTitleCase = (value) => {
+    const txt = formatEnumText(value);
+    if (!txt) return 'N/A';
+    return txt
+        .split(' ')
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+};
+
 const AdminDashboard = () => {
     const navigate = useNavigate();
 
@@ -230,6 +248,9 @@ const AdminDashboard = () => {
                                                 {group.lands.map((land) => {
                                                     const landId = land.id || land._id;
                                                     const isWorking = actionLoadingId === landId;
+                                                    const landStatus = toTitleCase(land.status);
+                                                    const verificationStatus = land.is_verified ? 'Verified' : toTitleCase(land.review_status || 'pending');
+                                                    const landType = toTitleCase(land.land_type);
                                                     return (
                                                         <div key={landId} style={S.landRow}>
                                                             <div style={S.landMain}>
@@ -241,10 +262,16 @@ const AdminDashboard = () => {
                                                                 <div>
                                                                     <div style={S.landTitle}>{land.name}</div>
                                                                     <div style={S.landMeta}>
-                                                                        {land.village}, {land.district} | {land.perches} perches | Rs. {Number(land.total_price || 0).toLocaleString()}
+                                                                        {land.village}, {land.district}
                                                                     </div>
                                                                     <div style={S.landMeta}>
-                                                                        Status: {land.status} | Verification: {land.is_verified ? 'Verified' : 'Pending'}
+                                                                        Size: {land.perches} perches | Price/Perch: {formatPrice(land.price_per_perch)} | Total: {formatPrice(land.total_price)}
+                                                                    </div>
+                                                                    <div style={S.landMeta}>
+                                                                        Type: {landType} | Status: {landStatus} | Verification: {verificationStatus}
+                                                                    </div>
+                                                                    <div style={S.landMeta}>
+                                                                        Road Access: {land.road_access || 'Not specified'} | Utilities: {land.electricity ? 'Electricity' : 'No Electricity'}, {land.water ? 'Water' : 'No Water'}
                                                                     </div>
                                                                     {land.verification_note && (
                                                                         <div style={S.noteText}>Note: {land.verification_note}</div>

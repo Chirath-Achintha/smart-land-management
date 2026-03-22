@@ -51,4 +51,4 @@ export const WHY_CARDS = [
   },
 ];
 
-export const NAV = ["Home", "Service", "Inquiry", "Contact"];
+export const NAV = ["Home", "Inquiry", "Contact"];

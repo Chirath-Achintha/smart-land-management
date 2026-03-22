@@ -3,12 +3,14 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    // Default role is null (logged out)
-    // For demo/dev purposes, we can initialize from localStorage
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
+    // Always start logged out; require explicit login on each app start.
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        // Clear any persisted session from previous runs.
+        localStorage.removeItem('user');
+        localStorage.removeItem('access_token');
+    }, []);
 
     const login = (userOrRole) => {
         const userData = typeof userOrRole === 'string'

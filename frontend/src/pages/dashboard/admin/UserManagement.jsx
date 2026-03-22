@@ -3,15 +3,16 @@ import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
 
-const EditIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
-);
-
 const TrashIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+);
+
+const StatusIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2v10" />
+        <path d="M18.4 5.6A9 9 0 1 1 5.6 5.6" />
     </svg>
 );
 
@@ -19,8 +20,7 @@ const UserManagement = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isEditing, setIsEditing] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null);
+    const [roleFilter, setRoleFilter] = useState('all');
 
     // Fetch users from DB
     const fetchUsers = () => {
@@ -35,8 +35,9 @@ const UserManagement = () => {
                     id: u.id,
                     name: u.full_name,
                     email: u.email,
+                    roleKey: u.role,
                     role: u.role.charAt(0).toUpperCase() + u.role.slice(1).replace('_', ' '),
-                    status: 'Active', // Status field not in model yet, default to Active
+                    status: u.is_active === false ? 'Suspended' : 'Active',
                     joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'
                 }));
                 setUsers(formattedUsers);
@@ -50,15 +51,65 @@ const UserManagement = () => {
     }, []);
 
     // Filtering
-    const filteredUsers = users.filter(user =>
-        (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.role || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users.filter(user => {
+        const matchesSearch =
+            (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (user.role || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-    const handleEdit = (user) => {
-        setCurrentUser({ ...user });
-        setIsEditing(true);
+        const matchesRole = roleFilter === 'all' || user.roleKey === roleFilter;
+        return matchesSearch && matchesRole;
+    });
+
+    const roleCounts = {
+        buyer: users.filter(u => u.roleKey === 'buyer').length,
+        seller: users.filter(u => u.roleKey === 'seller').length,
+        agent: users.filter(u => u.roleKey === 'agent').length,
+        constructor_manager: users.filter(u => u.roleKey === 'constructor_manager').length,
+    };
+
+    const handleToggleStatus = (user) => {
+        const isCurrentlyActive = user.status === 'Active';
+        const actionLabel = isCurrentlyActive ? 'deactivate' : 'activate';
+        if (!window.confirm(`Are you sure you want to ${actionLabel} this user account?`)) {
+            return;
+        }
+
+        const token = localStorage.getItem('access_token');
+        fetch(`${API}/admin/users/${user.id}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ is_active: !isCurrentlyActive })
+        })
+            .then(async (r) => {
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || 'Failed to update user status');
+                }
+                return r.json();
+            })
+            .then((updated) => {
+                setUsers(prev => prev.map(u =>
+                    u.id === updated.id
+                        ? {
+                            ...u,
+                            status: updated.is_active === false ? 'Suspended' : 'Active'
+                        }
+                        : u
+                ));
+
+                if (updated.is_active === false) {
+                    alert('User has been deactivated successfully.');
+                } else {
+                    alert('User has been activated successfully.');
+                }
+            })
+            .catch((e) => {
+                alert(e.message || 'Failed to update user status');
+            });
     };
 
     const handleDelete = (id) => {
@@ -79,20 +130,12 @@ const UserManagement = () => {
         }
     };
 
-
-    const handleSave = (e) => {
-        e.preventDefault();
-        setUsers(users.map(u => u.id === currentUser.id ? currentUser : u));
-        setIsEditing(false);
-        setCurrentUser(null);
-    };
-
     return (
         <div style={styles.container}>
             <header style={styles.header}>
                 <div style={styles.titleArea}>
                     <h2 style={styles.title}>User Management</h2>
-                    <p style={styles.subtitle}>View, edit, and manage all registered users and their system roles.</p>
+                    <p style={styles.subtitle}>View, deactivate, and manage all registered users and their system roles.</p>
                 </div>
                 <div style={styles.searchBar}>
                     <input
@@ -104,6 +147,44 @@ const UserManagement = () => {
                     />
                 </div>
             </header>
+
+            <div style={styles.filterRow}>
+                <button
+                    type="button"
+                    onClick={() => setRoleFilter('all')}
+                    style={{ ...styles.filterBtn, ...(roleFilter === 'all' ? styles.filterBtnActive : {}) }}
+                >
+                    All Users ({users.length})
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setRoleFilter('buyer')}
+                    style={{ ...styles.filterBtn, ...(roleFilter === 'buyer' ? styles.filterBtnActive : {}) }}
+                >
+                    Buyers ({roleCounts.buyer})
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setRoleFilter('seller')}
+                    style={{ ...styles.filterBtn, ...(roleFilter === 'seller' ? styles.filterBtnActive : {}) }}
+                >
+                    Sellers ({roleCounts.seller})
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setRoleFilter('agent')}
+                    style={{ ...styles.filterBtn, ...(roleFilter === 'agent' ? styles.filterBtnActive : {}) }}
+                >
+                    Agents ({roleCounts.agent})
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setRoleFilter('constructor_manager')}
+                    style={{ ...styles.filterBtn, ...(roleFilter === 'constructor_manager' ? styles.filterBtnActive : {}) }}
+                >
+                    Construction Teams ({roleCounts.constructor_manager})
+                </button>
+            </div>
 
             <div style={styles.tableCard}>
                 <table style={styles.table}>
@@ -151,7 +232,23 @@ const UserManagement = () => {
                                 </td>
                                 <td style={styles.td}>
                                     <div style={styles.actionGroup}>
-                                        <button onClick={() => handleEdit(user)} style={styles.iconBtn} title="Edit User"><EditIcon /></button>
+                                        <button
+                                            onClick={() => handleToggleStatus(user)}
+                                            style={{
+                                                ...styles.iconBtn,
+                                                color: user.status === 'Active' ? '#DC2626' : '#059669',
+                                                border: `1px solid ${user.status === 'Active' ? '#FECACA' : '#BBF7D0'}`,
+                                                backgroundColor: user.status === 'Active' ? '#FEF2F2' : '#F0FDF4',
+                                                gap: '6px',
+                                                padding: '6px 10px'
+                                            }}
+                                            title={user.status === 'Active' ? 'Deactivate User' : 'Activate User'}
+                                        >
+                                            <StatusIcon />
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                                                {user.status === 'Active' ? 'Deactivate' : 'Activate'}
+                                            </span>
+                                        </button>
                                         <button onClick={() => handleDelete(user.id)} style={styles.iconBtn} title="Delete User"><TrashIcon /></button>
                                     </div>
                                 </td>
@@ -160,71 +257,9 @@ const UserManagement = () => {
                     </tbody>
                 </table>
                 {filteredUsers.length === 0 && (
-                    <div style={styles.noResults}>
-                        No users found matching "{searchTerm}"
-                    </div>
+                    <div style={styles.noResults}>No users found for the selected filters.</div>
                 )}
             </div>
-
-            {/* Edit Modal Overlay */}
-            {isEditing && (
-                <div style={styles.modalOverlay}>
-                    <div style={styles.modal}>
-                        <h3 style={styles.modalTitle}>Edit User Profile</h3>
-                        <form onSubmit={handleSave} style={styles.form}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Full Name</label>
-                                <input
-                                    style={styles.input}
-                                    value={currentUser.name}
-                                    onChange={(e) => setCurrentUser({ ...currentUser, name: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Email Address</label>
-                                <input
-                                    type="email"
-                                    style={styles.input}
-                                    value={currentUser.email}
-                                    onChange={(e) => setCurrentUser({ ...currentUser, email: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div style={styles.formRow}>
-                                <div style={styles.formGroup}>
-                                    <label style={styles.label}>Role</label>
-                                    <select
-                                        style={styles.input}
-                                        value={currentUser.role}
-                                        onChange={(e) => setCurrentUser({ ...currentUser, role: e.target.value })}
-                                    >
-                                        <option value="Buyer">Buyer</option>
-                                        <option value="Seller">Seller</option>
-                                        <option value="Agent">Agent</option>
-                                        <option value="Admin">Admin</option>
-                                    </select>
-                                </div>
-                                <div style={styles.formGroup}>
-                                    <label style={styles.label}>Status</label>
-                                    <select
-                                        style={styles.input}
-                                        value={currentUser.status}
-                                        onChange={(e) => setCurrentUser({ ...currentUser, status: e.target.value })}
-                                    >
-                                        <option value="Active">Active</option>
-                                        <option value="Suspended">Suspended</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div style={styles.modalActions}>
-                                <button type="button" onClick={() => setIsEditing(false)} style={styles.cancelBtn}>Cancel</button>
-                                <button type="submit" style={styles.saveBtn}>Save Changes</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
@@ -235,6 +270,22 @@ const styles = {
     titleArea: { flex: 1 },
     title: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
     subtitle: { color: '#666', fontSize: '0.95rem' },
+    filterRow: { display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '18px' },
+    filterBtn: {
+        border: '1px solid #E5E7EB',
+        backgroundColor: '#fff',
+        color: '#4B5563',
+        padding: '8px 12px',
+        borderRadius: '999px',
+        fontSize: '0.82rem',
+        fontWeight: 700,
+        cursor: 'pointer'
+    },
+    filterBtnActive: {
+        backgroundColor: '#1A1A1A',
+        color: '#fff',
+        borderColor: '#1A1A1A'
+    },
     searchBar: { width: '300px' },
     searchInput: { width: '100%', padding: '12px 20px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' },
     tableCard: { backgroundColor: '#fff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.05)', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' },
@@ -252,18 +303,7 @@ const styles = {
     statusTag: { padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     actionGroup: { display: 'flex', gap: '8px' },
     iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#666', transition: 'color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '6px' },
-    noResults: { padding: '40px', textAlign: 'center', color: '#666', borderTop: '1px solid #f9fafb' },
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-    modal: { backgroundColor: '#fff', borderRadius: '16px', padding: '32px', width: '450px', boxShadow: '0 20px 50px rgba(0,0,0,0.15)' },
-    modalTitle: { fontSize: '1.25rem', fontWeight: '800', marginBottom: '24px', color: '#1A1A1A' },
-    form: { display: 'flex', flexDirection: 'column', gap: '20px' },
-    formRow: { display: 'flex', gap: '16px' },
-    formGroup: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 },
-    label: { fontSize: '0.85rem', fontWeight: '700', color: '#444' },
-    input: { padding: '12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem', outline: 'none' },
-    modalActions: { display: 'flex', gap: '12px', marginTop: '12px' },
-    cancelBtn: { flex: 1, padding: '14px', backgroundColor: '#F3F4F6', color: '#4B5563', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
-    saveBtn: { flex: 1, padding: '14px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }
+    noResults: { padding: '40px', textAlign: 'center', color: '#666', borderTop: '1px solid #f9fafb' }
 };
 
 export default UserManagement;

@@ -57,7 +57,7 @@ const Header = () => {
                 <span className="nav-logo-text">Smart Land Management System</span>
             </div>
             <ul className="landing-nav-links">
-                {NAV.map((n) => {
+                {NAV.filter((n) => !(n === 'Service' && user && user.role !== 'buyer')).map((n) => {
                     const isProtected = n === 'Service' || n === 'Inquiry';
                     const linkProps = isProtected ? {
                         style: { cursor: 'pointer' }

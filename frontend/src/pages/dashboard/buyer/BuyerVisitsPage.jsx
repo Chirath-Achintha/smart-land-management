@@ -9,9 +9,13 @@ const BuyerVisitsPage = () => {
     const [updatingVisit, setUpdatingVisit] = useState(null);
     const [cancellingVisit, setCancellingVisit] = useState(null);
     const [editData, setEditData] = useState({ date: '', time: '', message: '' });
+    const [availability, setAvailability] = useState([]);
+    const [loadingAvail, setLoadingAvail] = useState(false);
+    const [updateError, setUpdateError] = useState('');
+    const DAYS_FIXED = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     
     // Calendar State
-    const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 21)); // Mar 21, 2026
+    const [currentDate, setCurrentDate] = useState(new Date()); // Auto-detect current month/year
     const [highlightedVisitId, setHighlightedVisitId] = useState(null);
 
     useEffect(() => {
@@ -73,17 +77,69 @@ const BuyerVisitsPage = () => {
         }
     };
 
-    const handleUpdate = (visit) => {
+    const handleUpdate = async (visit) => {
         setUpdatingVisit(visit);
         setEditData({
             date: visit.visit_date,
             time: visit.visit_time,
             message: visit.message || ''
         });
+        setUpdateError('');
+        
+        // Fetch Availability for this land
+        setLoadingAvail(true);
+        try {
+            const res = await fetch(`${API}/availability/land/${visit.land_id}`);
+            const data = await res.json();
+            setAvailability(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("Failed to fetch availability", err);
+        } finally {
+            setLoadingAvail(false);
+        }
     };
 
+    // Live Validation for Update Modal
+    useEffect(() => {
+        if (!updatingVisit || !editData.date || availability.length === 0) {
+            setUpdateError('');
+            return;
+        }
+
+        const selectedDateObj = new Date(editData.date);
+        const dayIdx = selectedDateObj.getDay();
+        const dayName = DAYS_FIXED[dayIdx === 0 ? 6 : dayIdx - 1];
+        
+        const daySlot = availability.find(a => a.day === dayName);
+        if (!daySlot) {
+            setUpdateError(`Owner is not available on ${dayName}s.`);
+            return;
+        }
+
+        if (editData.time) {
+            const [startStr, endStr] = daySlot.time_slot.split(' – ');
+            const parseDisplayStr = (str) => {
+                const [timePart, ampm] = str.split(' ');
+                let [h, m] = timePart.split(':').map(Number);
+                if (ampm === 'PM' && h !== 12) h += 12;
+                if (ampm === 'AM' && h === 12) h = 0;
+                return h * 60 + m;
+            };
+            const startMins = parseDisplayStr(startStr);
+            const endMins = parseDisplayStr(endStr);
+            const [h, m] = editData.time.split(':').map(Number);
+            const selectedMins = h * 60 + m;
+
+            if (selectedMins < startMins || selectedMins > endMins) {
+                setUpdateError(`Window for ${dayName} is ${daySlot.time_slot}.`);
+                return;
+            }
+        }
+        setUpdateError('');
+    }, [editData.date, editData.time, availability, updatingVisit]);
+
     const handleUpdateSubmit = async () => {
-        if (!updatingVisit) return;
+        if (!updatingVisit || updateError) return;
         const vId = updatingVisit._id || updatingVisit.id;
         if (!vId || vId === 'undefined') {
             alert('Error: Visit ID is missing');
@@ -131,7 +187,7 @@ const BuyerVisitsPage = () => {
 
     const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    const goToToday = () => setCurrentDate(new Date(2026, 2, 21));
+    const goToToday = () => setCurrentDate(new Date());
 
     const scrollToVisit = (visitId) => {
         setHighlightedVisitId(visitId);
@@ -159,7 +215,7 @@ const BuyerVisitsPage = () => {
         const remaining = totalCells - days.length;
         for (let i = 1; i <= remaining; i++) days.push({ day: i, currentMonth: false, dateStr: `${year}-${month + 2}-${i}` });
 
-        const calendarVisits = myVisits.filter(v => ['Pending', 'Accepted', 'SellerAccepted', 'Assigned', 'Completed'].includes(v.status));
+        const calendarVisits = myVisits.filter(v => ['Accepted', 'Completed'].includes(v.status));
 
         return (
             <div style={S.calendarRoot}>
@@ -175,7 +231,8 @@ const BuyerVisitsPage = () => {
                     {weekDays.map(wd => <div key={wd} style={S.weekDayHead}>{wd}</div>)}
                     {days.map((d, i) => {
                         const dayVisits = calendarVisits.filter(v => v.visit_date === d.dateStr);
-                        const isToday = d.dateStr === '2026-03-21';
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const isToday = d.dateStr === todayStr;
                         return (
                             <div key={i} style={{ ...S.dayCell, opacity: d.currentMonth ? 1 : 0.4 }}>
                                 <div style={S.dayNum}><span style={isToday ? S.todayCircle : {}}>{d.day}</span></div>
@@ -405,11 +462,26 @@ const BuyerVisitsPage = () => {
                         <p style={S.modalSub}>Adjust your scheduled date and time for <strong>{updatingVisit.land_name || 'this property'}</strong>.</p>
                         
                         <div style={S.modalBody}>
+                            {loadingAvail && <div style={{ fontSize: '0.8rem', color: '#666', fontStyle: 'italic' }}>Loading owner availability...</div>}
+                            {updateError && (
+                                <div style={{ 
+                                    background: '#fdecea', 
+                                    color: '#d32f2f', 
+                                    padding: '12px', 
+                                    borderRadius: '12px', 
+                                    fontSize: '0.85rem',
+                                    border: '1px solid #ef9a9a' 
+                                }}>
+                                    {updateError}
+                                </div>
+                            )}
+
                             <div style={S.inputRow}>
                                 <label style={S.label}>New Date</label>
                                 <input 
                                     type="date" 
                                     style={S.input} 
+                                    min={new Date().toISOString().split('T')[0]}
                                     value={editData.date}
                                     onChange={(e) => setEditData({ ...editData, date: e.target.value })}
                                 />
@@ -423,11 +495,34 @@ const BuyerVisitsPage = () => {
                                     onChange={(e) => setEditData({ ...editData, time: e.target.value })}
                                 />
                             </div>
+                            {availability.length > 0 && (
+                                <div style={{ 
+                                    background: '#F9F7F5', 
+                                    padding: '12px', 
+                                    borderRadius: '12px',
+                                    fontSize: '0.75rem',
+                                    color: '#666'
+                                }}>
+                                    <strong style={{ display: 'block', marginBottom: '4px', color: '#1A1A1A' }}>Owner Availability:</strong>
+                                    {availability.map((a, idx) => (
+                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>{a.day}:</span>
+                                            <span style={{ fontWeight: '700' }}>{a.time_slot}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div style={S.modalFooter}>
                             <button style={S.cancelBtn} onClick={() => setUpdatingVisit(null)}>Close</button>
-                            <button style={S.saveBtn} onClick={handleUpdateSubmit}>Save Changes</button>
+                            <button 
+                                style={{ ...S.saveBtn, opacity: updateError ? 0.5 : 1 }} 
+                                onClick={handleUpdateSubmit}
+                                disabled={!!updateError}
+                            >
+                                Save Changes
+                            </button>
                         </div>
                     </div>
                 </div>

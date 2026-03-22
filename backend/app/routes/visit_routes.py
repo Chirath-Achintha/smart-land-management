@@ -247,6 +247,7 @@ async def update_visit_status(
     # Agent Confirms Slot
     if current_user.role == "agent" and data.status == VisitStatus.Accepted:
         land = await Land.get(visit.land_id)
+        buyer = await User.get(visit.buyer_id)
         await Notification(
             user_id=visit.buyer_id,
             title="Agent Visit Confirmed",
@@ -260,6 +261,13 @@ async def update_visit_status(
                 message=f"An official agent has been assigned and has confirmed their attendance for your '{land.name}' visit on {visit.visit_date} at {visit.visit_time}. Their contact details are now available on your dashboard.",
                 link="/dashboard/seller/visits"
             ).insert()
+            
+            # Notify Admin
+            await _notify_admins(
+                title="Assignment Finalized: Agent Accepted",
+                message=f"Agent {current_user.full_name} has officially accepted the 'facilitator' assignment for '{land.name}' scheduled with buyer {buyer.full_name if buyer else 'Buyer'} on {visit.visit_date}.",
+                link="/dashboard/admin/agent-visits"
+            )
 
     return await _build_response(visit)
 

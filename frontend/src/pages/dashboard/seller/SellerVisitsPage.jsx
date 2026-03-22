@@ -21,7 +21,7 @@ const SellerVisitsPage = () => {
     const [rejectingVisit, setRejectingVisit] = useState(null);
     const [rejectMessage, setRejectMessage] = useState('');
     const [viewMode, setViewMode] = useState('calendar'); // Default to the new calendar view
-    const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 21)); // Mar 21, 2026
+    const [currentDate, setCurrentDate] = useState(new Date()); // Auto-detect today
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
@@ -97,7 +97,7 @@ const SellerVisitsPage = () => {
 
     // Accepted visits for the schedule table
     // Also include SellerAccepted in the visual schedule (since seller confirmed time)
-    const activeSchedule = visits.filter(v => v.status === 'Accepted' || v.status === 'SellerAccepted');
+    const activeSchedule = visits.filter(v => v.status === 'Accepted' || v.status === 'Completed');
     const scheduleByDate = activeSchedule.reduce((acc, v) => {
         const date = v.visit_date;
         if (!acc[date]) acc[date] = [];
@@ -116,7 +116,7 @@ const SellerVisitsPage = () => {
 
     const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    const goToToday = () => setCurrentDate(new Date(2026, 2, 21));
+    const goToToday = () => setCurrentDate(new Date());
 
     const renderCalendar = () => {
         const month = currentDate.getMonth();
@@ -159,7 +159,8 @@ const SellerVisitsPage = () => {
                     {weekDays.map(wd => <div key={wd} style={S.weekDayHead}>{wd}</div>)}
                     {days.map((d, i) => {
                         const dayVisits = activeSchedule.filter(v => v.visit_date === d.dateStr);
-                        const isToday = d.dateStr === '2026-03-21';
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const isToday = d.dateStr === todayStr;
                         return (
                             <div key={i} style={{ ...S.dayCell, opacity: d.currentMonth ? 1 : 0.4 }}>
                                 <div style={S.dayNum}>

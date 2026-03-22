@@ -9,6 +9,7 @@ const NAV = {
         { to: '/dashboard/bids', label: 'My Biddings' },
         { to: '/dashboard/visits', label: ' My Site Visits' },
         { to: '/dashboard/properties', label: 'Saved Properties' },
+        { to: '/services', label: 'Service Requests' },
     ],
     seller: [
         { to: '/dashboard', label: 'Overview' },
@@ -29,6 +30,7 @@ const NAV = {
         { to: '/dashboard/admin/agents', label: 'Agent Assignment' },
         { to: '/dashboard/admin/agent-visits', label: 'Agent Site Requests' },
         { to: '/dashboard/admin/services', label: 'Constructor Service Requests' },
+        { to: '/dashboard/admin/constructor-teams', label: 'Constructor Teams' },
     ],
     constructor_manager: [
         { to: '/dashboard', label: 'Overview' },

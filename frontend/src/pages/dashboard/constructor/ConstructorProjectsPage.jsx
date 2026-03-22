@@ -1,30 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import API_BASE_URL from '../../../apiConfig';
+import toast from 'react-hot-toast';
 
 const API = API_BASE_URL;
 
-const DISPLAY_FILTERS = ['All', 'Planning', 'In Progress', 'Completed', 'Cancelled'];
+const DISPLAY_FILTERS = ['All', 'Accepted', 'Completed', 'Cancelled'];
 
 const STATUS_STYLE = {
-    'In Progress': { color: '#f39c12', background: '#fef5e7' },
-    Planning: { color: '#3498db', background: '#ebf5fb' },
-    Completed: { color: '#27ae60', background: '#eafaf1' },
+    Accepted: { color: '#095028', background: '#dcfce7' },
+    Completed: { color: '#1A1A1A', background: '#e5e7eb' },
     Cancelled: { color: '#b91c1c', background: '#fee2e2' },
 };
 
 const deriveDisplayStatus = (status) => {
-    if (['Requested', 'Approved', 'Scheduled'].includes(status)) return 'Planning';
-    if (status === 'In Progress') return 'In Progress';
+    if (status === 'Accepted') return 'Accepted';
     if (status === 'Completed') return 'Completed';
     if (status === 'Cancelled') return 'Cancelled';
-    return 'Planning';
+    return 'Accepted'; // fallback
 };
 
 const deriveProgress = (status) => {
-    const display = deriveDisplayStatus(status);
-    if (display === 'Planning') return 15;
-    if (display === 'In Progress') return 65;
-    if (display === 'Completed') return 100;
+    if (status === 'Accepted') return 50;
+    if (status === 'Completed') return 100;
     return 0;
 };
 
@@ -41,8 +38,6 @@ const toProjectCode = (id) => {
     const cleaned = String(id || '').slice(-6).toUpperCase();
     return `PRJ-${cleaned || 'N/A'}`;
 };
-
-const isAcceptedProject = (status) => status === 'In Progress' || status === 'Completed' || status === 'Cancelled';
 
 const ConstructorProjectsPage = () => {
     const token = localStorage.getItem('access_token');
@@ -69,7 +64,9 @@ const ConstructorProjectsPage = () => {
             const res = await fetch(`${API}/service-bookings/assigned`, { headers: authH });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Failed to load projects');
-            const filtered = (Array.isArray(data) ? data : []).filter((b) => isAcceptedProject(b.status));
+            
+            // Only show projects that are NOT Pending (i.e. Accepted, Completed, Cancelled)
+            const filtered = (Array.isArray(data) ? data : []).filter((b) => b.status !== 'Pending');
             setBookings(filtered);
         } catch (e) {
             setBookings([]);
@@ -79,17 +76,13 @@ const ConstructorProjectsPage = () => {
         }
     };
 
-    useEffect(() => {
-        fetchProjects();
-    }, []);
+    useEffect(() => { fetchProjects(); }, []);
 
     useEffect(() => {
         if (!token) return undefined;
-
         const intervalId = setInterval(fetchProjects, 15000);
         const onFocus = () => fetchProjects();
         window.addEventListener('focus', onFocus);
-
         return () => {
             clearInterval(intervalId);
             window.removeEventListener('focus', onFocus);
@@ -107,10 +100,11 @@ const ConstructorProjectsPage = () => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Failed to update status');
 
+			toast.success(`Project marked as ${nextStatus}!`);
             setBookings((prev) => prev.map((b) => (b.id === bookingId ? data : b)));
             setActiveProject((prev) => (prev && prev.id === bookingId ? data : prev));
         } catch (e) {
-            alert(e.message || 'Failed to update status');
+            toast.error(e.message || 'Failed to update status');
         } finally {
             setUpdatingId('');
         }
@@ -124,31 +118,31 @@ const ConstructorProjectsPage = () => {
     return (
         <div style={S.root}>
             <div style={S.header}>
-                <h1 style={S.title}>My Projects</h1>
-                <p style={S.subtitle}>Manage and track your active construction projects.</p>
+                <h1 style={S.title}>My Workshop</h1>
+                <p style={S.subtitle}>Manage active and completed projects that you have accepted.</p>
             </div>
 
             <div style={S.toolbar}>
                 <div style={S.filterBar}>
                     {DISPLAY_FILTERS.map((f) => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            style={{ ...S.filterBtn, ...(filter === f ? S.activeFilter : {}) }}
-                        >
+                        <button key={f} onClick={() => setFilter(f)}
+                            style={{ ...S.filterBtn, ...(filter === f ? S.activeFilter : {}) }}>
                             {f}
                         </button>
                     ))}
                 </div>
-                <button style={S.refreshBtn} onClick={fetchProjects} type="button">Refresh</button>
+                <button style={S.refreshBtn} onClick={fetchProjects} type="button">Refresh Data</button>
             </div>
 
             {loading ? (
-                <div style={S.empty}>Loading projects...</div>
+                <div style={S.empty}>Loading active projects...</div>
             ) : error ? (
                 <div style={S.error}>{error}</div>
             ) : filtered.length === 0 ? (
-                <div style={S.empty}>No projects available for this filter.</div>
+                <div style={S.emptyBox}>
+                    <h3 style={{marginTop: 0, color: '#111827'}}>No projects in "{filter}"</h3>
+                    <p style={{margin: 0}}>You don't have any matching projects in your workshop right now.</p>
+                </div>
             ) : (
             <div style={S.projectGrid}>
                 {filtered.map((p) => {
@@ -175,7 +169,7 @@ const ConstructorProjectsPage = () => {
 
                         <div style={S.progressWrapper}>
                             <div style={S.progressHeader}>
-                                <span style={S.label}>Completion Progress</span>
+                                <span style={S.label}>Progress</span>
                                 <span style={S.progressVal}>{progress}%</span>
                             </div>
                             <div style={S.progressBg}>
@@ -183,11 +177,8 @@ const ConstructorProjectsPage = () => {
                             </div>
                         </div>
 
-                        <button
-                            style={S.viewDetailsBtn}
-                            onClick={() => { setActiveProject(p); setShowModal(true); }}
-                        >
-                            View Details & Manage
+                        <button style={S.viewDetailsBtn} onClick={() => { setActiveProject(p); setShowModal(true); }}>
+                            Manage Project
                         </button>
                     </div>
                 );
@@ -210,52 +201,32 @@ const ConstructorProjectsPage = () => {
                                     <span style={S.valueLarge}>{toProjectCode(activeProject.id)}</span>
                                 </div>
                                 <div style={S.modalField}>
-                                    <span style={S.label}>Team Assigned</span>
-                                    <span style={S.valueLarge}>{activeProject.constructor_name || 'Current Team'}</span>
-                                </div>
-                                <div style={S.modalField}>
-                                    <span style={S.label}>Preferred Date</span>
-                                    <span style={S.valueLarge}>{activeProject.preferred_date || 'N/A'}</span>
-                                </div>
-                                <div style={S.modalField}>
                                     <span style={S.label}>Status</span>
                                     <div style={{ ...S.statusBadge, ...getStatusStyle(deriveDisplayStatus(activeProject.status)), alignSelf: 'flex-start' }}>
                                         {deriveDisplayStatus(activeProject.status)}
                                     </div>
                                 </div>
                                 <div style={S.modalField}>
-                                    <span style={S.label}>District</span>
-                                    <span style={S.valueLarge}>{activeProject.land_district || 'N/A'}</span>
+                                    <span style={S.label}>Preferred Date</span>
+                                    <span style={S.valueLarge}>{activeProject.preferred_date || 'N/A'}</span>
                                 </div>
                                 <div style={S.modalField}>
-                                    <span style={S.label}>Budget</span>
-                                    <span style={S.valueLarge}>{formatBudget(activeProject.land_price)}</span>
+                                    <span style={S.label}>District</span>
+                                    <span style={S.valueLarge}>{activeProject.land_district || 'N/A'}</span>
                                 </div>
                             </div>
 
                             <div style={S.updateSection}>
-                                <h4 style={S.sectionLabel}>Quick Actions</h4>
+                                <h4 style={S.sectionLabel}>Project Actions</h4>
                                 <div style={S.actionRow}>
-                                    {(activeProject.status === 'Approved' || activeProject.status === 'Scheduled' || activeProject.status === 'Requested') && (
-                                        <button
-                                            style={S.actionBtnPrimary}
-                                            onClick={() => updateStatus(activeProject.id, 'In Progress')}
-                                            disabled={updatingId === activeProject.id}
-                                        >
-                                            {updatingId === activeProject.id ? 'Updating...' : 'Mark In Progress'}
-                                        </button>
-                                    )}
-                                    {activeProject.status === 'In Progress' && (
-                                        <button
-                                            style={S.actionBtnSuccess}
-                                            onClick={() => updateStatus(activeProject.id, 'Completed')}
-                                            disabled={updatingId === activeProject.id}
-                                        >
-                                            {updatingId === activeProject.id ? 'Updating...' : 'Mark Completed'}
+                                    {activeProject.status === 'Accepted' && (
+                                        <button style={S.actionBtnSuccess} disabled={updatingId === activeProject.id}
+                                            onClick={() => updateStatus(activeProject.id, 'Completed')}>
+                                            {updatingId === activeProject.id ? 'Updating...' : 'Mark as Completed'}
                                         </button>
                                     )}
                                     {activeProject.status === 'Completed' && (
-                                        <div style={S.doneText}>This project is already completed.</div>
+                                        <div style={S.doneText}>🎉 This project is successfully completed.</div>
                                     )}
                                     {activeProject.status === 'Cancelled' && (
                                         <div style={S.doneText}>This project was cancelled.</div>
@@ -281,52 +252,50 @@ const S = {
     subtitle: { color: '#777', fontSize: '1rem' },
 
     toolbar: { marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' },
-    filterBar: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-    filterBtn: { padding: '8px 16px', borderRadius: '8px', border: '1px solid #DDD', background: '#fff', color: '#666', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' },
-    activeFilter: { background: '#1A1A1A', color: '#fff', border: '1px solid #1A1A1A' },
-    refreshBtn: { padding: '8px 14px', borderRadius: '8px', border: '1px solid #DDD', background: '#fff', color: '#333', fontWeight: '700', cursor: 'pointer' },
+    filterBar: { display: 'flex', gap: '8px', flexWrap: 'wrap', background: '#fff', padding: '6px', borderRadius: '12px', border: '1px solid #E5E7EB' },
+    filterBtn: { padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'transparent', color: '#6B7280', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.85rem' },
+    activeFilter: { background: '#111827', color: '#fff' },
+    refreshBtn: { padding: '10px 16px', borderRadius: '10px', border: '1px solid #D1D5DB', background: '#fff', color: '#111827', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem' },
 
-    projectGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' },
-    projectCard: { background: '#fff', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0', display: 'flex', flexDirection: 'column', gap: '20px' },
+    projectGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' },
+    projectCard: { background: '#fff', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0', display: 'flex', flexDirection: 'column', gap: '20px' },
 
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    projectId: { fontSize: '0.75rem', fontWeight: '800', color: '#3498db', letterSpacing: '0.05em' },
-    statusBadge: { padding: '6px 12px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '800' },
+    projectId: { fontSize: '0.75rem', fontWeight: '800', color: '#10B981', letterSpacing: '0.05em' },
+    statusBadge: { padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800' },
+    projectName: { margin: 0, fontSize: '1.2rem', fontWeight: '800', color: '#111827' },
 
-    projectName: { margin: 0, fontSize: '1.25rem', fontWeight: '800', color: '#1A1A1A' },
-
-    infoSummary: { display: 'flex', gap: '24px' },
+    infoSummary: { display: 'flex', gap: '24px', background: '#F9FAFB', padding: '12px', borderRadius: '10px' },
     infoItem: { display: 'flex', flexDirection: 'column', gap: '2px' },
-    label: { fontSize: '0.7rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase' },
-    value: { fontSize: '0.9rem', fontWeight: '700', color: '#333' },
+    label: { fontSize: '0.7rem', fontWeight: '800', color: '#9CA3AF', textTransform: 'uppercase' },
+    value: { fontSize: '0.9rem', fontWeight: '700', color: '#111827' },
 
     progressWrapper: { display: 'flex', flexDirection: 'column', gap: '8px' },
     progressHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' },
-    progressVal: { fontSize: '0.9rem', fontWeight: '800', color: '#1A1A1A' },
-    progressBg: { width: '100%', height: '8px', background: '#F0F0F0', borderRadius: '4px', overflow: 'hidden' },
-    progressFill: { height: '100%', background: '#1A1A1A', borderRadius: '4px', transition: 'width 0.4s ease' },
+    progressVal: { fontSize: '0.9rem', fontWeight: '800', color: '#111827' },
+    progressBg: { width: '100%', height: '8px', background: '#F3F4F6', borderRadius: '4px', overflow: 'hidden' },
+    progressFill: { height: '100%', background: '#10B981', borderRadius: '4px', transition: 'width 0.4s ease' },
 
-    viewDetailsBtn: { marginTop: '10px', padding: '12px', borderRadius: '12px', background: '#F5F5F5', color: '#1A1A1A', border: 'none', fontWeight: '700', cursor: 'pointer', transition: 'background 0.2s' },
-    empty: { textAlign: 'center', color: '#777', padding: '40px', borderRadius: '16px', background: '#fff' },
-    error: { textAlign: 'center', color: '#b91c1c', padding: '40px', borderRadius: '16px', background: '#fee2e2' },
+    viewDetailsBtn: { marginTop: '10px', padding: '12px', borderRadius: '10px', background: '#111827', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer', transition: 'transform 0.1s' },
+    emptyBox: { textAlign: 'center', color: '#6B7280', padding: '60px', background: '#fff', borderRadius: '16px', border: '1px dashed #E5E7EB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
+    error: { textAlign: 'center', color: '#B91C1C', padding: '40px', borderRadius: '16px', background: '#FEE2E2' },
 
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modal: { background: '#fff', padding: '32px', borderRadius: '32px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.1)' },
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
+    modal: { background: '#fff', padding: '36px', borderRadius: '28px', width: '100%', maxWidth: '450px', boxShadow: '0 24px 60px rgba(0,0,0,0.1)' },
     modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
-    modalTitle: { margin: 0, fontSize: '1.5rem', fontWeight: '800' },
-    closeBtn: { background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#AAA' },
+    modalTitle: { margin: 0, fontSize: '1.4rem', fontWeight: '800' },
+    closeBtn: { background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#AAA' },
 
     modalBody: { display: 'flex', flexDirection: 'column', gap: '24px' },
     modalGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
     modalField: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    valueLarge: { fontSize: '1rem', fontWeight: '700', color: '#1A1A1A' },
+    valueLarge: { fontSize: '1rem', fontWeight: '700', color: '#111827' },
 
-    updateSection: { padding: '20px', background: '#F9F9F9', borderRadius: '16px' },
-    sectionLabel: { margin: '0 0 12px 0', fontSize: '0.85rem', fontWeight: '800', color: '#777', textTransform: 'uppercase' },
+    updateSection: { padding: '20px', background: '#F9FAFB', borderRadius: '16px', border: '1px solid #E5E7EB' },
+    sectionLabel: { margin: '0 0 12px 0', fontSize: '0.8rem', fontWeight: '800', color: '#9CA3AF', textTransform: 'uppercase' },
     actionRow: { display: 'flex', gap: '12px', flexWrap: 'wrap' },
-    actionBtnPrimary: { flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#1A1A1A', color: '#fff', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem' },
-    actionBtnSuccess: { flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#166534', color: '#fff', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem' },
-    doneText: { color: '#555', fontWeight: '700', fontSize: '0.9rem' }
+    actionBtnSuccess: { flex: 1, padding: '12px', borderRadius: '10px', border: 'none', background: '#10B981', color: '#fff', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' },
+    doneText: { color: '#059669', fontWeight: '700', fontSize: '0.9rem', padding: '8px 0' }
 };
 
 export default ConstructorProjectsPage;

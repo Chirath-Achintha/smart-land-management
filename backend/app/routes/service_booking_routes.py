@@ -69,7 +69,7 @@ async def create_booking(
         preferred_date=data.preferred_date,
         preferred_time=data.preferred_time,
         notes=data.notes,
-        status="Requested",
+        status="Pending",
     )
     await booking.insert()
     return await _build_response(booking)
@@ -97,8 +97,8 @@ async def update_booking(
     )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    if booking.status not in ["Requested", "Scheduled"]:
-        raise HTTPException(status_code=400, detail="Only Requested bookings can be edited")
+    if booking.status != "Pending":
+        raise HTTPException(status_code=400, detail="Only Pending bookings can be edited")
 
     update_dict = data.dict(exclude_unset=True)
     for field, value in update_dict.items():
@@ -136,7 +136,7 @@ async def list_constructors(
 
     active_bookings = await ServiceBooking.find(
         ServiceBooking.constructor_id.in_(constructor_ids),
-        ServiceBooking.status.in_(["Approved", "Scheduled", "In Progress"]) 
+        ServiceBooking.status == "Accepted"
     ).to_list() if constructor_ids else []
 
     active_count_by_constructor = {}
@@ -196,7 +196,7 @@ async def assign_constructor(
         raise HTTPException(status_code=404, detail="Constructor team not found")
 
     booking.constructor_id = constructor.id
-    booking.status = "Approved"
+    booking.status = "Pending"
     booking.updated_at = datetime.utcnow()
     await booking.save()
     return await _build_response(booking)
@@ -244,7 +244,7 @@ async def update_status(
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    allowed = ["Approved", "Scheduled", "In Progress", "Completed", "Cancelled"]
+    allowed = ["Pending", "Accepted", "Completed", "Cancelled"]
     if data.status not in allowed:
         raise HTTPException(status_code=400, detail=f"Status must be one of {allowed}")
 

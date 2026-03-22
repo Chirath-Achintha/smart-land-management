@@ -2,11 +2,12 @@ from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from beanie import PydanticObjectId
 
 from app.models.constructor_team_model import ConstructorTeam
 from app.models.user_model import User
 from app.routes.auth_routes import get_current_user, hash_password
-from app.schemas.constructor_team_schema import ConstructorTeamCreate, ConstructorTeamResponse
+from app.schemas.constructor_team_schema import ConstructorTeamCreate, ConstructorTeamResponse, ConstructorTeamUpdate
 
 router = APIRouter(prefix="/admin/constructor-teams", tags=["Admin Constructor Teams"])
 
@@ -74,3 +75,26 @@ async def create_constructor_team(
 async def list_constructor_teams(_: User = Depends(_check_admin)):
     teams = await ConstructorTeam.find_all().sort("-created_at").to_list()
     return [await _team_response(t) for t in teams]
+
+@router.put("/{team_id}", response_model=ConstructorTeamResponse)
+async def update_constructor_team(
+    team_id: str,
+    payload: ConstructorTeamUpdate,
+    _: User = Depends(_check_admin),
+):
+    try:
+        obj_id = PydanticObjectId(team_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid team ID")
+
+    team = await ConstructorTeam.get(obj_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Constructor team not found")
+
+    update_data = payload.dict(exclude_unset=True)
+    if update_data:
+        for field, value in update_data.items():
+            setattr(team, field, value)
+        await team.save()
+
+    return await _team_response(team)

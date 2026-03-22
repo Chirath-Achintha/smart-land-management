@@ -15,6 +15,16 @@ class ConstructorTeamCreate(BaseModel):
     password: str
 
 
+class ConstructorTeamUpdate(BaseModel):
+    team_name: Optional[str] = None
+    manager_name: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
+    address: Optional[str] = None
+    specialization: Optional[Literal["Full Construction", "Land Development", "Both"]] = None
+    phone: Optional[str] = None
+    is_active: Optional[bool] = None
+
 class ConstructorTeamResponse(BaseModel):
     id: str = Field(alias="_id")
     user_id: str

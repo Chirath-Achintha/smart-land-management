@@ -23,6 +23,7 @@ const AgentVisitsPage = () => {
     const [selectedAgents, setSelectedAgents] = useState({});
     const [rejectingVisit, setRejectingVisit] = useState(null); // Stores the visit object being rejected
     const [rejectMessage, setRejectMessage] = useState('');
+    const [agentBusyMap, setAgentBusyMap] = useState({}); // { [agentId]: { [date]: [times] } }
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
@@ -32,7 +33,20 @@ const AgentVisitsPage = () => {
         fetch(`${API}/visits/all-agent-visits`, { headers: authHeaders })
             .then(r => r.json())
             .then(data => {
-                setVisits(Array.isArray(data) ? data : []);
+                const list = Array.isArray(data) ? data : [];
+                setVisits(list);
+                
+                // Build a quick map of agent busy times: { agentId: { date: [time1, time2] } }
+                const busy = {};
+                list.forEach(v => {
+                    if (v.agent_id && ['Assigned', 'Accepted', 'Completed'].includes(v.status)) {
+                        const aid = v.agent_id;
+                        if (!busy[aid]) busy[aid] = {};
+                        if (!busy[aid][v.visit_date]) busy[aid][v.visit_date] = [];
+                        busy[aid][v.visit_date].push(v.visit_time);
+                    }
+                });
+                setAgentBusyMap(busy);
                 setLoading(false);
             })
             .catch(() => { setVisits([]); setLoading(false); });
@@ -74,9 +88,16 @@ const AgentVisitsPage = () => {
                 const err = await res.json();
                 setError(err.detail || 'Failed to update.');
             } else {
+                const assignedAgent = agents.find(a => (a.id || a._id) === agentId);
                 setVisits(prev => prev.map(v => {
                     const vId = v._id || v.id;
-                    return vId === visitId ? { ...v, status: newStatus, seller_message: finalMessage, agent_id: agentId } : v;
+                    return vId === visitId ? { 
+                        ...v, 
+                        status: newStatus, 
+                        seller_message: finalMessage, 
+                        agent_id: agentId,
+                        agent_name: assignedAgent ? (assignedAgent.full_name || assignedAgent.name) : v.agent_name
+                    } : v;
                 }));
                 setRejectingVisit(null);
                 setRejectMessage('');
@@ -165,9 +186,8 @@ const AgentVisitsPage = () => {
                                 <div style={S.messageSection}>
                                     {visit.status === 'SellerAccepted' ? (
                                         <div style={S.replyArea}>
-                                            <label style={S.detailKey}>Assign Local Agent</label>
                                             <select
-                                                style={S.replyInput}
+                                                style={selectedAgents[vId] ? { ...S.replyInput, borderColor: '#1A1A1A', background: '#F0F7FF' } : S.replyInput}
                                                 value={selectedAgents[vId] || ''}
                                                 onChange={(e) => setSelectedAgents(prev => ({ ...prev, [vId]: e.target.value }))}
                                             >
@@ -181,6 +201,28 @@ const AgentVisitsPage = () => {
                                                     <option disabled>No local agents found for this area</option>
                                                 )}
                                             </select>
+
+                                            {selectedAgents[vId] && (
+                                                <div style={S.busyPreview}>
+                                                    <div style={S.busyTitle}>Agent's Schedule for {visit.visit_date}:</div>
+                                                    {agentBusyMap[selectedAgents[vId]]?.[visit.visit_date]?.length > 0 ? (
+                                                        <div style={S.busyList}>
+                                                            {agentBusyMap[selectedAgents[vId]][visit.visit_date].map((t, idx) => (
+                                                                <span key={idx} style={{ 
+                                                                    ...S.busyTag, 
+                                                                    background: t === visit.visit_time ? '#ffebee' : '#F9F7F5',
+                                                                    color: t === visit.visit_time ? '#c62828' : '#777',
+                                                                    border: t === visit.visit_time ? '1px solid #ef9a9a' : '1px solid #E5E0DA'
+                                                                }}>
+                                                                    {t} {t === visit.visit_time ? '(CONFLICT)' : ''}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div style={S.freeNote}>Full Availability: No other assignments on this date.</div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <>
@@ -318,6 +360,13 @@ const S = {
     modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
     cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
     confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },
+    
+    // Busy Preview Styles
+    busyPreview: { marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '12px', border: '1px solid #E5E0DA' },
+    busyTitle: { fontSize: '0.65rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '8px' },
+    busyList: { display: 'flex', flexWrap: 'wrap', gap: '6px' },
+    busyTag: { padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700' },
+    freeNote: { fontSize: '0.75rem', color: '#2e7d32', fontWeight: '600', fontStyle: 'italic' }
 };
 
 export default AgentVisitsPage;

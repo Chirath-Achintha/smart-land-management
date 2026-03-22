@@ -182,6 +182,7 @@ async def update_visit_status(
     if not (is_owner or is_assigned_agent or is_admin):
         raise HTTPException(status_code=403, detail="Not authorized to update this visit")
 
+    old_status = visit.status
     visit.status = data.status
     if data.seller_message:
         if current_user.role == "admin":
@@ -207,7 +208,8 @@ async def update_visit_status(
     # Notify Buyer when Seller changes status
     if current_user.role == "seller":
         land = await Land.get(visit.land_id)
-        if data.status in [VisitStatus.SellerAccepted, VisitStatus.Accepted]:
+        # Only notify if transitioning TO an approved state from Pending
+        if old_status == VisitStatus.Pending and data.status in [VisitStatus.SellerAccepted, VisitStatus.Accepted]:
             await Notification(
                 user_id=visit.buyer_id,
                 title="Visit Request Approved",
@@ -222,8 +224,7 @@ async def update_visit_status(
                     message=f"An Agent Visit for '{land.name}' on {visit.visit_date} has been approved by the seller. Please assign an available agent to this visit.",
                     link="/dashboard/admin/agent-visits"
                 )
-
-        elif data.status == VisitStatus.Rejected:
+        elif data.status == VisitStatus.Rejected and old_status != VisitStatus.Rejected:
             await Notification(
                 user_id=visit.buyer_id,
                 title="Visit Request Declined",
@@ -242,6 +243,25 @@ async def update_visit_status(
                 title="Action Required: New Agent Assignment",
                 message=f"You have been officially assigned to facilitate a site visit at '{land.name}' with buyer {buyer.full_name} on {visit.visit_date} at {visit.visit_time}. Please officially accept to confirm.",
                 link="/dashboard/agent/assignments"
+            ).insert()
+
+    # Admin Reject 
+    if current_user.role == "admin" and data.status == VisitStatus.Rejected:
+        land = await Land.get(visit.land_id)
+        # Notify Buyer
+        await Notification(
+            user_id=visit.buyer_id,
+            title="Update: Visit Request Cancelled by Admin",
+            message=f"The administrative team has proactively declined your agent-facilitated visit request for '{land.name}' if one was pending. Reason: {visit.admin_message or 'No specific reason given.'}. Please check your dashboard for details.",
+            link="/dashboard/visits"
+        ).insert()
+        # Notify Seller
+        if land:
+            await Notification(
+                user_id=land.seller_id,
+                title="Notice: Professional Assignment Terminated",
+                message=f"Admin has declined/cancelled the agent facilitator request for your land '{land.name}' scheduled for {visit.visit_date}. The visit state has been set to Rejected.",
+                link="/dashboard/seller/visits"
             ).insert()
 
     # Agent Confirms Slot

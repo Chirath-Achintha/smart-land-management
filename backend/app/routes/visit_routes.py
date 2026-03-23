@@ -30,6 +30,8 @@ async def _build_response(visit: Visit) -> VisitResponse:
         seller_message=visit.seller_message,
         admin_message=visit.admin_message,
         status=visit.status,
+        cancel_reason=visit.cancel_reason,
+        cancelled_by=visit.cancelled_by,
         created_at=visit.created_at,
         internal_notes=visit.internal_notes,
         visit_feedback=visit.visit_feedback,
@@ -308,37 +310,71 @@ async def update_visit_status(
 @router.put("/{visit_id}/cancel", response_model=VisitResponse)
 async def cancel_visit(
     visit_id: PydanticObjectId,
+    data: dict = {},
     current_user: User = Depends(get_current_user)
 ):
     visit = await Visit.get(visit_id)
     if not visit:
         raise HTTPException(status_code=404, detail="Visit request not found")
     
-    if visit.buyer_id != current_user.id:
+    land = await Land.get(visit.land_id)
+    if not land:
+        raise HTTPException(status_code=404, detail="Associated land not found")
+
+    is_buyer = visit.buyer_id == current_user.id
+    is_seller = land.seller_id == current_user.id
+    
+    if not is_buyer and not is_seller:
         raise HTTPException(status_code=403, detail="Not authorized to cancel this visit")
     
     if visit.status in [VisitStatus.Completed, VisitStatus.Cancelled]:
         raise HTTPException(status_code=400, detail=f"Cannot cancel a visit that is already {visit.status.lower()}")
 
+    reason = data.get("reason", "").strip()
+    reason_suffix = f" Reason: {reason}" if reason else ""
+
     visit.status = VisitStatus.Cancelled
+    visit.cancel_reason = reason if reason else None
+    visit.cancelled_by = "buyer" if is_buyer else "seller"
     await visit.save()
     
-    # Notify Seller
-    land = await Land.get(visit.land_id)
-    if land:
+    if is_buyer:
+        # Notify Seller
         await Notification(
             user_id=land.seller_id,
-            title="Notice: Visit Cancelled",
-            message=f"The buyer has officially cancelled their scheduled visit for '{land.name}' previously set for {visit.visit_date} at {visit.visit_time}.",
+            title="Notice: Visit Cancelled by Buyer",
+            message=f"The buyer has officially cancelled their scheduled visit for '{land.name}' previously set for {visit.visit_date} at {visit.visit_time}.{reason_suffix}",
             link=f"/dashboard/seller/visits?visit_id={visit.id}"
         ).insert()
         
         if visit.visit_type == VisitType.AgentVisit:
-            msg_admin = f"The scheduled Agent Visit for '{land.name}' on {visit.visit_date} has been cancelled by the buyer. No further action is required."
+            msg_admin = f"The scheduled Agent Visit for '{land.name}' on {visit.visit_date} has been cancelled by the buyer.{reason_suffix}"
             await _notify_admins("Notice: Agent Visit Cancelled", msg_admin, f"/dashboard/admin/agent-visits?visit_id={visit.id}")
             
             if visit.agent_id:
-                msg_agent = f"Your scheduled visit for '{land.name}' on {visit.visit_date} at {visit.visit_time} has been proactively cancelled by the buyer. You have been unassigned from this task."
+                msg_agent = f"Your scheduled visit for '{land.name}' on {visit.visit_date} at {visit.visit_time} has been proactively cancelled by the buyer.{reason_suffix}"
+                await Notification(
+                    user_id=visit.agent_id,
+                    title="Notice: Assignment Cancelled",
+                    message=msg_agent,
+                    link=f"/dashboard/agent/assignments?visit_id={visit.id}"
+                ).insert()
+    else:
+        # Seller cancelled
+        # Notify Buyer
+        await Notification(
+            user_id=visit.buyer_id,
+            title="Notice: Visit Cancelled by Seller",
+            message=f"The owner of '{land.name}' has cancelled your scheduled visit set for {visit.visit_date} at {visit.visit_time}.{reason_suffix}",
+            link=f"/dashboard/visits?visit_id={visit.id}"
+        ).insert()
+
+        if visit.visit_type == VisitType.AgentVisit:
+            msg_admin = f"The scheduled Agent Visit for '{land.name}' on {visit.visit_date} has been cancelled by the seller.{reason_suffix}"
+            await _notify_admins("Notice: Agent Visit Cancelled", msg_admin, f"/dashboard/admin/agent-visits?visit_id={visit.id}")
+            
+            if visit.agent_id:
+                msg_agent = f"Your scheduled visit for '{land.name}' on {visit.visit_date} at {visit.visit_time} has been cancelled by the seller.{reason_suffix}"
                 await Notification(
                     user_id=visit.agent_id,
                     title="Notice: Assignment Cancelled",

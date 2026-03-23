@@ -66,8 +66,8 @@ const ConstructorServiceBookingsPage = () => {
     }, [token]);
 
     const submitQuote = async (id) => {
-        if (!quoteData.amount || isNaN(quoteData.amount)) {
-            toast.error('Please enter a valid amount');
+        if (!quoteData.amount || isNaN(quoteData.amount) || parseFloat(quoteData.amount) <= 0) {
+            toast.error('Please enter a valid positive amount');
             return;
         }
         setUpdating(id);
@@ -244,6 +244,7 @@ const ConstructorServiceBookingsPage = () => {
                                 <input 
                                     style={S.input}
                                     type="number"
+                                    min="1"
                                     placeholder="e.g. 500000"
                                     value={quoteData.amount}
                                     onChange={e => setQuoteData({ ...quoteData, amount: e.target.value })}

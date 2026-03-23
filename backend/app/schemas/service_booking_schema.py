@@ -37,7 +37,7 @@ class MilestoneResponse(BaseModel):
 
 
 class QuoteSubmitRequest(BaseModel):
-    quote_amount: float
+    quote_amount: float = Field(gt=0)
     quote_notes: Optional[str] = None
 
 

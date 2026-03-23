@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
@@ -8,6 +9,8 @@ const STATUS_COLORS = {
     SellerAccepted: { bg: '#e3f2fd', color: '#1565c0', border: '#90caf9' }, // Awaiting Admin
     Accepted: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
     Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
+    Cancelled: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
+    Completed: { bg: '#f5f5f5', color: '#616161', border: '#e0e0e0' }
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -37,7 +40,38 @@ const SellerVisitsPage = () => {
             .catch(() => { setVisits([]); setLoading(false); });
     };
 
-    useEffect(() => { fetchVisits(); }, []);
+    useEffect(() => { 
+        fetchVisits(); 
+    }, []);
+
+    const location = useLocation();
+
+    // Scroll to visit logic
+    useEffect(() => {
+        if (!loading && visits.length > 0) {
+            const params = new URLSearchParams(location.search);
+            const visitId = params.get('visit_id');
+            if (visitId) {
+                // Find the visit and set filter if needed
+                const v = visits.find(v => (v._id || v.id) === visitId);
+                if (v) {
+                    if (v.status === 'Cancelled' || v.status === 'Rejected') {
+                        setFilter('Cancelled');
+                    } else {
+                        setFilter(v.status);
+                    }
+                    setTimeout(() => {
+                        const el = document.getElementById(`visit-${visitId}`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.style.border = '2px solid #C62828';
+                            setTimeout(() => { el.style.border = '1px solid #F0EBE4'; }, 3000);
+                        }
+                    }, 500);
+                }
+            }
+        }
+    }, [loading, visits, location.search]);
 
     const updateStatus = async (visitId, newStatus, message = '') => {
         let finalStatus = newStatus;
@@ -75,17 +109,31 @@ const SellerVisitsPage = () => {
         } catch { setError('Server error. Try again.'); }
         setUpdating(null);
     };
+    const [landFilter, setLandFilter] = useState('All Lands');
+    const [isLandDropdownOpen, setIsLandDropdownOpen] = useState(false);
+
     // Filter by visit type separately
     const [visitTypeFilter, setVisitTypeFilter] = useState('All');
 
     // Filter by status for quick overview (tabs)
     const [filter, setFilter] = useState('All');
 
+    const uniqueLands = ['All Lands', ...new Set(visits.map(v => v.land_name || `Land #${v.land_id}`))];
+
     const typedVisits = visitTypeFilter === 'All' 
         ? visits 
         : visits.filter(v => v.visit_type === visitTypeFilter);
 
-    const filtered = filter === 'All' ? typedVisits : typedVisits.filter(v => v.status === filter);
+    // Apply land filter AFTER type filter
+    const landFiltered = landFilter === 'All Lands'
+        ? typedVisits
+        : typedVisits.filter(v => (v.land_name || `Land #${v.land_id}`) === landFilter);
+
+    const filtered = filter === 'All' 
+        ? landFiltered 
+        : filter === 'Cancelled'
+            ? landFiltered.filter(v => v.status === 'Cancelled' || v.status === 'Rejected')
+            : landFiltered.filter(v => v.status === filter);
 
     // Group by land
     const byLand = filtered.reduce((acc, v) => {
@@ -199,29 +247,68 @@ const SellerVisitsPage = () => {
 
             {error && <div style={S.errBox}>{error}</div>}
 
-            {/* Type Toggle */}
-            <div style={S.typeToggleRow}>
-                {[
-                    { id: 'All', label: 'All Visits' },
-                    { id: 'self_visit', label: 'Self Visits' },
-                    { id: 'agent_visit', label: 'Agent Visits' }
-                ].map(type => (
-                    <button 
-                        key={type.id} 
-                        onClick={() => setVisitTypeFilter(type.id)}
-                        style={{
-                            ...S.typeTab,
-                            background: visitTypeFilter === type.id ? '#1A1A1A' : 'transparent',
-                            color: visitTypeFilter === type.id ? '#fff' : '#1A1A1A',
-                        }}>
-                        {type.label}
-                    </button>
-                ))}
+            {/* Filter Controls Row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '20px', flexWrap: 'wrap' }}>
+                <div style={S.typeToggleRow}>
+                    {[
+                        { id: 'All', label: 'All Visits' },
+                        { id: 'self_visit', label: 'Self Visits' },
+                        { id: 'agent_visit', label: 'Agent Visits' }
+                    ].map(type => (
+                        <button 
+                            key={type.id} 
+                            onClick={() => setVisitTypeFilter(type.id)}
+                            style={{
+                                ...S.typeTab,
+                                background: visitTypeFilter === type.id ? '#1A1A1A' : 'transparent',
+                                color: visitTypeFilter === type.id ? '#fff' : '#1A1A1A',
+                            }}>
+                            {type.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div style={S.landFilterBox} onClick={() => setIsLandDropdownOpen(!isLandDropdownOpen)}>
+                    <span style={S.landFilterLabel}>FILTER BY LAND:</span>
+                    <div style={S.customDropWrapper}>
+                        <div style={S.customDropValue}>
+                            {landFilter}
+                            <span style={{ 
+                                marginLeft: '8px', 
+                                fontSize: '0.65rem', 
+                                display: 'inline-block',
+                                transition: 'transform 0.2s',
+                                transform: isLandDropdownOpen ? 'rotate(180deg)' : 'rotate(0)'
+                            }}>▼</span>
+                        </div>
+                        {isLandDropdownOpen && (
+                            <div style={S.customDropList}>
+                                {uniqueLands.map(l => (
+                                    <div 
+                                        key={l} 
+                                        style={{ 
+                                            ...S.customDropOption, 
+                                            background: landFilter === l ? '#1A1A1A' : 'transparent',
+                                            color: landFilter === l ? '#fff' : '#1A1A1A'
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setLandFilter(l);
+                                            setIsLandDropdownOpen(false);
+                                        }}
+                                    >
+                                        {l}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Filter tabs */}
             <div style={S.filterRow}>
-                {['All', 'Pending', 'Accepted', 'Rejected'].map(f => (
+                {['All', 'Pending', 'Accepted', 'Cancelled'].map(f => (
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
@@ -230,15 +317,23 @@ const SellerVisitsPage = () => {
                             border: filter === f ? '1px solid #1A1A1A' : '1px solid #e5e0da',
                         }}>
                         {f}
-                        {f !== 'All' && (
+                        {f === 'Cancelled' ? (
                             <span style={{
                                 ...S.filterCount,
                                 background: filter === f ? '#1A1A1A' : 'transparent',
                                 color: filter === f ? '#fff' : '#1A1A1A'
                             }}>
-                                {typedVisits.filter(v => v.status === f).length}
+                                {landFiltered.filter(v => v.status === 'Cancelled' || v.status === 'Rejected').length}
                             </span>
-                        )}
+                        ) : f !== 'All' ? (
+                            <span style={{
+                                ...S.filterCount,
+                                background: filter === f ? '#1A1A1A' : 'transparent',
+                                color: filter === f ? '#fff' : '#1A1A1A'
+                            }}>
+                                {landFiltered.filter(v => v.status === f).length}
+                            </span>
+                        ) : null}
                     </button>
                 ))}
             </div>
@@ -256,7 +351,7 @@ const SellerVisitsPage = () => {
                                 const sc = STATUS_COLORS[visit.status] || STATUS_COLORS.Pending;
                                 const vId = visit._id || visit.id;
                                 return (
-                                    <div key={vId} style={S.card}>
+                                    <div key={vId} id={`visit-${vId}`} style={S.card}>
                                         {/* Header: Buyer Name + Status */}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                                             <div>
@@ -396,44 +491,50 @@ const SellerVisitsPage = () => {
             )}
 
             {/* Daily Schedule Summary Table */}
-            {activeSchedule.length > 0 && (
-                <div style={S.scheduleSection}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
-                        <div>
-                            <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
-                            <p style={S.sectionSubtitle}>A quick overview of all your upcoming site visits{viewMode === 'calendar' ? ' in a monthly view' : ''}.</p>
-                        </div>
-                        <div style={S.viewToggle}>
-                            <button 
-                                onClick={() => setViewMode('list')}
-                                style={{ ...S.toggleBtn, ...(viewMode === 'list' ? S.toggleBtnActive : {}) }}
-                            >
-                                List View
-                            </button>
-                            <button 
-                                onClick={() => setViewMode('calendar')}
-                                style={{ ...S.toggleBtn, ...(viewMode === 'calendar' ? S.toggleBtnActive : {}) }}
-                            >
-                                Calendar View
-                            </button>
-                        </div>
+            <div style={S.scheduleSection}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
+                    <div>
+                        <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
+                        <p style={S.sectionSubtitle}>A quick overview of all your upcoming site visits{viewMode === 'calendar' ? ' in a monthly view' : ''}.</p>
                     </div>
+                    <div style={S.viewToggle}>
+                        <button 
+                            onClick={() => setViewMode('list')}
+                            style={{ ...S.toggleBtn, ...(viewMode === 'list' ? S.toggleBtnActive : {}) }}
+                        >
+                            List View
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('calendar')}
+                            style={{ ...S.toggleBtn, ...(viewMode === 'calendar' ? S.toggleBtnActive : {}) }}
+                        >
+                            Calendar View
+                        </button>
+                    </div>
+                </div>
 
-                    {viewMode === 'calendar' ? renderCalendar() : (
-                        <div style={S.tableWrapper}>
-                            <table style={S.table}>
-                                <thead>
+                {viewMode === 'calendar' ? renderCalendar() : (
+                    <div style={S.tableWrapper}>
+                        <table style={S.table}>
+                            <thead>
+                                <tr>
+                                    <th style={S.th}>Date</th>
+                                    <th style={S.th}>Time</th>
+                                    <th style={S.th}>Land</th>
+                                    <th style={S.th}>Buyer</th>
+                                    <th style={S.th}>Visit Type</th>
+                                    <th style={S.th}>Agent Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {activeSchedule.length === 0 ? (
                                     <tr>
-                                        <th style={S.th}>Date</th>
-                                        <th style={S.th}>Time</th>
-                                        <th style={S.th}>Land</th>
-                                        <th style={S.th}>Buyer</th>
-                                        <th style={S.th}>Visit Type</th>
-                                        <th style={S.th}>Agent Details</th>
+                                        <td colSpan="6" style={{ ...S.td, textAlign: 'center', color: '#aaa', padding: '40px' }}>
+                                            No confirmed visits scheduled yet.
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {sortedDates.map(date => (
+                                ) : (
+                                    sortedDates.map(date => (
                                         scheduleByDate[date].sort((a, b) => a.visit_time.localeCompare(b.visit_time)).map((v, idx) => (
                                             <tr key={v._id || v.id} style={S.tr}>
                                                 {idx === 0 ? (
@@ -477,13 +578,13 @@ const SellerVisitsPage = () => {
                                                 </td>
                                             </tr>
                                         ))
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            )}
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
@@ -496,6 +597,12 @@ const S = {
     countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
     typeToggleRow: { display: 'flex', gap: '8px', marginBottom: '20px', background: '#F0EBE4', padding: '6px', borderRadius: '40px', width: 'fit-content' },
     typeTab: { padding: '10px 20px', borderRadius: '30px', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s ease-in-out' },
+    landFilterBox: { display: 'flex', alignItems: 'center', gap: '12px', background: '#F0EBE4', padding: '10px 20px', borderRadius: '40px', cursor: 'pointer', position: 'relative' },
+    landFilterLabel: { fontSize: '0.65rem', fontWeight: '800', color: '#1A1A1A', letterSpacing: '0.05em' },
+    customDropWrapper: { position: 'relative', minWidth: '150px' },
+    customDropValue: { fontSize: '0.9rem', fontWeight: '700', color: '#1A1A1A', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+    customDropList: { position: 'absolute', top: 'calc(100% + 15px)', right: '-20px', background: '#fff', borderRadius: '20px', padding: '10px', boxShadow: '0 15px 45px rgba(0,0,0,0.1)', zIndex: 100, minWidth: '220px', border: '1px solid #F0EBE4' },
+    customDropOption: { padding: '12px 20px', borderRadius: '14px', fontSize: '0.85rem', fontWeight: '700', transition: '0.2s', marginBottom: '4px' },
     errBox: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem', border: '1px solid #ef9a9a' },
     filterRow: { display: 'flex', gap: '12px', marginBottom: '40px', flexWrap: 'wrap' },
     filterBtn: { padding: '8px 20px', borderRadius: '30px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' },

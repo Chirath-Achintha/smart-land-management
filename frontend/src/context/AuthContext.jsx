@@ -3,14 +3,19 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    // Always start logged out; require explicit login on each app start.
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        try {
+            const raw = localStorage.getItem('user');
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    });
 
     useEffect(() => {
-        // Clear any persisted session from previous runs.
-        localStorage.removeItem('user');
-        localStorage.removeItem('access_token');
-    }, []);
+        if (!user) return;
+        localStorage.setItem('user', JSON.stringify(user));
+    }, [user]);
 
     const login = (userOrRole) => {
         const userData = typeof userOrRole === 'string'

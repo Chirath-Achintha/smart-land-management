@@ -53,7 +53,7 @@ const Header = () => {
     return (
         <nav className="landing-nav">
             <div className="nav-logo" style={{ cursor: 'pointer' }} onClick={handleLogoClick}>
-                <BrandLogo color="#556B2F" />
+                <BrandLogo color="#D7F0DC" />
                 <span className="nav-logo-text">Smart Land Management System</span>
             </div>
             <ul className="landing-nav-links">
@@ -103,13 +103,13 @@ const Header = () => {
                         <button className="nav-icon" onClick={() => navigate('/dashboard')} title="Dashboard">
                             <UserIcon />
                         </button>
-                        <div style={{ width: '1px', height: '24px', backgroundColor: '#E5E7EB', margin: '0 4px' }}></div>
+                        <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(231, 245, 234, 0.35)', margin: '0 4px' }}></div>
                         <button className="btn-dark" onClick={handleLogout}>Logout</button>
                     </>
                 ) : (
                     <>
                         <button className="nav-icon" onClick={() => handleAuthClick('/login')}><UserIcon /></button>
-                        <div style={{ width: '1px', height: '24px', backgroundColor: '#E5E7EB', margin: '0 4px' }}></div>
+                        <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(231, 245, 234, 0.35)', margin: '0 4px' }}></div>
                         <button className="btn-dark" onClick={() => handleAuthClick('/login')}>Sign in</button>
                     </>
                 )}

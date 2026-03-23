@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import API_BASE_URL from '../apiConfig';
 
 const NAV = {
     buyer: [
@@ -40,7 +39,6 @@ const NAV = {
 };
 
 const Sidebar = ({ role }) => {
-    const API = API_BASE_URL;
     const location = useLocation();
     const navigate = useNavigate();
     const { logout } = useAuth();
@@ -62,13 +60,8 @@ const Sidebar = ({ role }) => {
                         <li key={idx} style={styles.listItem}>
                             <Link
                                 to={link.to}
-                                style={{
-                                    ...styles.link,
-                                    background: isActive ? '#1A1A1A' : 'transparent',
-                                    color: isActive ? '#fff' : '#444',
-                                    borderColor: isActive ? '#1A1A1A' : 'transparent',
-                                    fontWeight: isActive ? '700' : '500',
-                                }}
+                                className={`sidebar-link ${isActive ? 'active' : ''}`}
+                                style={{ ...styles.link, fontWeight: isActive ? '700' : '500' }}
                             >
                                 {link.label}
                             </Link>
@@ -86,14 +79,14 @@ const Sidebar = ({ role }) => {
 };
 
 const styles = {
-    sidebar: { width: '240px', backgroundColor: 'var(--sage-bg)', padding: '24px 16px', minHeight: '100vh', borderRight: '1px solid rgba(85, 107, 47, 0.1)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' },
-    brand: { fontSize: '1.1rem', fontWeight: '800', color: 'var(--sage-primary)', marginBottom: '6px', paddingLeft: '4px', letterSpacing: '-0.02em' },
-    roleTag: { fontSize: '0.65rem', fontWeight: '700', letterSpacing: '0.1em', color: 'var(--sage-text-light)', marginBottom: '28px', paddingLeft: '4px', textTransform: 'uppercase' },
+    sidebar: { width: '240px', backgroundColor: 'var(--color-dark)', padding: '24px 16px', minHeight: '100vh', borderRight: '1px solid rgba(255, 255, 255, 0.08)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', boxShadow: '8px 0 26px rgba(0,0,0,0.16)' },
+    brand: { fontSize: '1.1rem', fontWeight: '800', color: '#eef4f6', marginBottom: '6px', paddingLeft: '4px', letterSpacing: '-0.02em' },
+    roleTag: { fontSize: '0.65rem', fontWeight: '700', letterSpacing: '0.1em', color: '#9ab0b8', marginBottom: '28px', paddingLeft: '4px', textTransform: 'uppercase' },
     list: { listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 },
     listItem: {},
-    link: { textDecoration: 'none', display: 'block', padding: '10px 14px', borderRadius: '8px', border: '1px solid transparent', fontSize: '0.875rem', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.18s' },
-    bottomSection: { borderTop: '1px solid rgba(85, 107, 47, 0.1)', paddingTop: '20px', marginTop: '16px' },
-    logoutBtn: { width: '100%', padding: '11px 14px', background: 'var(--sage-card)', color: '#e74c3c', border: '1px solid rgba(85, 107, 47, 0.1)', borderRadius: '8px', fontSize: '0.875rem', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left', transition: 'background 0.15s' },
+    link: { fontFamily: "'DM Sans', sans-serif" },
+    bottomSection: { borderTop: '1px solid rgba(255, 255, 255, 0.12)', paddingTop: '20px', marginTop: '16px' },
+    logoutBtn: { width: '100%', padding: '11px 14px', background: 'rgba(255,255,255,0.08)', color: '#ffb4ab', border: '1px solid rgba(255, 255, 255, 0.18)', borderRadius: '8px', fontSize: '0.875rem', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left', transition: 'all 0.3s ease' },
 };
 
 export default Sidebar;

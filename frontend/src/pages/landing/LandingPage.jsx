@@ -31,11 +31,38 @@ const LandingPage = () => {
             });
     }, []);
 
+    useEffect(() => {
+        const items = document.querySelectorAll('.reveal-on-scroll');
+        if (!items.length) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            { threshold: 0.18, rootMargin: '0px 0px -40px 0px' }
+        );
+
+        items.forEach((el) => {
+            if (!el.classList.contains('is-visible')) {
+                observer.observe(el);
+            }
+        });
+        return () => observer.disconnect();
+    }, [lands]);
+
     return (
         <div className="landing-root">
 
             {/* ══ HERO ══ */}
             <section className="landing-hero" id="home">
+                <div className="hero-bg-orb hero-bg-orb-a" aria-hidden="true"></div>
+                <div className="hero-bg-orb hero-bg-orb-b" aria-hidden="true"></div>
+                <div className="hero-grid" aria-hidden="true"></div>
                 <div className="hero-left">
                     <h1 className="hero-title">
                         Find Your Perfect<br />Piece of Land
@@ -57,7 +84,7 @@ const LandingPage = () => {
             </section>
 
             {/* ══ FEATURED LANDS ══ */}
-            <section className="props-section" id="inquiry">
+            <section className="props-section reveal-on-scroll" id="inquiry">
                 <h2 className="props-title">Featured Land Listings</h2>
 
                 {loading ? (
@@ -66,8 +93,12 @@ const LandingPage = () => {
                     <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>No featured lands available right now.</div>
                 ) : (
                     <div className="props-grid">
-                        {lands.map((p) => (
-                            <div key={p._id || p.id} className="prop-card">
+                        {lands.map((p, idx) => (
+                            <div
+                                key={p._id || p.id}
+                                className="prop-card reveal-on-scroll featured-card-motion"
+                                style={{ '--stagger-delay': `${idx * 120}ms` }}
+                            >
                                 <div className="prop-img-wrap">
                                     <img
                                         src={p.image_url ? p.image_url.split(',')[0] : "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80"}
@@ -104,7 +135,7 @@ const LandingPage = () => {
             </section>
 
             {/* ══ SERVICES SECTION ══ */}
-            <section className="help-section" id="service">
+            <section className="help-section reveal-on-scroll" id="service">
                 <div className="help-left">
                     <img
                         src="/images/Beautiful Land.png"
@@ -137,7 +168,7 @@ const LandingPage = () => {
             </section>
 
             {/* ══ WHY CHOOSE US ══ */}
-            <section className="why-section">
+            <section className="why-section reveal-on-scroll">
                 <h2 className="why-title">Why Choose Smart Land Management</h2>
                 <p className="why-subtitle">
                     Elevating your land buying experience with technology, integrity,<br />
@@ -145,7 +176,7 @@ const LandingPage = () => {
                 </p>
                 <div className="why-grid">
                     {WHY_CARDS.map((c) => (
-                        <div key={c.title} className="why-card">
+                        <div key={c.title} className="why-card reveal-on-scroll">
                             <div className="why-icon">{c.icon}</div>
                             <h3 className="why-card-title">{c.title}</h3>
                             <p className="why-card-desc">{c.desc}</p>
@@ -155,19 +186,19 @@ const LandingPage = () => {
             </section>
 
             {/* ══ CONTACT SECTION ══ */}
-            <section className="contact-section" id="contact" style={{ padding: '80px 48px', textAlign: 'center' }}>
+            <section className="contact-section reveal-on-scroll" id="contact">
                 <h2 className="why-title">Get In Touch</h2>
-                <p className="why-desc" style={{ maxWidth: '600px', margin: '0 auto 30px', color: '#666' }}>
+                <p className="contact-desc">
                     Have questions about a listing or our construction services? Our team is here to help you every step of the way.
                 </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap' }}>
-                    <div>
-                        <div style={{ fontWeight: '700', color: '#556B2F' }}>Email Us</div>
-                        <div style={{ color: '#555' }}>SmartLand99@gmail.com</div>
+                <div className="contact-grid">
+                    <div className="contact-item reveal-on-scroll">
+                        <div className="contact-label">Email Us</div>
+                        <div className="contact-value">SmartLand@gmail.com</div>
                     </div>
-                    <div>
-                        <div style={{ fontWeight: '700', color: '#556B2F' }}>Call Us</div>
-                        <div style={{ color: '#555' }}>011 100 1001</div>
+                    <div className="contact-item reveal-on-scroll">
+                        <div className="contact-label">Call Us</div>
+                        <div className="contact-value">+94 70 222 2222</div>
                     </div>
                 </div>
             </section>

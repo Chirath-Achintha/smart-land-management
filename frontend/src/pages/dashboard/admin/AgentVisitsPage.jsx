@@ -25,6 +25,7 @@ const AgentVisitsPage = () => {
     const [rejectingVisit, setRejectingVisit] = useState(null); // Stores the visit object being rejected
     const [rejectMessage, setRejectMessage] = useState('');
     const [agentBusyMap, setAgentBusyMap] = useState({}); // { [agentId]: { [date]: [times] } }
+    const [animatedCards, setAnimatedCards] = useState({});
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
@@ -64,6 +65,23 @@ const AgentVisitsPage = () => {
         fetchVisits();
         fetchAgents();
     }, []);
+
+    useEffect(() => {
+        const source = filter === 'All'
+            ? visits
+            : filter === 'To Assign'
+                ? visits.filter(v => v.status === 'SellerAccepted' || v.status === 'AgentDeclined')
+                : visits.filter(v => v.status === filter);
+
+        const timers = source.map((visit, idx) => {
+            const key = visit._id || visit.id;
+            return setTimeout(() => {
+                setAnimatedCards((prev) => ({ ...prev, [key]: true }));
+            }, idx * 60);
+        });
+
+        return () => timers.forEach(clearTimeout);
+    }, [visits, filter]);
 
     const updateStatus = async (visitId, newStatus, message = '') => {
         const agentId = selectedAgents[visitId];
@@ -130,9 +148,9 @@ const AgentVisitsPage = () => {
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
-                            background: filter === f ? '#1A1A1A' : '#fff',
+                            background: filter === f ? 'var(--color-primary)' : '#fff',
                             color: filter === f ? '#fff' : '#555',
-                            border: filter === f ? 'none' : '1px solid #e5e0da',
+                            border: filter === f ? 'none' : '1px solid var(--color-accent)',
                         }}>
                         {f}
                         {f !== 'All' && (
@@ -165,7 +183,15 @@ const AgentVisitsPage = () => {
                         });
 
                         return (
-                            <div key={vId} style={S.card}>
+                            <div
+                                key={vId}
+                                style={{
+                                    ...S.card,
+                                    opacity: animatedCards[vId] ? 1 : 0,
+                                    transform: animatedCards[vId] ? 'translateY(0)' : 'translateY(12px)',
+                                    transition: 'opacity 0.34s ease, transform 0.34s ease'
+                                }}
+                            >
                                 <div style={S.infoSection}>
                                     <div>
                                         <div style={S.buyerName}>{visit.buyer_name || 'Buyer'}</div>
@@ -188,7 +214,7 @@ const AgentVisitsPage = () => {
                                     {visit.status === 'SellerAccepted' ? (
                                         <div style={S.replyArea}>
                                             <select
-                                                style={selectedAgents[vId] ? { ...S.replyInput, borderColor: '#1A1A1A', background: '#F0F7FF' } : S.replyInput}
+                                                style={selectedAgents[vId] ? { ...S.replyInput, borderColor: 'var(--color-dark)', background: '#F0F7FF' } : S.replyInput}
                                                 value={selectedAgents[vId] || ''}
                                                 onChange={(e) => setSelectedAgents(prev => ({ ...prev, [vId]: e.target.value }))}
                                             >
@@ -209,7 +235,7 @@ const AgentVisitsPage = () => {
                                                     {agentBusyMap[selectedAgents[vId]]?.[visit.visit_date]?.length > 0 ? (
                                                         <div style={S.busyList}>
                                                             {agentBusyMap[selectedAgents[vId]][visit.visit_date].map((t, idx) => (
-                                                                <span key={idx} style={{ 
+                                                                <span key={idx} style={{
                                                                     ...S.busyTag, 
                                                                     background: t === visit.visit_time ? '#ffebee' : '#F9F7F5',
                                                                     color: t === visit.visit_time ? '#c62828' : '#777',
@@ -324,49 +350,49 @@ const AgentVisitsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
-    subtitle: { color: '#777', fontSize: '0.95rem' },
-    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.8rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '0.95rem' },
+    countBadge: { background: 'var(--color-primary)', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.8rem', boxShadow: '0 12px 24px rgba(59,130,86,0.25)' },
     errBox: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem', border: '1px solid #ef9a9a' },
-    filterRow: { display: 'flex', gap: '12px', marginBottom: '32px' },
+    filterRow: { display: 'flex', gap: '12px', marginBottom: '32px', flexWrap: 'wrap' },
     filterBtn: { padding: '8px 20px', borderRadius: '30px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' },
     filterCount: { background: 'rgba(0,0,0,0.1)', borderRadius: '10px', padding: '1px 6px', fontSize: '0.7rem' },
     empty: { textAlign: 'center', color: '#aaa', padding: '80px 20px' },
     cards: { display: 'flex', flexDirection: 'column', gap: '16px' },
-    card: { background: '#fff', borderRadius: '16px', padding: '20px 24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F0EBE4', display: 'flex', gap: '32px', alignItems: 'center' },
+    card: { background: '#fff', borderRadius: '16px', padding: '20px 24px', boxShadow: '0 14px 26px rgba(26,26,26,0.04)', border: '1px solid rgba(38, 50, 56, 0.08)', display: 'flex', gap: '32px', alignItems: 'center' },
     infoSection: { flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '12px' },
     detailsStrip: { display: 'flex', gap: '20px' },
     infoItem: { display: 'flex', flexDirection: 'column', gap: '2px' },
-    buyerName: { fontWeight: '800', fontSize: '1.2rem', color: '#1A1A1A' },
-    landName: { fontSize: '0.85rem', color: '#666', fontWeight: '500' },
+    buyerName: { fontWeight: '800', fontSize: '1.2rem', color: 'var(--color-dark)' },
+    landName: { fontSize: '0.85rem', color: 'var(--color-muted)', fontWeight: '500' },
     statusLabel: { padding: '4px 10px', borderRadius: '6px', fontSize: '0.62rem', fontWeight: '900', letterSpacing: '0.05em' },
     detailKey: { fontSize: '0.6rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.05em', textTransform: 'uppercase' },
     detailVal: { fontSize: '0.9rem', fontWeight: '700', color: '#1A1A1A' },
 
     messageSection: { flex: '2 1 300px' },
-    messageWrapper: { background: '#F9F7F5', borderRadius: '12px', padding: '12px 16px', border: '1px dashed #E5E0DA' },
+    messageWrapper: { background: '#f8fafc', borderRadius: '12px', padding: '12px 16px', border: '1px dashed rgba(38, 50, 56, 0.12)' },
     messageKey: { fontSize: '0.6rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '2px' },
     messageContent: { fontSize: '0.82rem', color: '#444', lineHeight: '1.4' },
 
     actionSection: { flex: '1 1 250px' },
     actionButtons: { display: 'flex', gap: '8px', marginTop: '10px' },
-    primaryBtn: { flex: 1, padding: '10px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
-    secondaryBtn: { flex: 1, padding: '10px', background: '#fff', color: '#C62828', border: '1.5px solid #FDECEA', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
+    primaryBtn: { flex: 1, padding: '10px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
+    secondaryBtn: { flex: 1, padding: '10px', background: '#ECFDF5', color: '#166534', border: '1.5px solid #86EFAC', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
     replyArea: { display: 'flex', flexDirection: 'column' },
     replyInput: { width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E5E0DA', fontSize: '0.85rem', outline: 'none', background: '#fff' },
 
     // Modal Styles
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px' },
-    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
-    modalSubtitle: { fontSize: '0.9rem', color: '#666', lineHeight: '1.5', margin: 0 },
-    modalInfo: { padding: '12px 16px', background: '#FAF6F1', borderRadius: '12px', fontSize: '0.9rem', color: '#444' },
-    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', '&:focus': { borderColor: '#1A1A1A' } },
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(17, 24, 39, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)', animation: 'overlayFadeIn 0.25s ease' },
+    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px', animation: 'modalPopIn 0.25s ease' },
+    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
+    modalSubtitle: { fontSize: '0.9rem', color: 'var(--color-muted)', lineHeight: '1.5', margin: 0 },
+    modalInfo: { padding: '12px 16px', background: 'var(--color-bg)', borderRadius: '12px', fontSize: '0.9rem', color: '#444' },
+    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid rgba(38, 50, 56, 0.1)', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', '&:focus': { borderColor: 'var(--color-blue)' } },
     modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
-    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
-    confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },
+    cancelBtn: { flex: 1, padding: '14px', background: '#ECFDF5', border: '1.5px solid #86EFAC', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#166534' },
+    confirmDeclineBtn: { flex: 1, padding: '14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },
     
     // Busy Preview Styles
     busyPreview: { marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '12px', border: '1px solid #E5E0DA' },

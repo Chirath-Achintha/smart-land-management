@@ -65,6 +65,7 @@ const AgentAssignment = () => {
 
     // Agents Data
     const [agentsList, setAgentsList] = useState([]);
+    const [animatedAgents, setAnimatedAgents] = useState({});
 
     const fetchAgents = () => {
         setLoading(true);
@@ -92,6 +93,16 @@ const AgentAssignment = () => {
         const storedReqs = localStorage.getItem('all_agent_requests');
         if (storedReqs) setRequests(JSON.parse(storedReqs));
     }, []);
+
+    useEffect(() => {
+        const timers = agentsList.map((agent, idx) =>
+            setTimeout(() => {
+                setAnimatedAgents((prev) => ({ ...prev, [agent.id]: true }));
+            }, idx * 55)
+        );
+
+        return () => timers.forEach(clearTimeout);
+    }, [agentsList]);
 
     // Form states
     const [isEditingAgent, setIsEditingAgent] = useState(false);
@@ -428,13 +439,21 @@ const AgentAssignment = () => {
                             </thead>
                             <tbody>
                                 {agentsList.map((agent) => (
-                                    <tr key={agent.id} style={styles.tr}>
+                                    <tr
+                                        key={agent.id}
+                                        style={{
+                                            ...styles.tr,
+                                            opacity: animatedAgents[agent.id] ? 1 : 0,
+                                            transform: animatedAgents[agent.id] ? 'translateY(0)' : 'translateY(10px)',
+                                            transition: 'opacity 0.3s ease, transform 0.3s ease'
+                                        }}
+                                    >
                                         <td style={styles.td}>
                                             <div style={{ fontWeight: '700', fontSize: '1rem' }}>{agent.name}</div>
                                         </td>
                                         <td style={styles.td}>
-                                            <div style={{ fontSize: '0.85rem', color: '#666' }}><MailIcon />{agent.email}</div>
-                                            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}><PhoneIcon />{agent.phone}</div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}><MailIcon />{agent.email}</div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginTop: '4px' }}><PhoneIcon />{agent.phone}</div>
                                         </td>
                                         <td style={styles.td}>
                                             <div style={{ fontSize: '0.85rem', color: '#444' }}>
@@ -445,8 +464,8 @@ const AgentAssignment = () => {
                                         <td style={styles.td}>
                                             <span style={{
                                                 ...styles.statusTag,
-                                                backgroundColor: agent.status === 'Active' ? '#e8f5e9' : '#fdecea',
-                                                color: agent.status === 'Active' ? '#2e7d32' : '#c62828'
+                                                backgroundColor: agent.status === 'Active' ? 'rgba(59, 130, 86, 0.14)' : '#fdecea',
+                                                color: agent.status === 'Active' ? '#166534' : '#b91c1c'
                                             }}>
                                                 {agent.status}
                                             </span>
@@ -478,11 +497,11 @@ const AgentAssignment = () => {
 const styles = {
     container: { padding: '32px' },
     header: { marginBottom: '32px' },
-    title: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#666', fontSize: '0.95rem' },
+    title: { fontSize: '1.75rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '0.95rem' },
     grid: { display: 'grid', gridTemplateColumns: '400px 1fr', gap: '24px' },
-    card: { backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #ede8e1', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' },
-    cardTitle: { fontSize: '1.1rem', fontWeight: '700', marginBottom: '20px', color: '#1A1A1A' },
+    card: { backgroundColor: '#fff', borderRadius: '14px', border: '1px solid var(--color-accent)', padding: '24px', boxShadow: '0 14px 28px rgba(26,26,26,0.06)', animation: 'slideInUp 0.45s ease' },
+    cardTitle: { fontSize: '1.1rem', fontWeight: '700', marginBottom: '20px', color: 'var(--color-dark)' },
     formArea: { display: 'flex', flexDirection: 'column', gap: '20px' },
     formRow: { display: 'flex', gap: '16px', width: '100%', boxSizing: 'border-box' },
     formGroup: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 0 },
@@ -491,10 +510,10 @@ const styles = {
         width: '100%',
         padding: '12px 16px',
         borderRadius: '8px',
-        border: '1px solid #e5e7eb',
+        border: '1px solid var(--color-accent)',
         fontSize: '0.9rem',
         outline: 'none',
-        transition: 'border-color 0.2s',
+        transition: 'border-color 0.2s, box-shadow 0.2s',
         backgroundColor: '#fff',
         boxSizing: 'border-box',
         fontFamily: 'inherit'
@@ -502,30 +521,30 @@ const styles = {
     submitBtn: {
         width: '100%',
         padding: '14px',
-        backgroundColor: '#1A1A1A',
+        backgroundColor: 'var(--color-primary)',
         color: '#fff',
         border: 'none',
         borderRadius: '8px',
         cursor: 'pointer',
         fontWeight: '700',
         marginTop: '8px',
-        transition: 'background 0.2s',
+        transition: 'all 0.2s ease',
         boxSizing: 'border-box'
     },
     agentList: { display: 'flex', flexDirection: 'column', gap: '12px' },
     agentItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: '#F9FAFB', borderRadius: '8px' },
     agentName: { fontSize: '0.9rem', fontWeight: '700', display: 'block' },
     itemActions: { display: 'flex', gap: '8px' },
-    iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' },
+    iconBtn: { background: '#ECFDF5', border: '1px solid #86EFAC', cursor: 'pointer', fontSize: '1rem', color: '#166534', borderRadius: '8px', padding: '8px', transition: 'all 0.2s ease' },
     tableWrapper: { overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
-    thRow: { borderBottom: '2px solid #f0f0f0' },
+    thRow: { borderBottom: '1px solid var(--color-accent)' },
     th: { padding: '12px 16px', fontSize: '0.8rem', color: '#777', textTransform: 'uppercase' },
-    tr: { borderBottom: '1px solid #f0f0f0' },
+    tr: { borderBottom: '1px solid #f1eee8' },
     td: { padding: '16px', fontSize: '0.9rem', color: '#333' },
     statusTag: { padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     select: { padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '0.85rem', color: '#333', cursor: 'pointer', outline: 'none' },
-    cancelBtnSmall: { padding: '10px', backgroundColor: '#eee', color: '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' },
+    cancelBtnSmall: { padding: '10px', backgroundColor: '#ECFDF5', color: '#166534', border: '1px solid #86EFAC', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' },
     errorText: { color: '#e74c3c', fontSize: '0.75rem', fontWeight: '700', marginTop: '4px' }
 };
 

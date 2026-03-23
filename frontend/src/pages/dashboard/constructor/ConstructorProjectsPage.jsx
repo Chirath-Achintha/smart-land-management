@@ -50,6 +50,7 @@ const ConstructorProjectsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [updatingId, setUpdatingId] = useState('');
+    const [animatedCards, setAnimatedCards] = useState({});
 
     const fetchProjects = async () => {
         if (!token) {
@@ -115,8 +116,18 @@ const ConstructorProjectsPage = () => {
         [bookings, filter]
     );
 
+    useEffect(() => {
+        const timers = filtered.map((booking, idx) =>
+            setTimeout(() => {
+                setAnimatedCards((prev) => ({ ...prev, [booking.id]: true }));
+            }, idx * 70)
+        );
+
+        return () => timers.forEach(clearTimeout);
+    }, [filtered]);
+
     return (
-        <div style={S.root}>
+        <div style={S.root} className="ui-page">
             <div style={S.header}>
                 <h1 style={S.title}>My Workshop</h1>
                 <p style={S.subtitle}>Manage active and completed projects that you have accepted.</p>
@@ -147,10 +158,18 @@ const ConstructorProjectsPage = () => {
             <div style={S.projectGrid}>
                 {filtered.map((p) => {
                     const displayStatus = deriveDisplayStatus(p.status);
-                    const progress = deriveProgress(p.status);
 
                     return (
-                    <div key={p.id} style={S.projectCard}>
+                    <div
+                        key={p.id}
+                        className="ui-card ui-lift"
+                        style={{
+                            ...S.projectCard,
+                            opacity: animatedCards[p.id] ? 1 : 0,
+                            transform: animatedCards[p.id] ? 'translateY(0)' : 'translateY(14px)',
+                            transition: 'opacity 0.38s ease, transform 0.38s ease'
+                        }}
+                    >
                         <div style={S.cardHeader}>
                             <span style={S.projectId}>{toProjectCode(p.id)}</span>
                             <span style={{ ...S.statusBadge, ...getStatusStyle(displayStatus) }}>{displayStatus}</span>
@@ -187,8 +206,8 @@ const ConstructorProjectsPage = () => {
             )}
 
             {showModal && activeProject && (
-                <div style={S.modalOverlay}>
-                    <div style={S.modal}>
+                <div style={S.modalOverlay} className="profile-overlay">
+                    <div style={S.modal} className="profile-modal">
                         <div style={S.modalHeader}>
                             <h2 style={S.modalTitle}>{activeProject.land_name || activeProject.service_type}</h2>
                             <button style={S.closeBtn} onClick={() => setShowModal(false)}>✕</button>
@@ -246,10 +265,10 @@ const getStatusStyle = (status) => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'linear-gradient(180deg, #FAF6F1 0%, #F2ECE2 100%)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#777', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px', letterSpacing: '-0.01em' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '1rem' },
 
     toolbar: { marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' },
     filterBar: { display: 'flex', gap: '8px', flexWrap: 'wrap', background: '#fff', padding: '6px', borderRadius: '12px', border: '1px solid #E5E7EB' },

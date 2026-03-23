@@ -64,9 +64,9 @@ const SellerDashboard = () => {
     }, []);
 
     const cards = [
-        { label: 'Total Active Listings', value: stats.active, accent: '#1A1A1A' },
-        { label: 'Total Sold Properties', value: stats.sold, accent: '#2ecc71' },
-        { label: 'Pending Bids', value: stats.pendingBids, accent: '#e67e22' },
+        { label: 'Total Active Listings', value: stats.active, accent: 'var(--color-dark)' },
+        { label: 'Total Sold Properties', value: stats.sold, accent: 'var(--color-primary)' },
+        { label: 'Pending Bids', value: stats.pendingBids, accent: 'var(--color-blue)' },
     ];
 
     return (
@@ -81,7 +81,7 @@ const SellerDashboard = () => {
             {/* Summary Cards */}
             <div style={S.cardGrid}>
                 {cards.map((c, i) => (
-                    <div key={i} style={{ ...S.card, borderTop: `4px solid ${c.accent}` }}>
+                    <div key={i} className="ui-card ui-lift" style={{ ...S.card, borderTop: `4px solid ${c.accent}` }}>
                         <div style={{ ...S.statVal, color: c.accent }}>{c.value}</div>
                         <div style={S.statLabel}>{c.label}</div>
                     </div>
@@ -91,10 +91,10 @@ const SellerDashboard = () => {
             <div style={S.dashboardContent}>
                 <div style={S.mainColumn}>
                     {/* Quick Actions */}
-                    <div style={S.sectionCard}>
+                    <div className="ui-card ui-lift" style={S.sectionCard}>
                         <h2 style={S.sectionTitle}>Quick Actions</h2>
                         <div style={S.btnRow}>
-                            <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/seller/listings')}>
+                            <button className="btn-primary" style={S.actionBtn} onClick={() => navigate('/dashboard/seller/listings')}>
                                 Manage My Listings
                             </button>
                             <button style={{ ...S.actionBtn, ...S.outlineBtn }} onClick={() => navigate('/dashboard/seller/bids')}>
@@ -112,7 +112,7 @@ const SellerDashboard = () => {
 
                 <div style={S.sideColumn}>
                     {/* Recent Activity */}
-                    <div style={S.sectionCard}>
+                    <div className="ui-card ui-lift" style={S.sectionCard}>
                         <h2 style={S.sectionTitle}>Recent Activity</h2>
                         <div style={S.activityList}>
                             {[
@@ -134,45 +134,45 @@ const SellerDashboard = () => {
 };
 
 const S = {
-    root: { background: 'var(--sage-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '36px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--sage-text-dark)', marginBottom: '8px' },
-    subtitle: { color: 'var(--sage-text-med)', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '1rem' },
     cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '40px' },
-    card: { background: 'var(--sage-card)', borderRadius: '16px', padding: '32px 28px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.2s', cursor: 'default' },
+    card: { background: 'var(--sage-card)', borderRadius: '16px', padding: '32px 28px', boxShadow: 'none', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.2s', cursor: 'default' },
     statVal: { fontSize: '2.8rem', fontWeight: '800', lineHeight: 1 },
-    statLabel: { fontSize: '0.85rem', color: 'var(--sage-text-light)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    statLabel: { fontSize: '0.85rem', color: 'var(--color-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
 
     dashboardContent: { display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '32px' },
     mainColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
     sideColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
 
-    sectionCard: { background: 'var(--sage-card)', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', border: '1px solid rgba(85, 107, 47, 0.05)' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(85, 107, 47, 0.05)', paddingBottom: '16px' },
-    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--sage-text-dark)', margin: 0 },
+    sectionCard: { background: 'var(--sage-card)', borderRadius: '24px', padding: '32px', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.08)' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(38, 50, 56, 0.1)', paddingBottom: '16px' },
+    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
 
     editActions: { display: 'flex', gap: '8px' },
-    editBtn: { padding: '8px 16px', background: 'rgba(85, 107, 47, 0.05)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--sage-primary)' },
-    saveBtn: { padding: '8px 16px', background: 'var(--sage-primary)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#fff' },
-    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid #DDD', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--sage-text-med)' },
+    editBtn: { padding: '8px 16px', background: 'rgba(76, 175, 80, 0.1)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--color-primary)' },
+    saveBtn: { padding: '8px 16px', background: 'var(--color-primary)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#fff' },
+    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid rgba(38, 50, 56, 0.2)', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--color-muted)' },
 
     profileGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' },
     profileItem: { display: 'flex', flexDirection: 'column', gap: '6px' },
-    label: { fontSize: '0.75rem', fontWeight: '700', color: 'var(--sage-text-light)', textTransform: 'uppercase' },
-    value: { fontSize: '1rem', fontWeight: '600', color: 'var(--sage-text-dark)' },
-    input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(85, 107, 47, 0.1)', background: 'var(--sage-bg)', fontSize: '0.9rem', outline: 'none', color: 'var(--sage-text-dark)' },
+    label: { fontSize: '0.75rem', fontWeight: '700', color: 'var(--color-muted)', textTransform: 'uppercase' },
+    value: { fontSize: '1rem', fontWeight: '600', color: 'var(--color-dark)' },
+    input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(38, 50, 56, 0.15)', background: '#fff', fontSize: '0.9rem', outline: 'none', color: 'var(--color-dark)' },
 
     dangerZone: { marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed rgba(244, 67, 54, 0.2)' },
     deleteLink: { background: 'none', border: 'none', color: '#F44336', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', padding: 0, textDecoration: 'underline', opacity: 0.7 },
 
     btnRow: { display: 'flex', gap: '16px', flexWrap: 'wrap' },
     actionBtn: { padding: '14px 28px', borderRadius: '10px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer', border: 'none', fontFamily: "'DM Sans', sans-serif" },
-    outlineBtn: { background: 'var(--sage-card)', color: 'var(--sage-primary)', border: '2px solid var(--sage-primary)' },
+    outlineBtn: { background: '#fff', color: 'var(--color-primary)', border: '2px solid var(--color-primary)' },
 
     activityList: { display: 'flex', flexDirection: 'column' },
-    activityItem: { display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 0', borderBottom: '1px solid rgba(85, 107, 47, 0.05)' },
-    actText: { flex: 1, fontSize: '0.9rem', color: 'var(--sage-text-dark)', fontWeight: '500' },
-    actTime: { fontSize: '0.75rem', color: 'var(--sage-text-light)', whiteSpace: 'nowrap' },
+    activityItem: { display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 0', borderBottom: '1px solid rgba(38, 50, 56, 0.08)' },
+    actText: { flex: 1, fontSize: '0.9rem', color: 'var(--color-dark)', fontWeight: '500' },
+    actTime: { fontSize: '0.75rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' },
 
     // Modal
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(45, 58, 45, 0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },

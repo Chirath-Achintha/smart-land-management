@@ -4,10 +4,10 @@ import API_BASE_URL from '../../../apiConfig';
 const API = API_BASE_URL;
 
 const STATUS_COLORS = {
-    Pending: { bg: '#fff8e1', color: '#e65100', border: '#ffe082' },
-    SellerAccepted: { bg: '#e3f2fd', color: '#1565c0', border: '#90caf9' }, // Awaiting Admin
-    Accepted: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
-    Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
+    Pending: { bg: 'rgba(33, 150, 243, 0.14)', color: '#145b97', border: 'rgba(33, 150, 243, 0.35)' },
+    SellerAccepted: { bg: 'rgba(139, 195, 74, 0.2)', color: '#3f6e10', border: 'rgba(139, 195, 74, 0.45)' }, // Awaiting Admin
+    Accepted: { bg: 'rgba(76, 175, 80, 0.2)', color: '#2e7d32', border: 'rgba(76, 175, 80, 0.4)' },
+    Rejected: { bg: 'rgba(161, 136, 127, 0.18)', color: '#7a4f41', border: 'rgba(161, 136, 127, 0.45)' },
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -22,6 +22,7 @@ const SellerVisitsPage = () => {
     const [rejectMessage, setRejectMessage] = useState('');
     const [viewMode, setViewMode] = useState('calendar'); // Default to the new calendar view
     const [currentDate, setCurrentDate] = useState(new Date()); // Auto-detect today
+    const [animatedVisitIds, setAnimatedVisitIds] = useState({});
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
@@ -86,6 +87,23 @@ const SellerVisitsPage = () => {
         : visits.filter(v => v.visit_type === visitTypeFilter);
 
     const filtered = filter === 'All' ? typedVisits : typedVisits.filter(v => v.status === filter);
+
+    useEffect(() => {
+        if (!filtered.length) {
+            setAnimatedVisitIds({});
+            return;
+        }
+
+        setAnimatedVisitIds({});
+        const timers = filtered.map((visit, idx) => {
+            const vId = visit._id || visit.id;
+            return setTimeout(() => {
+                setAnimatedVisitIds(prev => ({ ...prev, [vId]: true }));
+            }, idx * 70);
+        });
+
+        return () => timers.forEach(clearTimeout);
+    }, [filtered, filter, visitTypeFilter]);
 
     // Group by land
     const byLand = filtered.reduce((acc, v) => {
@@ -170,9 +188,9 @@ const SellerVisitsPage = () => {
                                     {dayVisits.map(v => (
                                         <div key={v.id || v._id} style={{ 
                                             ...S.eventTag, 
-                                            background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
-                                            color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2',
-                                            borderLeft: `3px solid ${v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'}`
+                                            background: v.visit_type === 'self_visit' ? 'rgba(33, 150, 243, 0.14)' : 'rgba(161, 136, 127, 0.2)',
+                                            color: v.visit_type === 'self_visit' ? '#145b97' : '#7a4f41',
+                                            borderLeft: `3px solid ${v.visit_type === 'self_visit' ? '#145b97' : '#7a4f41'}`
                                         }}>
                                             <span style={S.eventDot}></span>
                                             {v.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'} — {v.visit_time} - {v.land_name}
@@ -211,8 +229,8 @@ const SellerVisitsPage = () => {
                         onClick={() => setVisitTypeFilter(type.id)}
                         style={{
                             ...S.typeTab,
-                            background: visitTypeFilter === type.id ? '#1A1A1A' : 'transparent',
-                            color: visitTypeFilter === type.id ? '#fff' : '#1A1A1A',
+                            background: visitTypeFilter === type.id ? 'var(--color-primary)' : 'transparent',
+                            color: visitTypeFilter === type.id ? '#fff' : 'var(--color-dark)',
                         }}>
                         {type.label}
                     </button>
@@ -225,16 +243,16 @@ const SellerVisitsPage = () => {
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
-                            background: filter === f ? '#fff' : 'transparent',
-                            color: filter === f ? '#1A1A1A' : '#555',
-                            border: filter === f ? '1px solid #1A1A1A' : '1px solid #e5e0da',
+                            background: filter === f ? 'var(--color-primary)' : 'transparent',
+                            color: filter === f ? '#fff' : 'var(--color-muted)',
+                            border: filter === f ? '1px solid var(--color-primary)' : '1px solid rgba(38, 50, 56, 0.16)',
                         }}>
                         {f}
                         {f !== 'All' && (
                             <span style={{
                                 ...S.filterCount,
-                                background: filter === f ? '#1A1A1A' : 'transparent',
-                                color: filter === f ? '#fff' : '#1A1A1A'
+                                background: filter === f ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                                color: filter === f ? '#fff' : 'var(--color-dark)'
                             }}>
                                 {typedVisits.filter(v => v.status === f).length}
                             </span>
@@ -256,16 +274,24 @@ const SellerVisitsPage = () => {
                                 const sc = STATUS_COLORS[visit.status] || STATUS_COLORS.Pending;
                                 const vId = visit._id || visit.id;
                                 return (
-                                    <div key={vId} style={S.card}>
+                                    <div
+                                        key={vId}
+                                        className="ui-card ui-lift"
+                                        style={{
+                                            ...S.card,
+                                            opacity: animatedVisitIds[vId] ? 1 : 0,
+                                            transform: animatedVisitIds[vId] ? 'translateY(0)' : 'translateY(10px)',
+                                        }}
+                                    >
                                         {/* Header: Buyer Name + Status */}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                                             <div>
                                                 <div style={S.buyerName}>{visit.buyer_name || 'Buyer'}</div>
-                                                <div style={{ ...S.typeLabel, color: visit.visit_type === 'self_visit' ? '#1565c0' : '#7b1fa2' }}>
+                                                <div style={{ ...S.typeLabel, color: visit.visit_type === 'self_visit' ? 'var(--color-blue)' : 'var(--color-accent)' }}>
                                                     {visit.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'}
                                                 </div>
                                             </div>
-                                            <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>
+                                            <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
                                                 {visit.status.toUpperCase()}
                                             </span>
                                         </div>
@@ -307,30 +333,30 @@ const SellerVisitsPage = () => {
                                         )}
 
                                         {visit.seller_message && (
-                                            <div style={{ ...S.messageWrapper, background: '#E8F5E9', marginTop: '16px' }}>
-                                                <div style={{ ...S.messageKey, color: '#2E7D32' }}>Your Reply</div>
+                                            <div style={{ ...S.messageWrapper, background: 'rgba(76, 175, 80, 0.14)', marginTop: '16px' }}>
+                                                <div style={{ ...S.messageKey, color: '#2e7d32' }}>Your Reply</div>
                                                 <div style={S.messageContent}>{visit.seller_message}</div>
                                             </div>
                                         )}
 
                                         {visit.admin_message && (
-                                            <div style={{ ...S.messageWrapper, background: '#E3F2FD', marginTop: '16px' }}>
-                                                <div style={{ ...S.messageKey, color: '#1565C0' }}>Admin's Reply</div>
+                                            <div style={{ ...S.messageWrapper, background: 'rgba(33, 150, 243, 0.12)', marginTop: '16px' }}>
+                                                <div style={{ ...S.messageKey, color: '#145b97' }}>Admin's Reply</div>
                                                 <div style={S.messageContent}>{visit.admin_message}</div>
                                             </div>
                                         )}
 
                                         {/* Assigned Agent info */}
                                         {(visit.status === 'Accepted' || visit.status === 'Completed') && visit.agent_name && (
-                                            <div style={{ ...S.messageWrapper, background: '#F5F5F5', marginTop: '16px', border: '1px solid #E0E0E0' }}>
-                                                <div style={{ ...S.messageKey, color: '#616161' }}>ASSIGNED AGENT</div>
+                                            <div style={{ ...S.messageWrapper, background: 'rgba(38, 50, 56, 0.06)', marginTop: '16px', border: '1px solid rgba(38, 50, 56, 0.14)' }}>
+                                                <div style={{ ...S.messageKey, color: 'var(--color-muted)' }}>ASSIGNED AGENT</div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                                                    <div style={{ fontWeight: '700', color: '#1A1A1A' }}>{visit.agent_name}</div>
-                                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#3498db' }}>OFFICIAL AGENT</span>
+                                                    <div style={{ fontWeight: '700', color: 'var(--color-dark)' }}>{visit.agent_name}</div>
+                                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--color-blue)' }}>OFFICIAL AGENT</span>
                                                 </div>
                                                 <div style={{ marginTop: '12px', display: 'flex', gap: '20px', fontSize: '0.8rem' }}>
-                                                    <span style={{ color: '#555', fontWeight: 600 }}>TEL: {visit.agent_phone || 'N/A'}</span>
-                                                    <span style={{ color: '#555', fontWeight: 600 }}>NIC: {visit.agent_nic || 'N/A'}</span>
+                                                    <span style={{ color: 'var(--color-dark)', fontWeight: 600 }}>TEL: {visit.agent_phone || 'N/A'}</span>
+                                                    <span style={{ color: 'var(--color-dark)', fontWeight: 600 }}>NIC: {visit.agent_nic || 'N/A'}</span>
                                                 </div>
                                             </div>
                                         )}
@@ -397,7 +423,7 @@ const SellerVisitsPage = () => {
 
             {/* Daily Schedule Summary Table */}
             {activeSchedule.length > 0 && (
-                <div style={S.scheduleSection}>
+                <div className="ui-card" style={S.scheduleSection}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
                         <div>
                             <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
@@ -437,15 +463,15 @@ const SellerVisitsPage = () => {
                                         scheduleByDate[date].sort((a, b) => a.visit_time.localeCompare(b.visit_time)).map((v, idx) => (
                                             <tr key={v._id || v.id} style={S.tr}>
                                                 {idx === 0 ? (
-                                                    <td style={{ ...S.td, fontWeight: '800', borderLeft: '4px solid #1A1A1A' }} rowSpan={scheduleByDate[date].length}>
+                                                    <td style={{ ...S.td, fontWeight: '800', borderLeft: '4px solid var(--color-dark)' }} rowSpan={scheduleByDate[date].length}>
                                                         {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
                                                     </td>
                                                 ) : null}
-                                                <td style={{ ...S.td, fontWeight: '700', color: '#1A1A1A' }}>{v.visit_time}</td>
+                                                <td style={{ ...S.td, fontWeight: '700', color: 'var(--color-dark)' }}>{v.visit_time}</td>
                                                 <td style={S.td}>{v.land_name}</td>
                                                 <td style={{ ...S.td, fontWeight: '600' }}>
                                                     {v.buyer_name}
-                                                    <div style={{ fontSize: '0.75rem', color: '#777', marginTop: '2px', fontWeight: '500' }}>{v.buyer_phone || 'No phone'}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '2px', fontWeight: '500' }}>{v.buyer_phone || 'No phone'}</div>
                                                 </td>
                                                 <td style={S.td}>
                                                     <span style={{ 
@@ -455,8 +481,8 @@ const SellerVisitsPage = () => {
                                                         fontWeight: '800',
                                                         textTransform: 'uppercase',
                                                         letterSpacing: '0.05em',
-                                                        background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
-                                                        color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'
+                                                        background: v.visit_type === 'self_visit' ? 'rgba(33, 150, 243, 0.14)' : 'rgba(161, 136, 127, 0.18)',
+                                                        color: v.visit_type === 'self_visit' ? '#145b97' : '#7a4f41'
                                                     }}>
                                                         {v.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'}
                                                     </span>
@@ -465,14 +491,14 @@ const SellerVisitsPage = () => {
                                                     {v.visit_type === 'agent_visit' ? (
                                                         (v.status === 'Accepted' || v.status === 'Completed') && v.agent_name ? (
                                                             <div>
-                                                                <div style={{ fontWeight: '700', color: '#3498db', fontSize: '0.85rem' }}>{v.agent_name}</div>
-                                                                <div style={{ color: '#555', fontSize: '0.75rem', fontWeight: '600', marginTop: '2px' }}>{v.agent_phone}</div>
+                                                                <div style={{ fontWeight: '700', color: 'var(--color-blue)', fontSize: '0.85rem' }}>{v.agent_name}</div>
+                                                                <div style={{ color: 'var(--color-dark)', fontSize: '0.75rem', fontWeight: '600', marginTop: '2px' }}>{v.agent_phone}</div>
                                                             </div>
                                                         ) : (
-                                                            <span style={{ color: '#aaa', fontSize: '0.75rem', fontWeight: '600', fontStyle: 'italic' }}>Pending Assignment</span>
+                                                            <span style={{ color: 'var(--color-muted)', fontSize: '0.75rem', fontWeight: '600', fontStyle: 'italic' }}>Pending Assignment</span>
                                                         )
                                                     ) : (
-                                                        <span style={{ color: '#ccc', fontSize: '0.9rem', fontWeight: '700' }}>—</span>
+                                                        <span style={{ color: 'var(--color-muted)', fontSize: '0.9rem', fontWeight: '700' }}>—</span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -489,85 +515,80 @@ const SellerVisitsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px', letterSpacing: '-0.02em' },
-    subtitle: { color: '#777', fontSize: '1rem', fontWeight: '500' },
-    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
-    typeToggleRow: { display: 'flex', gap: '8px', marginBottom: '20px', background: '#F0EBE4', padding: '6px', borderRadius: '40px', width: 'fit-content' },
+    title: { fontSize: '2.2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px', letterSpacing: '-0.02em' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '1rem', fontWeight: '500' },
+    countBadge: { background: 'var(--color-dark)', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
+    typeToggleRow: { display: 'flex', gap: '8px', marginBottom: '20px', background: 'rgba(38, 50, 56, 0.08)', padding: '6px', borderRadius: '40px', width: 'fit-content' },
     typeTab: { padding: '10px 20px', borderRadius: '30px', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s ease-in-out' },
-    errBox: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem', border: '1px solid #ef9a9a' },
+    errBox: { background: 'rgba(161, 136, 127, 0.16)', color: '#7a4f41', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem', border: '1px solid rgba(161, 136, 127, 0.35)' },
     filterRow: { display: 'flex', gap: '12px', marginBottom: '40px', flexWrap: 'wrap' },
     filterBtn: { padding: '8px 20px', borderRadius: '30px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' },
-    filterCount: { borderRadius: '10px', padding: '2px 8px', fontSize: '0.75rem', border: '1px solid #e5e0da' },
-    empty: { textAlign: 'center', color: '#aaa', padding: '100px 20px', fontSize: '1.1rem', fontWeight: '500' },
+    filterCount: { borderRadius: '10px', padding: '2px 8px', fontSize: '0.75rem', border: '1px solid rgba(38, 50, 56, 0.2)' },
+    empty: { textAlign: 'center', color: 'var(--color-muted)', padding: '100px 20px', fontSize: '1.1rem', fontWeight: '500' },
     landGroup: { marginBottom: '48px' },
-    landGroupTitle: { fontSize: '1.25rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '20px', paddingLeft: '4px' },
+    landGroupTitle: { fontSize: '1.25rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '20px', paddingLeft: '4px' },
     cards: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' },
 
-    // Bespoke Card Styles
-    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 8px 32px rgba(26, 26, 26, 0.04)', border: '1px solid #F0EBE4', transition: 'transform 0.2s', position: 'relative' },
-    buyerName: { fontWeight: '800', fontSize: '1.2rem', color: '#1A1A1A', marginBottom: '2px' },
+    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.1)', transition: 'transform 0.28s ease, opacity 0.28s ease', position: 'relative' },
+    buyerName: { fontWeight: '800', fontSize: '1.2rem', color: 'var(--color-dark)', marginBottom: '2px' },
     typeLabel: { fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' },
     statusLabel: { padding: '4px 12px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '900', letterSpacing: '0.08em' },
 
-    detailsArea: { marginTop: '24px', borderTop: '1px solid #F0EBE4', paddingTop: '20px' },
+    detailsArea: { marginTop: '24px', borderTop: '1px solid rgba(38, 50, 56, 0.1)', paddingTop: '20px' },
     detailRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
-    detailKey: { fontSize: '0.68rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.08em' },
-    detailVal: { fontSize: '0.92rem', fontWeight: '700', color: '#1A1A1A' },
+    detailKey: { fontSize: '0.68rem', fontWeight: '800', color: 'var(--color-muted)', letterSpacing: '0.08em' },
+    detailVal: { fontSize: '0.92rem', fontWeight: '700', color: 'var(--color-dark)' },
 
-    messageWrapper: { marginTop: '16px', background: '#F9F7F5', borderRadius: '16px', padding: '16px 20px' },
-    messageKey: { fontSize: '0.65rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' },
-    messageContent: { fontSize: '0.88rem', color: '#444', lineHeight: '1.5', fontWeight: '500' },
+    messageWrapper: { marginTop: '16px', background: 'rgba(38, 50, 56, 0.04)', borderRadius: '16px', padding: '16px 20px' },
+    messageKey: { fontSize: '0.65rem', fontWeight: '800', color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' },
+    messageContent: { fontSize: '0.88rem', color: 'var(--color-dark)', lineHeight: '1.5', fontWeight: '500' },
 
-    timestamp: { fontSize: '0.72rem', color: '#BBB', marginTop: '24px', fontWeight: '600' },
+    timestamp: { fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '24px', fontWeight: '600' },
 
     actionGrid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px', marginTop: '24px' },
-    primaryBtn: { padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' },
-    secondaryBtn: { padding: '14px', background: '#fff', color: '#C62828', border: '1.5px solid #FDECEA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' },
+    primaryBtn: { padding: '14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' },
+    secondaryBtn: { padding: '14px', background: '#fff', color: '#7a4f41', border: '1.5px solid rgba(161, 136, 127, 0.35)', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' },
 
     replyArea: { marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '8px' },
-    replyLabel: { fontSize: '0.65rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.05em' },
-    replyInput: { padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E5E0DA', fontSize: '0.88rem', fontFamily: 'inherit', resize: 'vertical', minHeight: '60px', outline: 'none', transition: 'border-color 0.2s' },
+    replyLabel: { fontSize: '0.65rem', fontWeight: '800', color: 'var(--color-muted)', letterSpacing: '0.05em' },
+    replyInput: { padding: '12px 16px', borderRadius: '12px', border: '1.5px solid rgba(38, 50, 56, 0.16)', fontSize: '0.88rem', fontFamily: 'inherit', resize: 'vertical', minHeight: '60px', outline: 'none', transition: 'border-color 0.2s' },
 
-    // Schedule Table Styles
-    scheduleSection: { marginTop: '80px', background: '#fff', padding: '48px', borderRadius: '32px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
-    sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    sectionSubtitle: { fontSize: '1rem', color: '#777', marginBottom: '32px' },
+    scheduleSection: { marginTop: '80px', background: '#fff', padding: '48px', borderRadius: '32px', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.1)' },
+    sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    sectionSubtitle: { fontSize: '1rem', color: 'var(--color-muted)', marginBottom: '32px' },
     tableWrapper: { overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
-    th: { padding: '16px 20px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid #F0F0F0' },
-    tr: { borderBottom: '1px solid #F7F7F7', transition: 'background 0.2s' },
-    td: { padding: '20px', fontSize: '0.95rem', color: '#333', fontWeight: '600' },
+    th: { padding: '16px 20px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid rgba(38, 50, 56, 0.1)', background: 'rgba(139, 195, 74, 0.12)' },
+    tr: { borderBottom: '1px solid rgba(38, 50, 56, 0.08)', transition: 'background 0.2s' },
+    td: { padding: '20px', fontSize: '0.95rem', color: 'var(--color-dark)', fontWeight: '600' },
 
-    // Modal Styles
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px' },
-    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
-    modalSubtitle: { fontSize: '0.9rem', color: '#666', lineHeight: '1.5', margin: 0 },
-    modalInfo: { padding: '12px 16px', background: '#FAF6F1', borderRadius: '12px', fontSize: '0.85rem', color: '#444', lineHeight: '1.6' },
-    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' },
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(38, 50, 56, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
+    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(38, 50, 56, 0.2)', display: 'flex', flexDirection: 'column', gap: '20px', border: '1px solid rgba(38, 50, 56, 0.1)' },
+    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
+    modalSubtitle: { fontSize: '0.9rem', color: 'var(--color-muted)', lineHeight: '1.5', margin: 0 },
+    modalInfo: { padding: '12px 16px', background: 'rgba(139, 195, 74, 0.12)', borderRadius: '12px', fontSize: '0.85rem', color: 'var(--color-dark)', lineHeight: '1.6' },
+    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid rgba(38, 50, 56, 0.16)', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' },
     modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
-    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
-    confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' },
+    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid rgba(38, 50, 56, 0.16)', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: 'var(--color-dark)' },
+    confirmDeclineBtn: { flex: 1, padding: '14px', background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' },
 
-    // View Toggle
-    viewToggle: { display: 'flex', background: '#F0F0F0', padding: '4px', borderRadius: '12px', gap: '4px' },
-    toggleBtn: { padding: '8px 16px', border: 'none', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', background: 'transparent', color: '#666', transition: 'all 0.2s' },
-    toggleBtnActive: { background: '#fff', color: '#1A1A1A', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
+    viewToggle: { display: 'flex', background: 'rgba(38, 50, 56, 0.08)', padding: '4px', borderRadius: '12px', gap: '4px' },
+    toggleBtn: { padding: '8px 16px', border: 'none', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', background: 'transparent', color: 'var(--color-muted)', transition: 'all 0.2s' },
+    toggleBtnActive: { background: '#fff', color: 'var(--color-dark)', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.1)' },
 
-    // Calendar Specific Styles
-    calendarRoot: { border: '1px solid #F0EBE4', borderRadius: '32px', overflow: 'hidden', background: '#fff' },
-    calHeader: { padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F0F0F0' },
-    calTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    calendarRoot: { border: '1px solid rgba(38, 50, 56, 0.1)', borderRadius: '32px', overflow: 'hidden', background: '#fff' },
+    calHeader: { padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(38, 50, 56, 0.1)' },
+    calTitle: { fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
     calNav: { display: 'flex', gap: '8px' },
-    calNavBtn: { padding: '8px 16px', border: '1px solid #E5E0DA', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#1A1A1A', hover: { background: '#F9F9F9' } },
-    todayBtn: { padding: '8px 20px', background: '#1A1A1A', color: '#fff', border: 'none' },
+    calNavBtn: { padding: '8px 16px', border: '1px solid rgba(38, 50, 56, 0.16)', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: 'var(--color-dark)' },
+    todayBtn: { padding: '8px 20px', background: 'var(--color-primary)', color: '#fff', border: 'none' },
     calGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(140px, auto)' },
-    weekDayHead: { padding: '16px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', borderBottom: '1px solid #F0F0F0', background: '#FAF9F7' },
-    dayCell: { borderRight: '1px solid #F0F0F0', borderBottom: '1px solid #F0F0F0', padding: '12px', position: 'relative', minHeight: '140px' },
-    dayNum: { textAlign: 'right', fontSize: '0.85rem', fontWeight: '800', color: '#666', marginBottom: '8px' },
-    todayCircle: { background: '#00B4D8', color: '#fff', padding: '4px 8px', borderRadius: '50%', fontSize: '0.75rem' },
+    weekDayHead: { padding: '16px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', borderBottom: '1px solid rgba(38, 50, 56, 0.1)', background: 'rgba(139, 195, 74, 0.1)' },
+    dayCell: { borderRight: '1px solid rgba(38, 50, 56, 0.08)', borderBottom: '1px solid rgba(38, 50, 56, 0.08)', padding: '12px', position: 'relative', minHeight: '140px' },
+    dayNum: { textAlign: 'right', fontSize: '0.85rem', fontWeight: '800', color: 'var(--color-muted)', marginBottom: '8px' },
+    todayCircle: { background: 'var(--color-blue)', color: '#fff', padding: '4px 8px', borderRadius: '50%', fontSize: '0.75rem' },
     eventList: { display: 'flex', flexDirection: 'column', gap: '4px' },
     eventTag: { padding: '6px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', lineHeight: '1.2', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
     eventDot: { width: '4px', height: '4px', borderRadius: '50%', background: 'currentColor' }

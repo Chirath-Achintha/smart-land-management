@@ -160,8 +160,7 @@ async def forgot_password(request: ForgotPasswordRequest):
     email = request.email.lower().strip()
     user = await User.find_one(User.email == email)
     if not user:
-        # We don't want to leak if an email exists or not directly, just return success
-        return {"message": "If that email is registered, you will receive an OTP shortly."}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email is not registered")
     
     # Generate 6-digit OTP
     otp = str(random.randint(100000, 999999))

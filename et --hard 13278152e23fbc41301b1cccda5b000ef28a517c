@@ -1,0 +1,132 @@
+[33m66ea151[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m, [m[1;31morigin/dev[m[33m, [m[1;32mbackup-before-rollback[m[33m)[m Merged remote dev into local, preferring local state
+[33m69ebae5[m pushing code to dev branch
+[33mbcbed84[m resolve runtime errors and missing variables in dashboard pages
+[33m5b879d8[m Merge branch 'main' into dev
+[33m4579bf8[m update frontend
+[33m1327815[m frontend
+[33m636056d[m Merge branch 'main' of https://github.com/Chirath-Achintha/smart-land-management
+[33m3099816[m feat: Implement constructor team and service booking management with dedicated dashboards and routes for admin and constructor manager roles.
+[33m6ce908d[m land page create
+[33m90108e4[m Merge pull request #44 from uvindu/dev
+[33mbe557a7[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33mf8a44f5[m update agent decline
+[33me7956b8[m Merge pull request #43 from Chirath-Achintha/dev
+[33m0353a42[m admin update
+[33ma259217[m Merge pull request #42 from Uvindu/dev
+[33m032a6c5[m update noti
+[33m736b0ae[m Merge pull request #41 from Uvindu/dev
+[33m6705139[m update notification
+[33m5870eb6[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33mcd3ce1e[m construction service
+[33ma22ac3e[m BuyerBidsPage updated
+[33m523d48b[m Merge pull request #40 from Chirath-Achintha/dev
+[33m9530116[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33mba36dc2[m integrate forgot password flow with OTP email support
+[33m2bdbff1[m Merge pull request #39 from Chirath-Achintha/dev
+[33mfdcc9b4[m construction upload
+[33md82048a[m Merge pull request #38 from uvindu/dev
+[33mac834f0[m validation update
+[33md8d11a1[m Merge pull request #37 from Uvindu/dev
+[33mfbc532a[m button update
+[33m5c4419e[m Merge pull request #36 from uvindu/dev
+[33m1429f6a[m validation update
+[33mbc6f46c[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33mf6365d0[m fix side bar
+[33mf77bdca[m update register
+[33md5bbb35[m Merge pull request #35 from Chirath-Achintha/dev
+[33m0ebaf65[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33m8bb3f0d[m implement full end-to-end inquiry management system
+[33m5a148c5[m Merge pull request #34 from Chirath-Achintha/dev
+[33m1f525e7[m Merge pull request #33 from Uvindu/dev
+[33m57d9920[m visits notification update
+[33mf73b971[m Merge pull request #32 from uvindu/dev
+[33m87b5c5a[m booking update/delete
+[33m109e385[m Merge pull request #31 from Uvindu/dev
+[33m6305264[m agent booking
+[33m8c1b7fc[m Merge pull request #30 from Chirath-Achintha/dev
+[33m601b507[m fix image limit
+[33mc98388d[m Merge pull request #29 from Chirath-Achintha/dev
+[33mcabefd9[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33ma1d7e1d[m implement manual winner notification with full seller contact information
+[33mfe7fe7e[m agent test
+[33m9830de4[m create the land listing
+[33mf7d7b01[m Merge pull request #28 from Chirath-Achintha/dev
+[33m368d61e[m Merge branch 'main' into dev
+[33m41074f2[m  implement winner notifications, scheduled auctions, and winner-to-seller contact
+[33m75a8509[m Add password reset OTP flow
+[33m97a64d7[m Merge pull request #27 from uvindu/dev
+[33ma49f202[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33md4da55e[m admin update
+[33md6cdfc8[m changed database from MYSQL to mondoDB
+[33m4ad00a9[m Merge pull request #26 from Chirath-Achintha/dev
+[33m7a3d833[m Merge pull request #25 from Uvindu/dev
+[33md96de19[m update in visits
+[33m488b342[m Merge pull request #24 from Uvindu/dev
+[33md58cad8[m change mysql to mongodb and update land image dragging
+[33m3218441[m Merge pull request #23 from Chirath-Achintha/dev
+[33m164f658[m for bidding startup process replace date-picker with precision duration and scheduled start
+[33me003bea[m implement dedicated bidding page and enhance land-view UI
+[33ma18e819[m updated README.md
+[33m8bca59d[m fixed backend running issues
+[33m1921171[m Merge pull request #22 from Chirath-Achintha/dev
+[33m18c1c49[m Merge pull request #21 from Uvindu/dev
+[33m4ac7547[m test
+[33mc32b94d[m Merge pull request #20 from Chirath-Achintha/dev
+[33me17e21d[m backend of some function
+[33m07cc8ae[m Merge pull request #19 from Ayeshan2004/dev
+[33mcdcb6a1[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33mb6b26ff[m constructor manager update
+[33m22a292d[m Merge pull request #18 from Uvindu/dev
+[33m505b03d[m availability update
+[33m187a193[m implemented Inquiries and Complaints backend
+[33m9824f52[m Merge pull request #17 from Chirath-Achintha/dev
+[33me2782ef[m Merge pull request #16 from Chirath-Achintha/dev
+[33me1a7111[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33me7eb06b[m improve bid handling logic and update related frontend components
+[33m9162187[m Merge pull request #15 from Uvindu/dev
+[33ma6c898f[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33me633100[m uvindu test
+[33md55e999[m refactor: replace hardcoded backend URL with API_BASE_URL constant
+[33mb500061[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33m51ea7cb[m connect database
+[33mf00b859[m Merge pull request #14 from Ayeshan2004/dev
+[33m7f75ac7[m backend start
+[33m2489845[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33m442e5bf[m create the main
+[33m9b0ec73[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33m62ae736[m fix
+[33m09271f1[m create requrment file
+[33mc0c16c4[m listing update
+[33mebc10ca[m Merge pull request #13 from Chirath-Achintha/dev
+[33m44fe1d0[m agents and constructor manager dashboard
+[33m7577613[m fixed admin dashboard
+[33mc0f5b80[m Merge pull request #12 from Chirath-Achintha/dev
+[33mcbc9389[m created the admin dashboard
+[33m1f7f35c[m Merge pull request #11 from Chirath-Achintha/dev
+[33mf6e8f22[m fixed seller dashboard
+[33md9ef659[m Merge pull request #10 from Chirath-Achintha/dev
+[33md39bdb6[m fixied conflict errors
+[33m59c066e[m Merge pull request #9 from Chirath-Achintha/dev
+[33m37b6f80[m Merge pull request #8 from Chirath-Achintha/dev
+[33m5d2aa61[m Merge branch 'main' into dev
+[33m064133b[m Merge branch 'dev' of https://github.com/Chirath-Achintha/smart-land-management into dev
+[33m6790e8f[m seller updated
+[33md83e41a[m create buyer side dashboard interface
+[33m1d6abe1[m Merge pull request #7 from Chirath-Achintha/dev
+[33ma53b62d[m Merge branch 'main' of https://github.com/Chirath-Achintha/smart-land-management
+[33m73be76f[m create seller dashboard
+[33md8ebdb4[m SERVICE BOOKING front end done
+[33m45ac704[m Merge pull request #6 from Chirath-Achintha/dev
+[33md65af5f[m COMPLAINTS / INQUIRY part done
+[33m2afff7e[m Merge pull request #5 from Chirath-Achintha/Complains-and-inquiry-management
+[33m8ef8c2f[m[33m ([m[1;31morigin/Complains-and-inquiry-management[m[33m, [m[1;32mComplains-and-inquiry-management[m[33m)[m fixed logging issues
+[33m6d904b2[m Merge pull request #4 from Chirath-Achintha/Complains-and-inquiry-management
+[33m909e533[m front end develop
+[33m62d32eb[m front end develop
+[33m869f205[m Merge pull request #3 from Chirath-Achintha/main
+[33m371b113[m Delete security.py
+[33m5b721ad[m Update the backend file structure for User Management + Authentication + Roles
+[33m94e59a4[m Initialize FastAPI backend architecture with organized modular structure
+[33mbc8c034[m Merge branch 'main' of https://github.com/Chirath-Achintha/smart-land-management
+[33m135946f[m Initial project setup
+[33m7a9e98d[m Initial commit

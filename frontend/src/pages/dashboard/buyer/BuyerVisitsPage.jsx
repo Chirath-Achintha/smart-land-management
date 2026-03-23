@@ -260,7 +260,19 @@ const BuyerVisitsPage = () => {
         return (
             <div style={S.calendarRoot}>
                 <div style={S.calHeader}>
-                    <h2 style={S.calTitle}>{monthNames[month]} {year}</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <h2 style={S.calTitle}>{monthNames[month]} {year}</h2>
+                        <div style={S.calLegend}>
+                            <div style={S.legendItem}>
+                                <div style={{ ...S.legendDot, background: '#1565C0' }}></div>
+                                <span>Self Visit</span>
+                            </div>
+                            <div style={S.legendItem}>
+                                <div style={{ ...S.legendDot, background: '#7B1FA2' }}></div>
+                                <span>Agent Visit</span>
+                            </div>
+                        </div>
+                    </div>
                     <div style={S.calNav}>
                         <button style={S.calNavBtn} onClick={prevMonth}>&lt;</button>
                         <button style={{ ...S.calNavBtn, ...S.todayBtn }} onClick={goToToday}>Today</button>
@@ -283,9 +295,9 @@ const BuyerVisitsPage = () => {
                                             style={{ 
                                                 ...S.eventTag, 
                                                 cursor: 'pointer',
-                                                background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
+                                                background: v.visit_type === 'self_visit' ? '#E3F1FF' : '#F5E6FF',
                                                 color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2',
-                                                borderLeft: `3px solid ${v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'}`
+                                                borderLeft: `5px solid ${v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'}`
                                             }}
                                             onClick={() => scrollToVisit(v.id || v._id)}
                                             title="Click to see details above"
@@ -680,7 +692,10 @@ const S = {
     
     calendarRoot: { border: '1px solid #F0EBE4', borderRadius: '32px', overflow: 'hidden', background: '#fff' },
     calHeader: { padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F0F0F0' },
-    calTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    calTitle: { fontSize: '1.4rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    calLegend: { display: 'flex', gap: '16px', marginTop: '6px' },
+    legendItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem', fontWeight: '800', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    legendDot: { width: '8px', height: '8px', borderRadius: '50%' },
     calNav: { display: 'flex', gap: '8px' },
     calNavBtn: { padding: '8px 16px', border: '1px solid #E5E0DA', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#1A1A1A', fontFamily: 'inherit' },
     todayBtn: { padding: '8px 20px', background: '#1A1A1A', color: '#fff', border: 'none' },

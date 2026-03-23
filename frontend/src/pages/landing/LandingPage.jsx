@@ -194,11 +194,11 @@ const LandingPage = () => {
                 <div className="contact-grid">
                     <div className="contact-item reveal-on-scroll">
                         <div className="contact-label">Email Us</div>
-                        <div className="contact-value">SmartLand99@gmail.com</div>
+                        <div className="contact-value">SmartLand@gmail.com</div>
                     </div>
                     <div className="contact-item reveal-on-scroll">
                         <div className="contact-label">Call Us</div>
-                        <div className="contact-value">011 100 1001</div>
+                        <div className="contact-value">+94 70 222 2222</div>
                     </div>
                 </div>
             </section>

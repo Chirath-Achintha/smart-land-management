@@ -350,7 +350,7 @@ const AgentVisitsPage = () => {
 };
 
 const S = {
-    root: { background: 'linear-gradient(180deg, #FAF6F1 0%, #F5EFE6 100%)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
     title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px' },
     subtitle: { color: 'var(--color-muted)', fontSize: '0.95rem' },
@@ -361,7 +361,7 @@ const S = {
     filterCount: { background: 'rgba(0,0,0,0.1)', borderRadius: '10px', padding: '1px 6px', fontSize: '0.7rem' },
     empty: { textAlign: 'center', color: '#aaa', padding: '80px 20px' },
     cards: { display: 'flex', flexDirection: 'column', gap: '16px' },
-    card: { background: '#fff', borderRadius: '16px', padding: '20px 24px', boxShadow: '0 14px 26px rgba(26,26,26,0.08)', border: '1px solid var(--color-accent)', display: 'flex', gap: '32px', alignItems: 'center' },
+    card: { background: '#fff', borderRadius: '16px', padding: '20px 24px', boxShadow: '0 14px 26px rgba(26,26,26,0.04)', border: '1px solid rgba(38, 50, 56, 0.08)', display: 'flex', gap: '32px', alignItems: 'center' },
     infoSection: { flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '12px' },
     detailsStrip: { display: 'flex', gap: '20px' },
     infoItem: { display: 'flex', flexDirection: 'column', gap: '2px' },
@@ -372,7 +372,7 @@ const S = {
     detailVal: { fontSize: '0.9rem', fontWeight: '700', color: '#1A1A1A' },
 
     messageSection: { flex: '2 1 300px' },
-    messageWrapper: { background: '#F9F7F5', borderRadius: '12px', padding: '12px 16px', border: '1px dashed #E5E0DA' },
+    messageWrapper: { background: '#f8fafc', borderRadius: '12px', padding: '12px 16px', border: '1px dashed rgba(38, 50, 56, 0.12)' },
     messageKey: { fontSize: '0.6rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '2px' },
     messageContent: { fontSize: '0.82rem', color: '#444', lineHeight: '1.4' },
 
@@ -388,8 +388,8 @@ const S = {
     modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px', animation: 'modalPopIn 0.25s ease' },
     modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
     modalSubtitle: { fontSize: '0.9rem', color: 'var(--color-muted)', lineHeight: '1.5', margin: 0 },
-    modalInfo: { padding: '12px 16px', background: '#FAF6F1', borderRadius: '12px', fontSize: '0.9rem', color: '#444' },
-    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', '&:focus': { borderColor: '#1A1A1A' } },
+    modalInfo: { padding: '12px 16px', background: 'var(--color-bg)', borderRadius: '12px', fontSize: '0.9rem', color: '#444' },
+    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid rgba(38, 50, 56, 0.1)', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', '&:focus': { borderColor: 'var(--color-blue)' } },
     modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
     cancelBtn: { flex: 1, padding: '14px', background: '#ECFDF5', border: '1.5px solid #86EFAC', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#166534' },
     confirmDeclineBtn: { flex: 1, padding: '14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },

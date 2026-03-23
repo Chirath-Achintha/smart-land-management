@@ -265,13 +265,13 @@ const AgentClientsPage = () => {
 };
 
 const S = {
-    root: { background: 'linear-gradient(180deg, #FAF6F1 0%, #F3ECE4 100%)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '36px' },
     title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
     subtitle: { color: 'var(--color-muted)', fontSize: '1rem' },
 
     clientGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' },
-    clientCard: { borderRadius: '20px', padding: '24px', border: '1px solid var(--color-accent)', display: 'flex', flexDirection: 'column', gap: '20px', background: 'linear-gradient(180deg, #FFFFFF 0%, #FDFCF9 100%)' },
+    clientCard: { borderRadius: '20px', padding: '24px', border: '1px solid rgba(38, 50, 56, 0.08)', display: 'flex', flexDirection: 'column', gap: '20px', background: '#fff', boxShadow: '0 8px 24px rgba(38, 50, 56, 0.04)' },
 
     cardTop: { display: 'flex', gap: '16px', alignItems: 'center' },
     avatar: { width: '56px', height: '56px', borderRadius: '16px', background: 'linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: '800' },
@@ -301,7 +301,7 @@ const S = {
     emptyBox: { gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#7B8A8F', fontWeight: '600', borderRadius: '16px', border: '1px solid var(--color-accent)', background: '#fff' },
 
     // Schedule Styling
-    scheduleSection: { marginTop: '80px', background: 'linear-gradient(180deg, #FFFFFF 0%, #FCFAF7 100%)', padding: '48px', borderRadius: '32px', boxShadow: '0 14px 36px rgba(38,50,56,0.08)', border: '1px solid var(--color-accent)' },
+    scheduleSection: { marginTop: '80px', background: '#fff', padding: '48px', borderRadius: '32px', boxShadow: '0 14px 36px rgba(38,50,56,0.06)', border: '1px solid rgba(38, 50, 56, 0.08)' },
     scheduleHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' },
     sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px', margin: 0 },
     sectionSubtitle: { fontSize: '1rem', color: 'var(--color-muted)', margin: 0 },

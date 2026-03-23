@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
 const MAX_IMAGES = 5;
+
+const ALL_DISTRICTS = [
+    'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle',
+    'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle',
+    'Kilinochchi', 'Kurunegala', 'Mannar', 'Matale', 'Matara', 'Monaragala',
+    'Mullaitivu', 'Nuwara Eliya', 'Polonnaruwa', 'Puttalam', 'Ratnapura',
+    'Trincomalee', 'Vavuniya',
+];
 
 const STATUS_COLORS = {
     Available: { bg: '#eafaf1', color: '#2ecc71', border: '#2ecc71' },
@@ -16,9 +25,12 @@ const REVIEW_COLORS = {
     rejected: { bg: '#fff1f0', color: '#c0392b', border: '#f1b0aa', label: 'Rejected' },
 };
 
+const SIZE_ERROR = 'Size (Perches) must be greater than zero.';
+const PRICE_ERROR = 'Price Per Perch must be greater than zero.';
+
 const EMPTY_FORM = {
     name: '', district: '', village: '', perches: '', price_per_perch: '',
-    land_type: 'Residential', status: 'Available', road_access: '',
+    land_type: 'Residential', road_access: '',
     electricity: false, water: false,
     image_url: '',           // stored as URL string
     open_for_bidding: false, starting_bid: '', bidding_end: '',
@@ -34,6 +46,7 @@ function getImageUrls(imageUrlValue) {
 }
 
 const SellerListingsPage = () => {
+    const navigate = useNavigate();
     const [listings, setListings] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -43,16 +56,42 @@ const SellerListingsPage = () => {
     const [editingId, setEditingId] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({ perches: '', price_per_perch: '' });
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
+    const handleSessionExpired = () => {
+        setError('Session expired. Please login again.');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+        setTimeout(() => {
+            navigate('/login', { state: { from: '/dashboard/seller/listings' } });
+        }, 700);
+    };
 
     // ── Fetch seller's own listings from DB ────────────────────────────────
     const fetchListings = () => {
         setLoading(true);
         Promise.all([
-            fetch(`${API}/lands/my`, { headers: authHeaders }).then(r => r.json()).catch(() => []),
-            fetch(`${API}/notifications/`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()).catch(() => [])
+            fetch(`${API}/lands/my`, { headers: authHeaders })
+                .then(async (r) => {
+                    if (r.status === 401) {
+                        handleSessionExpired();
+                        return [];
+                    }
+                    return r.json();
+                })
+                .catch(() => []),
+            fetch(`${API}/notifications/`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(async (r) => {
+                    if (r.status === 401) {
+                        handleSessionExpired();
+                        return [];
+                    }
+                    return r.json();
+                })
+                .catch(() => [])
         ])
             .then(([lands, notifs]) => {
                 setListings(Array.isArray(lands) ? lands : []);
@@ -86,6 +125,16 @@ const SellerListingsPage = () => {
 
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target;
+
+        if (name === 'perches' || name === 'price_per_perch') {
+            if (value !== '' && Number(value) <= 0) {
+                const message = name === 'perches' ? SIZE_ERROR : PRICE_ERROR;
+                setFieldErrors((prev) => ({ ...prev, [name]: message }));
+            } else {
+                setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+            }
+        }
+
         setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
     };
 
@@ -163,6 +212,7 @@ const SellerListingsPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setFieldErrors({ perches: '', price_per_perch: '' });
         setSubmitting(true);
 
         const payload = {
@@ -171,6 +221,18 @@ const SellerListingsPage = () => {
             price_per_perch: parseFloat(form.price_per_perch),
             starting_bid: form.starting_bid ? parseFloat(form.starting_bid) : null,
         };
+
+        if (!Number.isFinite(payload.perches) || payload.perches <= 0) {
+            setFieldErrors((prev) => ({ ...prev, perches: SIZE_ERROR }));
+            setSubmitting(false);
+            return;
+        }
+
+        if (!Number.isFinite(payload.price_per_perch) || payload.price_per_perch <= 0) {
+            setFieldErrors((prev) => ({ ...prev, price_per_perch: PRICE_ERROR }));
+            setSubmitting(false);
+            return;
+        }
 
         try {
             let res;
@@ -190,6 +252,10 @@ const SellerListingsPage = () => {
 
             if (!res.ok) {
                 const err = await res.json();
+                if (res.status === 401) {
+                    handleSessionExpired();
+                    return;
+                }
                 setError(err.detail || 'Failed to save listing');
                 return;
             }
@@ -206,7 +272,11 @@ const SellerListingsPage = () => {
 
     const handleDelete = async (id) => {
         try {
-            await fetch(`${API}/lands/${id}`, { method: 'DELETE', headers: authHeaders });
+            const res = await fetch(`${API}/lands/${id}`, { method: 'DELETE', headers: authHeaders });
+            if (res.status === 401) {
+                handleSessionExpired();
+                return;
+            }
             fetchListings();
         } catch { /* ignore */ }
         setDeleteConfirm(null);
@@ -305,7 +375,7 @@ const SellerListingsPage = () => {
                                                     setForm({
                                                         name: l.name, district: l.district, village: l.village,
                                                         perches: l.perches, price_per_perch: l.price_per_perch,
-                                                        land_type: l.land_type, status: l.status,
+                                                        land_type: l.land_type,
                                                         road_access: l.road_access || '',
                                                         electricity: l.electricity, water: l.water,
                                                         image_url: l.image_url || '',
@@ -360,7 +430,12 @@ const SellerListingsPage = () => {
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>District *</label>
-                                    <input name="district" value={form.district} onChange={handleFormChange} required style={S.input} />
+                                    <select name="district" value={form.district} onChange={handleFormChange} required style={S.input}>
+                                        <option value="">Select District</option>
+                                        {ALL_DISTRICTS.map((district) => (
+                                            <option key={district} value={district}>{district}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Village / Area *</label>
@@ -368,22 +443,36 @@ const SellerListingsPage = () => {
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Size (Perches) *</label>
-                                    <input name="perches" type="number" value={form.perches} onChange={handleFormChange} required style={S.input} />
+                                    <input
+                                        name="perches"
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        value={form.perches}
+                                        onChange={handleFormChange}
+                                        required
+                                        style={S.input}
+                                    />
+                                    {fieldErrors.perches && <span style={S.fieldError}>{fieldErrors.perches}</span>}
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Price Per Perch (Rs.) *</label>
-                                    <input name="price_per_perch" type="number" value={form.price_per_perch} onChange={handleFormChange} required style={S.input} />
+                                    <input
+                                        name="price_per_perch"
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        value={form.price_per_perch}
+                                        onChange={handleFormChange}
+                                        required
+                                        style={S.input}
+                                    />
+                                    {fieldErrors.price_per_perch && <span style={S.fieldError}>{fieldErrors.price_per_perch}</span>}
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Land Type</label>
                                     <select name="land_type" value={form.land_type} onChange={handleFormChange} style={S.input}>
                                         {['Residential', 'Agricultural', 'Commercial', 'Mixed'].map(t => <option key={t}>{t}</option>)}
-                                    </select>
-                                </div>
-                                <div style={S.formGroup}>
-                                    <label style={S.label}>Status</label>
-                                    <select name="status" value={form.status} onChange={handleFormChange} style={S.input}>
-                                        {Object.keys(STATUS_COLORS).map(s => <option key={s}>{s}</option>)}
                                     </select>
                                 </div>
                                 <div style={S.formGroup}>
@@ -521,6 +610,7 @@ const S = {
     formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
     label: { fontSize: '0.78rem', fontWeight: '700', color: '#666' },
     input: { padding: '12px', border: '1px solid #e5e0da', borderRadius: '8px', outline: 'none', fontFamily: 'inherit' },
+    fieldError: { fontSize: '0.76rem', color: '#d32f2f', marginTop: '2px', fontWeight: '600' },
     checkRow: { display: 'flex', gap: '24px', marginBottom: '8px' },
     checkLabel: { display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' },
     biddingSection: { background: '#fdfaf7', padding: '20px', borderRadius: '12px', marginBottom: '16px' },

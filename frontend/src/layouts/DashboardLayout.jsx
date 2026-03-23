@@ -261,19 +261,30 @@ const DashboardLayout = ({ role }) => {
                                         {notifications.length === 0 ? (
                                             <div style={styles.emptyText}>No notifications yet.</div>
                                         ) : (
-                                            notifications.slice(0, 8).map(n => (
-                                                <div 
-                                                    key={n.id || n._id} 
-                                                    onClick={() => handleNotificationClick(n)}
-                                                    style={{ ...styles.notifItem, opacity: n.is_read ? 0.7 : 1 }}
-                                                >
-                                                    <div style={{ ...styles.notifDot, opacity: n.is_read ? 0 : 1 }}></div>
-                                                    <div>
-                                                        <div style={styles.notifTitle}>{n.title}</div>
-                                                        <div style={styles.notifMsg}>{n.message}</div>
+                                            notifications.slice(0, 8).map(n => {
+                                                const isUrgent = n.title?.toLowerCase().includes('cancelled') || 
+                                                               n.message?.toLowerCase().includes('cancelled') ||
+                                                               n.title?.toLowerCase().includes('declined') ||
+                                                               n.message?.toLowerCase().includes('declined');
+                                                return (
+                                                    <div 
+                                                        key={n.id || n._id} 
+                                                        onClick={() => handleNotificationClick(n)}
+                                                        style={{ 
+                                                            ...styles.notifItem, 
+                                                            opacity: n.is_read ? 0.7 : 1,
+                                                            background: isUrgent ? '#FFF5F5' : '#fff',
+                                                            border: isUrgent ? '1px solid #FEB2B2' : '1px solid rgba(85, 107, 47, 0.05)'
+                                                        }}
+                                                    >
+                                                        <div style={{ ...styles.notifDot, opacity: n.is_read ? 0 : 1, background: isUrgent ? '#E53E3E' : '#e74c3c' }}></div>
+                                                        <div>
+                                                            <div style={{ ...styles.notifTitle, color: isUrgent ? '#C53030' : '#1d2a12' }}>{n.title}</div>
+                                                            <div style={styles.notifMsg}>{n.message}</div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))
+                                                );
+                                            })
                                         )}
                                     </div>
                                 </div>

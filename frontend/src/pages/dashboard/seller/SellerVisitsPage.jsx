@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
@@ -8,6 +9,8 @@ const STATUS_COLORS = {
     SellerAccepted: { bg: '#e3f2fd', color: '#1565c0', border: '#90caf9' }, // Awaiting Admin
     Accepted: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
     Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
+    Cancelled: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
+    Completed: { bg: '#f5f5f5', color: '#616161', border: '#e0e0e0' }
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -19,7 +22,9 @@ const SellerVisitsPage = () => {
     const [error, setError] = useState('');
     const [replyTexts, setReplyTexts] = useState({});
     const [rejectingVisit, setRejectingVisit] = useState(null);
+    const [cancellingVisit, setCancellingVisit] = useState(null);
     const [rejectMessage, setRejectMessage] = useState('');
+    const [cancelMessage, setCancelMessage] = useState('');
     const [viewMode, setViewMode] = useState('calendar'); // Default to the new calendar view
     const [currentDate, setCurrentDate] = useState(new Date()); // Auto-detect today
 
@@ -37,7 +42,46 @@ const SellerVisitsPage = () => {
             .catch(() => { setVisits([]); setLoading(false); });
     };
 
-    useEffect(() => { fetchVisits(); }, []);
+    const fetchMyLands = () => {
+        fetch(`${API}/lands/my`, { headers: authHeaders })
+            .then(r => r.json())
+            .then(data => setMyLands(Array.isArray(data) ? data : []))
+            .catch(() => setMyLands([]));
+    };
+
+    useEffect(() => { 
+        fetchVisits(); 
+        fetchMyLands();
+    }, []);
+
+    const location = useLocation();
+
+    // Scroll to visit logic
+    useEffect(() => {
+        if (!loading && visits.length > 0) {
+            const params = new URLSearchParams(location.search);
+            const visitId = params.get('visit_id');
+            if (visitId) {
+                // Find the visit and set filter if needed
+                const v = visits.find(v => (v._id || v.id) === visitId);
+                if (v) {
+                    if (v.status === 'Cancelled' || v.status === 'Rejected') {
+                        setFilter('Cancelled');
+                    } else {
+                        setFilter(v.status);
+                    }
+                    setTimeout(() => {
+                        const el = document.getElementById(`visit-${visitId}`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.style.border = '2px solid #C62828';
+                            setTimeout(() => { el.style.border = '1px solid #F0EBE4'; }, 3000);
+                        }
+                    }, 500);
+                }
+            }
+        }
+    }, [loading, visits, location.search]);
 
     const updateStatus = async (visitId, newStatus, message = '') => {
         let finalStatus = newStatus;
@@ -75,17 +119,33 @@ const SellerVisitsPage = () => {
         } catch { setError('Server error. Try again.'); }
         setUpdating(null);
     };
+    const [myLands, setMyLands] = useState([]);
+    const [landFilter, setLandFilter] = useState('All Lands');
+    const [isLandDropdownOpen, setIsLandDropdownOpen] = useState(false);
+
     // Filter by visit type separately
     const [visitTypeFilter, setVisitTypeFilter] = useState('All');
 
     // Filter by status for quick overview (tabs)
     const [filter, setFilter] = useState('All');
 
+    const landNamesFromMyLands = myLands.map(l => l.name);
+    const landNamesFromVisits = [...new Set(visits.map(v => v.land_name || `Land #${v.land_id}`))];
+    const uniqueLands = ['All Lands', ...new Set([...landNamesFromMyLands, ...landNamesFromVisits])];
     const typedVisits = visitTypeFilter === 'All' 
         ? visits 
         : visits.filter(v => v.visit_type === visitTypeFilter);
 
-    const filtered = filter === 'All' ? typedVisits : typedVisits.filter(v => v.status === filter);
+    // Apply land filter AFTER type filter
+    const landFiltered = landFilter === 'All Lands'
+        ? typedVisits
+        : typedVisits.filter(v => (v.land_name || `Land #${v.land_id}`) === landFilter);
+
+    const filtered = filter === 'All' 
+        ? landFiltered 
+        : filter === 'Cancelled'
+            ? landFiltered.filter(v => v.status === 'Cancelled' || v.status === 'Rejected')
+            : landFiltered.filter(v => v.status === filter);
 
     // Group by land
     const byLand = filtered.reduce((acc, v) => {
@@ -117,6 +177,24 @@ const SellerVisitsPage = () => {
     const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
     const goToToday = () => setCurrentDate(new Date());
+
+    const scrollToVisitCard = (visit) => {
+        const vId = visit._id || visit.id;
+        setViewMode('list');
+        if (visit.status === 'Cancelled' || visit.status === 'Rejected') {
+            setFilter('Cancelled');
+        } else {
+            setFilter(visit.status);
+        }
+        setTimeout(() => {
+            const el = document.getElementById(`visit-${vId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.style.border = '2px solid #C62828';
+                setTimeout(() => { el.style.border = '1px solid #F0EBE4'; }, 3000);
+            }
+        }, 100);
+    };
 
     const renderCalendar = () => {
         const month = currentDate.getMonth();
@@ -168,12 +246,16 @@ const SellerVisitsPage = () => {
                                 </div>
                                 <div style={S.eventList}>
                                     {dayVisits.map(v => (
-                                        <div key={v.id || v._id} style={{ 
-                                            ...S.eventTag, 
-                                            background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
-                                            color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2',
-                                            borderLeft: `3px solid ${v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'}`
-                                        }}>
+                                        <div 
+                                            key={v.id || v._id} 
+                                            onClick={() => scrollToVisitCard(v)}
+                                            style={{ 
+                                                ...S.eventTag, 
+                                                cursor: 'pointer',
+                                                background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
+                                                color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2',
+                                                borderLeft: `3px solid ${v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'}`
+                                            }}>
                                             <span style={S.eventDot}></span>
                                             {v.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'} — {v.visit_time} - {v.land_name}
                                         </div>
@@ -199,29 +281,68 @@ const SellerVisitsPage = () => {
 
             {error && <div style={S.errBox}>{error}</div>}
 
-            {/* Type Toggle */}
-            <div style={S.typeToggleRow}>
-                {[
-                    { id: 'All', label: 'All Visits' },
-                    { id: 'self_visit', label: 'Self Visits' },
-                    { id: 'agent_visit', label: 'Agent Visits' }
-                ].map(type => (
-                    <button 
-                        key={type.id} 
-                        onClick={() => setVisitTypeFilter(type.id)}
-                        style={{
-                            ...S.typeTab,
-                            background: visitTypeFilter === type.id ? '#1A1A1A' : 'transparent',
-                            color: visitTypeFilter === type.id ? '#fff' : '#1A1A1A',
-                        }}>
-                        {type.label}
-                    </button>
-                ))}
+            {/* Filter Controls Row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '20px', flexWrap: 'wrap' }}>
+                <div style={S.typeToggleRow}>
+                    {[
+                        { id: 'All', label: 'All Visits' },
+                        { id: 'self_visit', label: 'Self Visits' },
+                        { id: 'agent_visit', label: 'Agent Visits' }
+                    ].map(type => (
+                        <button 
+                            key={type.id} 
+                            onClick={() => setVisitTypeFilter(type.id)}
+                            style={{
+                                ...S.typeTab,
+                                background: visitTypeFilter === type.id ? '#1A1A1A' : 'transparent',
+                                color: visitTypeFilter === type.id ? '#fff' : '#1A1A1A',
+                            }}>
+                            {type.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div style={S.landFilterBox} onClick={() => setIsLandDropdownOpen(!isLandDropdownOpen)}>
+                    <span style={S.landFilterLabel}>FILTER BY LAND:</span>
+                    <div style={S.customDropWrapper}>
+                        <div style={S.customDropValue}>
+                            {landFilter}
+                            <span style={{ 
+                                marginLeft: '8px', 
+                                fontSize: '0.65rem', 
+                                display: 'inline-block',
+                                transition: 'transform 0.2s',
+                                transform: isLandDropdownOpen ? 'rotate(180deg)' : 'rotate(0)'
+                            }}>▼</span>
+                        </div>
+                        {isLandDropdownOpen && (
+                            <div style={S.customDropList}>
+                                {uniqueLands.map(l => (
+                                    <div 
+                                        key={l} 
+                                        style={{ 
+                                            ...S.customDropOption, 
+                                            background: landFilter === l ? '#1A1A1A' : 'transparent',
+                                            color: landFilter === l ? '#fff' : '#1A1A1A'
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setLandFilter(l);
+                                            setIsLandDropdownOpen(false);
+                                        }}
+                                    >
+                                        {l}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Filter tabs */}
             <div style={S.filterRow}>
-                {['All', 'Pending', 'Accepted', 'Rejected'].map(f => (
+                {['All', 'Pending', 'Accepted', 'Cancelled'].map(f => (
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
@@ -230,15 +351,23 @@ const SellerVisitsPage = () => {
                             border: filter === f ? '1px solid #1A1A1A' : '1px solid #e5e0da',
                         }}>
                         {f}
-                        {f !== 'All' && (
+                        {f === 'Cancelled' ? (
                             <span style={{
                                 ...S.filterCount,
                                 background: filter === f ? '#1A1A1A' : 'transparent',
                                 color: filter === f ? '#fff' : '#1A1A1A'
                             }}>
-                                {typedVisits.filter(v => v.status === f).length}
+                                {landFiltered.filter(v => v.status === 'Cancelled' || v.status === 'Rejected').length}
                             </span>
-                        )}
+                        ) : f !== 'All' ? (
+                            <span style={{
+                                ...S.filterCount,
+                                background: filter === f ? '#1A1A1A' : 'transparent',
+                                color: filter === f ? '#fff' : '#1A1A1A'
+                            }}>
+                                {landFiltered.filter(v => v.status === f).length}
+                            </span>
+                        ) : null}
                     </button>
                 ))}
             </div>
@@ -256,7 +385,7 @@ const SellerVisitsPage = () => {
                                 const sc = STATUS_COLORS[visit.status] || STATUS_COLORS.Pending;
                                 const vId = visit._id || visit.id;
                                 return (
-                                    <div key={vId} style={S.card}>
+                                    <div key={vId} id={`visit-${vId}`} style={S.card}>
                                         {/* Header: Buyer Name + Status */}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                                             <div>
@@ -282,43 +411,58 @@ const SellerVisitsPage = () => {
                                             </div>
                                         </div>
 
-                                        {visit.message && (
-                                            <div style={S.messageWrapper}>
-                                                <div style={S.messageKey}>Message from Buyer</div>
-                                                <div style={S.messageContent}>{visit.message}</div>
-                                            </div>
+                                        {visit.status === 'Cancelled' ? (
+                                            visit.cancel_reason && (
+                                                <div style={{ ...S.messageWrapper, background: '#fdecea', border: '1px solid #ef9a9a' }}>
+                                                    <div style={{ ...S.messageKey, color: '#c62828' }}>
+                                                        {visit.cancelled_by === 'seller' ? 'My Cancellation Reason' : 
+                                                         visit.cancelled_by === 'buyer' ? "Buyer's Cancellation Reason" : 
+                                                         'Cancellation Reason'}
+                                                    </div>
+                                                    <div style={{ ...S.messageContent, color: '#c62828' }}>{visit.cancel_reason}</div>
+                                                </div>
+                                            )
+                                        ) : (
+                                            <>
+                                                {visit.message && (
+                                                    <div style={S.messageWrapper}>
+                                                        <div style={S.messageKey}>Message from Buyer</div>
+                                                        <div style={S.messageContent}>{visit.message}</div>
+                                                    </div>
+                                                )}
+
+                                                {/* Seller Reply Input (Only for Self Visits as per user request) */}
+                                                {visit.status === 'Pending' && visit.visit_type === 'self_visit' && (
+                                                    <div style={S.replyArea}>
+                                                        <label style={S.replyLabel}>YOUR RESPONSE (OPTIONAL)</label>
+                                                        <textarea
+                                                            style={S.replyInput}
+                                                            placeholder="Type a message to the buyer..."
+                                                            value={replyTexts[vId] || ''}
+                                                            onChange={(e) => setReplyTexts(prev => ({ ...prev, [vId]: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {visit.seller_message && (
+                                                    <div style={{ ...S.messageWrapper, background: '#E8F5E9', marginTop: '16px' }}>
+                                                        <div style={{ ...S.messageKey, color: '#2E7D32' }}>Your Reply</div>
+                                                        <div style={S.messageContent}>{visit.seller_message}</div>
+                                                    </div>
+                                                )}
+
+                                                {visit.admin_message && (
+                                                    <div style={{ ...S.messageWrapper, background: '#E3F2FD', marginTop: '16px' }}>
+                                                        <div style={{ ...S.messageKey, color: '#1565C0' }}>Admin's Reply</div>
+                                                        <div style={S.messageContent}>{visit.admin_message}</div>
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
 
                                         <div style={S.timestamp}>
                                             Request received {new Date(visit.created_at).toLocaleDateString()}
                                         </div>
-
-                                        {/* Seller Reply Input (Only for Self Visits as per user request) */}
-                                        {visit.status === 'Pending' && visit.visit_type === 'self_visit' && (
-                                            <div style={S.replyArea}>
-                                                <label style={S.replyLabel}>YOUR RESPONSE (OPTIONAL)</label>
-                                                <textarea
-                                                    style={S.replyInput}
-                                                    placeholder="Type a message to the buyer..."
-                                                    value={replyTexts[vId] || ''}
-                                                    onChange={(e) => setReplyTexts(prev => ({ ...prev, [vId]: e.target.value }))}
-                                                />
-                                            </div>
-                                        )}
-
-                                        {visit.seller_message && (
-                                            <div style={{ ...S.messageWrapper, background: '#E8F5E9', marginTop: '16px' }}>
-                                                <div style={{ ...S.messageKey, color: '#2E7D32' }}>Your Reply</div>
-                                                <div style={S.messageContent}>{visit.seller_message}</div>
-                                            </div>
-                                        )}
-
-                                        {visit.admin_message && (
-                                            <div style={{ ...S.messageWrapper, background: '#E3F2FD', marginTop: '16px' }}>
-                                                <div style={{ ...S.messageKey, color: '#1565C0' }}>Admin's Reply</div>
-                                                <div style={S.messageContent}>{visit.admin_message}</div>
-                                            </div>
-                                        )}
 
                                         {/* Assigned Agent info */}
                                         {(visit.status === 'Accepted' || visit.status === 'Completed') && visit.agent_name && (
@@ -355,6 +499,16 @@ const SellerVisitsPage = () => {
                                                 </button>
                                             </div>
                                         )}
+                                        {['Accepted', 'SellerAccepted'].includes(visit.status) && (
+                                            <div style={S.actionGrid}>
+                                                <button
+                                                    style={{ ...S.secondaryBtn, color: '#e74c3c', borderColor: '#e74c3c' }}
+                                                    onClick={() => setCancellingVisit(visit)}
+                                                >
+                                                    Cancel Visit
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -370,9 +524,9 @@ const SellerVisitsPage = () => {
                         <h2 style={S.modalTitle}>Decline Visit Request</h2>
                         <p style={S.modalSubtitle}>Please provide a short reason for declining this request.</p>
                         
-                        <div style={S.modalInfo}>
-                            <strong>Buyer: {rejectingVisit.buyer_name}</strong><br/>
-                            Date: {rejectingVisit.visit_date} at {rejectingVisit.visit_time}
+                        <div style={S.modalInfoBox}>
+                            <div style={S.modalInfoMain}>Buyer: {rejectingVisit.buyer_name}</div>
+                            <div style={S.modalInfoSub}>Date: {rejectingVisit.visit_date} at {rejectingVisit.visit_time}</div>
                         </div>
 
                         <textarea
@@ -395,45 +549,96 @@ const SellerVisitsPage = () => {
                 </div>
             )}
 
-            {/* Daily Schedule Summary Table */}
-            {activeSchedule.length > 0 && (
-                <div style={S.scheduleSection}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
-                        <div>
-                            <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
-                            <p style={S.sectionSubtitle}>A quick overview of all your upcoming site visits{viewMode === 'calendar' ? ' in a monthly view' : ''}.</p>
+            {/* Cancel Confirmation Modal */}
+            {cancellingVisit && (
+                <div style={S.modalOverlay}>
+                    <div style={S.modalBox}>
+                        <h2 style={S.modalTitle}>Cancel Scheduled Visit</h2>
+                        <p style={S.modalSubtitle}>Please provide a reason for cancelling this visit.</p>
+                        
+                        <div style={S.modalInfoBox}>
+                            <div style={S.modalInfoMain}>Buyer: {cancellingVisit.buyer_name}</div>
+                            <div style={S.modalInfoSub}>Scheduled for: {cancellingVisit.visit_date} at {cancellingVisit.visit_time}</div>
                         </div>
-                        <div style={S.viewToggle}>
-                            <button 
-                                onClick={() => setViewMode('list')}
-                                style={{ ...S.toggleBtn, ...(viewMode === 'list' ? S.toggleBtnActive : {}) }}
-                            >
-                                List View
-                            </button>
-                            <button 
-                                onClick={() => setViewMode('calendar')}
-                                style={{ ...S.toggleBtn, ...(viewMode === 'calendar' ? S.toggleBtnActive : {}) }}
-                            >
-                                Calendar View
-                            </button>
+                        
+                        <textarea
+                            style={{ ...S.modalInput, minHeight: '120px' }}
+                            placeholder="e.g. Unforeseen schedule conflict..."
+                            value={cancelMessage}
+                            onChange={(e) => setCancelMessage(e.target.value)}
+                        />
+
+                        <div style={S.modalActions}>
+                            <button style={S.cancelBtn} onClick={() => { setCancellingVisit(null); setCancelMessage(''); }}>Cancel</button>
+                            <button style={{ ...S.confirmDeclineBtn, background: '#1A1A1A' }} onClick={async () => {
+                                const vId = cancellingVisit._id || cancellingVisit.id;
+                                try {
+                                    const res = await fetch(`${API}/visits/${vId}/cancel`, {
+                                        method: 'PUT',
+                                        headers: authHeaders,
+                                        body: JSON.stringify({ reason: cancelMessage })
+                                    });
+                                    if (res.ok) {
+                                        fetchVisits();
+                                        setCancellingVisit(null);
+                                        setCancelMessage('');
+                                    } else {
+                                        alert('Failed to cancel visit');
+                                    }
+                                } catch (err) {
+                                    alert('Error cancelling visit');
+                                }
+                            }}>Confirm Cancellation</button>
                         </div>
                     </div>
+                </div>
+            )}
 
-                    {viewMode === 'calendar' ? renderCalendar() : (
-                        <div style={S.tableWrapper}>
-                            <table style={S.table}>
-                                <thead>
+            {/* Daily Schedule Summary Table */}
+            <div style={S.scheduleSection}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
+                    <div>
+                        <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
+                        <p style={S.sectionSubtitle}>A quick overview of all your upcoming site visits{viewMode === 'calendar' ? ' in a monthly view' : ''}.</p>
+                    </div>
+                    <div style={S.viewToggle}>
+                        <button 
+                            onClick={() => setViewMode('list')}
+                            style={{ ...S.toggleBtn, ...(viewMode === 'list' ? S.toggleBtnActive : {}) }}
+                        >
+                            List View
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('calendar')}
+                            style={{ ...S.toggleBtn, ...(viewMode === 'calendar' ? S.toggleBtnActive : {}) }}
+                        >
+                            Calendar View
+                        </button>
+                    </div>
+                </div>
+
+                {viewMode === 'calendar' ? renderCalendar() : (
+                    <div style={S.tableWrapper}>
+                        <table style={S.table}>
+                            <thead>
+                                <tr>
+                                    <th style={S.th}>Date</th>
+                                    <th style={S.th}>Time</th>
+                                    <th style={S.th}>Land</th>
+                                    <th style={S.th}>Buyer</th>
+                                    <th style={S.th}>Visit Type</th>
+                                    <th style={S.th}>Agent Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {activeSchedule.length === 0 ? (
                                     <tr>
-                                        <th style={S.th}>Date</th>
-                                        <th style={S.th}>Time</th>
-                                        <th style={S.th}>Land</th>
-                                        <th style={S.th}>Buyer</th>
-                                        <th style={S.th}>Visit Type</th>
-                                        <th style={S.th}>Agent Details</th>
+                                        <td colSpan="6" style={{ ...S.td, textAlign: 'center', color: '#aaa', padding: '40px' }}>
+                                            No confirmed visits scheduled yet.
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {sortedDates.map(date => (
+                                ) : (
+                                    sortedDates.map(date => (
                                         scheduleByDate[date].sort((a, b) => a.visit_time.localeCompare(b.visit_time)).map((v, idx) => (
                                             <tr key={v._id || v.id} style={S.tr}>
                                                 {idx === 0 ? (
@@ -477,13 +682,13 @@ const SellerVisitsPage = () => {
                                                 </td>
                                             </tr>
                                         ))
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            )}
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
@@ -496,6 +701,12 @@ const S = {
     countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
     typeToggleRow: { display: 'flex', gap: '8px', marginBottom: '20px', background: '#F0EBE4', padding: '6px', borderRadius: '40px', width: 'fit-content' },
     typeTab: { padding: '10px 20px', borderRadius: '30px', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s ease-in-out' },
+    landFilterBox: { display: 'flex', alignItems: 'center', gap: '12px', background: '#F0EBE4', padding: '10px 20px', borderRadius: '40px', cursor: 'pointer', position: 'relative' },
+    landFilterLabel: { fontSize: '0.65rem', fontWeight: '800', color: '#1A1A1A', letterSpacing: '0.05em' },
+    customDropWrapper: { position: 'relative', minWidth: '150px' },
+    customDropValue: { fontSize: '0.9rem', fontWeight: '700', color: '#1A1A1A', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+    customDropList: { position: 'absolute', top: 'calc(100% + 15px)', right: '-20px', background: '#fff', borderRadius: '20px', padding: '10px', boxShadow: '0 15px 45px rgba(0,0,0,0.1)', zIndex: 100, minWidth: '220px', border: '1px solid #F0EBE4' },
+    customDropOption: { padding: '12px 20px', borderRadius: '14px', fontSize: '0.85rem', fontWeight: '700', transition: '0.2s', marginBottom: '4px' },
     errBox: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem', border: '1px solid #ef9a9a' },
     filterRow: { display: 'flex', gap: '12px', marginBottom: '40px', flexWrap: 'wrap' },
     filterBtn: { padding: '8px 20px', borderRadius: '30px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' },
@@ -542,14 +753,17 @@ const S = {
 
     // Modal Styles
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px' },
-    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
-    modalSubtitle: { fontSize: '0.9rem', color: '#666', lineHeight: '1.5', margin: 0 },
-    modalInfo: { padding: '12px 16px', background: '#FAF6F1', borderRadius: '12px', fontSize: '0.85rem', color: '#444', lineHeight: '1.6' },
-    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' },
-    modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
-    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
-    confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' },
+    modalBox: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px' },
+    modalTitle: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    modalSubtitle: { fontSize: '1rem', color: '#777', lineHeight: '1.5', margin: 0 },
+    modalInfoBox: { padding: '24px', background: '#FAF6F1', borderRadius: '16px', border: '1px solid #F0EBE4' },
+    modalInfoMain: { fontSize: '1rem', fontWeight: '700', color: '#1A1A1A', marginBottom: '4px' },
+    modalInfoSub: { fontSize: '0.88rem', color: '#777', fontWeight: '500' },
+    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '130px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '20px', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', background: '#fff' },
+    modalActions: { display: 'flex', gap: '14px', marginTop: '10px' },
+    cancelBtn: { flex: 1, padding: '16px', background: '#f5f5f5', border: 'none', borderRadius: '14px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', color: '#666', transition: 'all 0.2s' },
+    confirmDeclineBtn: { flex: 1, padding: '16px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '14px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s' },
+    warningIcon: { width: '50px', height: '50px', borderRadius: '50%', border: '3px solid #e74c3c', color: '#e74c3c', fontSize: '1.5rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
 
     // View Toggle
     viewToggle: { display: 'flex', background: '#F0F0F0', padding: '4px', borderRadius: '12px', gap: '4px' },

@@ -289,7 +289,20 @@ const ScheduleVisitPage = () => {
                             <div style={S.successCard}>
                                 <div style={S.successIcon}>✓</div>
                                 <div style={S.successText}>{success}</div>
-                                <button onClick={() => navigate(`/lands/${id}`)} style={S.returnBtn}>Return to Land Details</button>
+                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                                    <button 
+                                        onClick={() => navigate(`/lands/${land?._id || land?.id || id}`)} 
+                                        style={S.returnBtn}
+                                    >
+                                        Return to Land Details
+                                    </button>
+                                    <button 
+                                        onClick={() => navigate('/dashboard/visits')} 
+                                        style={{ ...S.returnBtn, background: '#f5f0ea', color: '#1a1a1a', border: '1.5px solid #1a1a1a' }}
+                                    >
+                                        View My Visits
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

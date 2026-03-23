@@ -31,6 +31,8 @@ class Visit(Document):
     visit_feedback: Optional[str] = None
     agent_id: Optional[PydanticObjectId] = None
     status: VisitStatus = Field(default=VisitStatus.Pending)
+    cancel_reason: Optional[str] = None
+    cancelled_by: Optional[str] = None # New: "buyer" or "seller"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:

@@ -185,22 +185,36 @@ const AgentVisitsPage = () => {
                                 </div>
 
                                 <div style={S.messageSection}>
-                                    {visit.status === 'SellerAccepted' ? (
+                                    {['Pending', 'SellerAccepted', 'AgentDeclined'].includes(visit.status) ? (
                                         <div style={S.replyArea}>
                                             <select
                                                 style={selectedAgents[vId] ? { ...S.replyInput, borderColor: '#1A1A1A', background: '#F0F7FF' } : S.replyInput}
                                                 value={selectedAgents[vId] || ''}
                                                 onChange={(e) => setSelectedAgents(prev => ({ ...prev, [vId]: e.target.value }))}
                                             >
-                                                <option value="">Select a local agent...</option>
-                                                {localAgents.map(a => (
-                                                    <option key={a.id || a._id} value={a.id || a._id}>
-                                                        {a.full_name || a.name} ({a.address || a.Address})
-                                                    </option>
-                                                ))}
-                                                {localAgents.length === 0 && (
-                                                    <option disabled>No local agents found for this area</option>
-                                                )}
+                                                {(() => {
+                                                    const landLocParts = (visit.land_address || "").split(',');
+                                                    const landDistrict = landLocParts[landLocParts.length - 1]?.trim().toLowerCase();
+                                                    
+                                                    const localAgents = agents.filter(a => {
+                                                        const agentAddr = (a.address || a.Address || "").toLowerCase();
+                                                        return landDistrict && agentAddr.includes(landDistrict);
+                                                    });
+
+                                                    return (
+                                                        <>
+                                                            <option value="">Select an agent...</option>
+                                                            {localAgents.map(a => (
+                                                                <option key={a.id || a._id} value={a.id || a._id}>
+                                                                    {a.full_name || a.name}
+                                                                </option>
+                                                            ))}
+                                                            {localAgents.length === 0 && (
+                                                                <option disabled>No agents found in {landDistrict?.toUpperCase()}</option>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </select>
 
                                             {selectedAgents[vId] && (
@@ -208,16 +222,28 @@ const AgentVisitsPage = () => {
                                                     <div style={S.busyTitle}>Agent's Schedule for {visit.visit_date}:</div>
                                                     {agentBusyMap[selectedAgents[vId]]?.[visit.visit_date]?.length > 0 ? (
                                                         <div style={S.busyList}>
-                                                            {agentBusyMap[selectedAgents[vId]][visit.visit_date].map((t, idx) => (
-                                                                <span key={idx} style={{ 
-                                                                    ...S.busyTag, 
-                                                                    background: t === visit.visit_time ? '#ffebee' : '#F9F7F5',
-                                                                    color: t === visit.visit_time ? '#c62828' : '#777',
-                                                                    border: t === visit.visit_time ? '1px solid #ef9a9a' : '1px solid #E5E0DA'
-                                                                }}>
-                                                                    {t} {t === visit.visit_time ? '(CONFLICT)' : ''}
-                                                                </span>
-                                                            ))}
+                                                                {agentBusyMap[selectedAgents[vId]][visit.visit_date].map((t, idx) => {
+                                                                    const parseTime = (str) => {
+                                                                        const [h, m] = (str || "0:0").split(':').map(Number);
+                                                                        return h * 60 + m;
+                                                                    };
+                                                                    const timeDiff = Math.abs(parseTime(t) - parseTime(visit.visit_time));
+                                                                    const isExact = t === visit.visit_time;
+                                                                    const isTooClose = !isExact && timeDiff < 120; // Within 2 hours
+                                                                    
+                                                                    let style = { ...S.busyTag };
+                                                                    if (isExact) {
+                                                                        style = { ...style, background: '#ffebee', color: '#c62828', border: '1px solid #ef9a9a', fontWeight: '800' };
+                                                                    } else if (isTooClose) {
+                                                                        style = { ...style, background: '#ffebee', color: '#c62828', border: '1px solid #ef9a9a', fontWeight: '800' };
+                                                                    }
+                                                                    
+                                                                    return (
+                                                                        <span key={idx} style={style}>
+                                                                            {t} {isExact ? '(CONFLICT)' : isTooClose ? '(TOO CLOSE)' : ''}
+                                                                        </span>
+                                                                    );
+                                                                })}
                                                         </div>
                                                     ) : (
                                                         <div style={S.freeNote}>Full Availability: No other assignments on this date.</div>
@@ -227,7 +253,7 @@ const AgentVisitsPage = () => {
                                         </div>
                                     ) : (
                                         <>
-                                            {visit.agent_name && (
+                                            {visit.agent_name && visit.status !== 'Rejected' && (
                                                 <div style={{ ...S.messageWrapper, border: 'none', background: '#e3f2fd' }}>
                                                     <div style={{ ...S.messageKey, color: '#1565c0' }}>Assigned Agent</div>
                                                     <div style={S.messageContent}>{visit.agent_name}</div>
@@ -248,54 +274,59 @@ const AgentVisitsPage = () => {
                                         </>
                                     )}
                                 </div>
-
-                                <div style={S.actionSection}>
-                                    <div style={{ textAlign: 'right', marginBottom: '10px' }}>
-                                        <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>
-                                            {visit.status === 'SellerAccepted' ? 'READY TO ASSIGN' : visit.status.toUpperCase()}
-                                        </span>
-                                    </div>
-
-                                    {(visit.status === 'SellerAccepted' || visit.status === 'AgentDeclined') && (
-                                        <div style={S.actionButtons}>
-                                            <button
-                                                style={S.primaryBtn}
-                                                disabled={updating === vId}
-                                                onClick={() => updateStatus(vId, 'Assigned')}>
-                                                {visit.status === 'AgentDeclined' ? 'Re-assign Agent' : 'Confirm & Assign'}
-                                            </button>
-                                            <button
-                                                style={S.secondaryBtn}
-                                                disabled={updating === vId}
-                                                onClick={() => {
-                                                    setRejectingVisit(visit);
-                                                    setRejectMessage('');
-                                                }}>
-                                                Cancel Visit
-                                            </button>
+                                    <div style={S.actionSection}>
+                                        <div style={{ textAlign: 'right', marginBottom: '10px' }}>
+                                            <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>
+                                                {visit.status === 'SellerAccepted' ? 'READY TO ASSIGN' : visit.status.toUpperCase()}
+                                            </span>
                                         </div>
-                                    )}
-                                </div>
+
+                                        {['Pending', 'SellerAccepted', 'AgentDeclined'].includes(visit.status) && (
+                                            <div style={S.actionButtons}>
+                                                <button
+                                                    style={S.primaryBtn}
+                                                    disabled={updating === vId}
+                                                    onClick={() => updateStatus(vId, 'Assigned')}>
+                                                    {visit.status === 'AgentDeclined' ? 'Re-assign Agent' : 'Confirm & Assign'}
+                                                </button>
+                                                <button
+                                                    style={S.secondaryBtn}
+                                                    disabled={updating === vId}
+                                                    onClick={() => {
+                                                        setRejectingVisit(visit);
+                                                        setRejectMessage('');
+                                                    }}>
+                                                    Decline Visit
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                             </div>
                         );
                     })}
                 </div>
             )}
 
-            {/* Decline Message Modal */}
-            {rejectingVisit && (
+            {/* Decline Message Modal */}            {rejectingVisit && (
                 <div style={S.modalOverlay}>
                     <div style={S.modalBox}>
-                        <h2 style={S.modalTitle}>Decline Request</h2>
-                        <p style={S.modalSubtitle}>Please provide a reason or a message to the buyer for declining this visit.</p>
+                        <div style={{ ...S.modalIcon, background: '#fee2e2' }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 9V11M12 15H12.01M5.07183 19H18.9282C20.4678 19 21.4301 17.3333 20.6603 16L13.7321 4C12.9623 2.66667 11.0378 2.66667 10.268 4L3.33975 16C2.56995 17.3333 3.5322 19 5.07183 19Z" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </div>
+
+                        <h2 style={S.modalTitle}>Decline Request?</h2>
+                        <p style={S.modalSubtitle}>This will decline the visit request for this property. This action cannot be undone.</p>
                         
-                        <div style={S.modalInfo}>
-                            <strong>{rejectingVisit.buyer_name}</strong> - {rejectingVisit.land_name}
+                        <div style={S.modalInfoBox}>
+                            <div style={S.modalInfoMain}>{rejectingVisit.buyer_name || 'Buyer'}</div>
+                            <div style={S.modalInfoSub}>{new Date(rejectingVisit.visit_date).toLocaleDateString()} at {rejectingVisit.visit_time}</div>
                         </div>
 
                         <textarea
                             style={S.modalInput}
-                            placeholder="Type your message here... (e.g. Agent unavailable on this date, please pick another time)"
+                            placeholder="Please provide a reason for declining this visit..."
                             value={rejectMessage}
                             onChange={(e) => setRejectMessage(e.target.value)}
                         />
@@ -306,7 +337,7 @@ const AgentVisitsPage = () => {
                                 onClick={() => setRejectingVisit(null)}
                                 disabled={updating === (rejectingVisit._id || rejectingVisit.id)}
                             >
-                                Cancel
+                                Not Now
                             </button>
                             <button 
                                 style={S.confirmDeclineBtn}
@@ -359,12 +390,15 @@ const S = {
 
     // Modal Styles
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px' },
+    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', textAlign: 'center' },
+    modalIcon: { width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' },
     modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
     modalSubtitle: { fontSize: '0.9rem', color: '#666', lineHeight: '1.5', margin: 0 },
-    modalInfo: { padding: '12px 16px', background: '#FAF6F1', borderRadius: '12px', fontSize: '0.9rem', color: '#444' },
-    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', '&:focus': { borderColor: '#1A1A1A' } },
-    modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
+    modalInfoBox: { width: '100%', padding: '16px', background: '#FAF6F1', borderRadius: '16px', border: '1px solid #F0EBE4' },
+    modalInfoMain: { fontWeight: '800', fontSize: '1.1rem', color: '#1A1A1A' },
+    modalInfoSub: { fontSize: '0.82rem', color: '#888', marginTop: '4px', fontWeight: '600' },
+    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', textAlign: 'left' },
+    modalActions: { display: 'flex', gap: '12px', marginTop: '10px', width: '100%' },
     cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
     confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },
     

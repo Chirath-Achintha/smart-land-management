@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
@@ -17,6 +18,7 @@ const BuyerVisitsPage = () => {
     // Calendar State
     const [currentDate, setCurrentDate] = useState(new Date()); // Auto-detect current month/year
     const [highlightedVisitId, setHighlightedVisitId] = useState(null);
+    const [cancelReason, setCancelReason] = useState('');
 
     useEffect(() => {
         const tok = localStorage.getItem('access_token');
@@ -29,6 +31,38 @@ const BuyerVisitsPage = () => {
             .catch(() => setMyVisits([]))
             .finally(() => setLoading(false));
     }, []);
+
+    const location = useLocation();
+
+    // Scroll to visit logic
+    useEffect(() => {
+        if (!loading && myVisits.length > 0) {
+            const params = new URLSearchParams(location.search);
+            const visitId = params.get('visit_id');
+            if (visitId) {
+                // Find visit and set filter if needed
+                const v = myVisits.find(v => (v._id || v.id) === visitId);
+                if (v) {
+                    if (v.status === 'Cancelled' || v.status === 'Rejected') {
+                        setFilter('Cancelled');
+                    } else if (v.status === 'Accepted' || v.status === 'Completed') {
+                        setFilter(v.status);
+                    } else if (v.status === 'Pending') {
+                        setFilter('Pending');
+                    }
+                    
+                    setTimeout(() => {
+                        setHighlightedVisitId(visitId);
+                        const el = document.getElementById(`visit-card-${visitId}`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        setTimeout(() => { setHighlightedVisitId(null); }, 3000);
+                    }, 100);
+                }
+            }
+        }
+    }, [location.search, loading, myVisits]);
 
     // Filter by visit type separately
     const [visitTypeFilter, setVisitTypeFilter] = useState('All');
@@ -63,17 +97,23 @@ const BuyerVisitsPage = () => {
             const tok = localStorage.getItem('access_token');
             const res = await fetch(`${API}/visits/${vId}/cancel`, {
                 method: 'PUT',
-                headers: { 'Authorization': `Bearer ${tok}` }
+                headers: { 
+                    'Authorization': `Bearer ${tok}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason: cancelReason })
             });
+
             if (res.ok) {
-                setMyVisits(myVisits.map(v => v.id === vId || v._id === vId ? { ...v, status: 'Cancelled' } : v));
+                setMyVisits(prev => prev.map(v => (v._id || v.id) === vId ? { ...v, status: 'Cancelled' } : v));
                 setCancellingVisit(null);
+                setCancelReason('');
             } else {
                 const err = await res.json();
-                alert(err.detail || 'Failed to cancel visit');
+                alert(err.detail || 'Failed to cancel');
             }
         } catch (err) {
-            alert('Error cancelling visit');
+            alert('Error cancelling');
         }
     };
 
@@ -359,52 +399,67 @@ const BuyerVisitsPage = () => {
                                         <span style={S.detailLabel}>TIME SLOT</span>
                                         <span style={S.detailVal}>{visit.visit_time}</span>
                                     </div>
-                                    {visit.message && (
-                                        <div style={S.messageBox}>
-                                            <span style={S.messageTitle}>Your Message</span>
-                                            <p style={S.messageContent}>{visit.message}</p>
-                                        </div>
-                                    )}
-                                    {visit.seller_message && (
-                                        <div style={{ 
-                                            ...S.messageBox, 
-                                            background: (visit.status === 'Rejected' && !visit.admin_message) ? '#fdecea' : '#E8F5E9' 
-                                        }}>
-                                            <span style={{ 
-                                                ...S.messageTitle, 
-                                                color: (visit.status === 'Rejected' && !visit.admin_message) ? '#C62828' : '#2E7D32' 
-                                            }}>
-                                                Seller's Reply
-                                            </span>
-                                            <p style={{ 
-                                                ...S.messageContent, 
-                                                color: (visit.status === 'Rejected' && !visit.admin_message) ? '#C62828' : '#1B5E20' 
-                                            }}>
-                                                {visit.seller_message}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {visit.admin_message && (
-                                        <div style={{ 
-                                            ...S.messageBox, 
-                                            marginTop: visit.seller_message ? '12px' : '0',
-                                            padding: '16px',
-                                            borderRadius: '16px',
-                                            background: (visit.status === 'Rejected') ? '#fdecea' : '#E3F2FD' 
-                                        }}>
-                                            <span style={{ 
-                                                ...S.messageTitle, 
-                                                color: (visit.status === 'Rejected') ? '#C62828' : '#1565C0' 
-                                            }}>
-                                                Admin's Reply
-                                            </span>
-                                            <p style={{ 
-                                                ...S.messageContent, 
-                                                color: (visit.status === 'Rejected') ? '#C62828' : '#0D47A1' 
-                                            }}>
-                                                {visit.admin_message}
-                                            </p>
-                                        </div>
+                                    {visit.status === 'Cancelled' ? (
+                                        visit.cancel_reason && (
+                                            <div style={{ ...S.messageBox, background: '#fdecea', border: '1px solid #ef9a9a' }}>
+                                                <span style={{ ...S.messageTitle, color: '#c62828' }}>
+                                                    {visit.cancelled_by === 'buyer' ? 'My Cancellation Reason' : 
+                                                     visit.cancelled_by === 'seller' ? "Owner's Cancellation Reason" : 
+                                                     'Cancellation Reason'}
+                                                </span>
+                                                <p style={{ ...S.messageContent, color: '#c62828' }}>{visit.cancel_reason}</p>
+                                            </div>
+                                        )
+                                    ) : (
+                                        <>
+                                            {visit.message && (
+                                                <div style={S.messageBox}>
+                                                    <span style={S.messageTitle}>Your Message</span>
+                                                    <p style={S.messageContent}>{visit.message}</p>
+                                                </div>
+                                            )}
+                                            {visit.seller_message && (
+                                                <div style={{ 
+                                                    ...S.messageBox, 
+                                                    background: (visit.status === 'Rejected' && !visit.admin_message) ? '#fdecea' : '#E8F5E9' 
+                                                }}>
+                                                    <span style={{ 
+                                                        ...S.messageTitle, 
+                                                        color: (visit.status === 'Rejected' && !visit.admin_message) ? '#C62828' : '#2E7D32' 
+                                                    }}>
+                                                        Seller's Reply
+                                                    </span>
+                                                    <p style={{ 
+                                                        ...S.messageContent, 
+                                                        color: (visit.status === 'Rejected' && !visit.admin_message) ? '#C62828' : '#1B5E20' 
+                                                    }}>
+                                                        {visit.seller_message}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {visit.admin_message && (
+                                                <div style={{ 
+                                                    ...S.messageBox, 
+                                                    marginTop: visit.seller_message ? '12px' : '0',
+                                                    padding: '16px',
+                                                    borderRadius: '16px',
+                                                    background: (visit.status === 'Rejected') ? '#fdecea' : '#E3F2FD' 
+                                                }}>
+                                                    <span style={{ 
+                                                        ...S.messageTitle, 
+                                                        color: (visit.status === 'Rejected') ? '#C62828' : '#1565C0' 
+                                                    }}>
+                                                        Admin's Reply
+                                                    </span>
+                                                    <p style={{ 
+                                                        ...S.messageContent, 
+                                                        color: (visit.status === 'Rejected') ? '#C62828' : '#0D47A1' 
+                                                    }}>
+                                                        {visit.admin_message}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
 
                                     {/* Agent Details */}
@@ -531,14 +586,25 @@ const BuyerVisitsPage = () => {
             {/* Cancel Confirmation Modal */}
             {cancellingVisit && (
                 <div style={S.modalOverlay}>
-                    <div style={{ ...S.modalContent, maxWidth: '400px', textAlign: 'center' }}>
-                        <div style={S.warningIcon}>!</div>
-                        <h2 style={S.modalTitle}>Are you sure?</h2>
-                        <p style={S.modalSub}>You are about to cancel your visit request for <strong>{cancellingVisit.land_name}</strong>. This action cannot be undone.</p>
+                    <div style={S.modalContent}>
+                        <h2 style={S.modalTitle}>Cancel Trip</h2>
+                        <p style={S.modalSub}>Please provide a reason for cancelling your visit request.</p>
                         
+                        <div style={S.modalInfoBox}>
+                            <div style={S.modalInfoMain}>Property: {cancellingVisit.land_name}</div>
+                            <div style={S.modalInfoSub}>Scheduled for: {cancellingVisit.visit_date} at {cancellingVisit.visit_time}</div>
+                        </div>
+
+                        <textarea
+                            style={{ ...S.input, minHeight: '120px', marginTop: '20px' }}
+                            placeholder="e.g. Schedule conflict, sorry..."
+                            value={cancelReason}
+                            onChange={(e) => setCancelReason(e.target.value)}
+                        />
+
                         <div style={{ ...S.modalFooter, justifyContent: 'center', marginTop: '32px' }}>
-                            <button style={S.cancelBtn} onClick={() => setCancellingVisit(null)}>Keep Booking</button>
-                            <button style={{ ...S.saveBtn, backgroundColor: '#e74c3c' }} onClick={handleCancelSubmit}>Yes, Cancel it</button>
+                            <button style={S.cancelBtn} onClick={() => { setCancellingVisit(null); setCancelReason(''); }}>Back</button>
+                            <button style={{ ...S.saveBtn, backgroundColor: '#1A1A1A' }} onClick={handleCancelSubmit}>Confirm Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -593,15 +659,17 @@ const S = {
     
     // Modal Styles
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modalContent: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.2)' },
-    modalTitle: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    modalSub: { color: '#666', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '32px' },
-    modalBody: { display: 'flex', flexDirection: 'column', gap: '20px' },
-    input: { padding: '16px', borderRadius: '12px', border: '1.5px solid #F0EBE4', fontSize: '1rem', outline: 'none', background: '#FDFDFD', width: '100%', boxSizing: 'border-box' },
+    modalContent: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '20px' },
+    modalTitle: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    modalSub: { color: '#777', fontSize: '1rem', lineHeight: '1.5', margin: 0 },
+    modalInfoBox: { padding: '24px', background: '#FAF6F1', borderRadius: '16px', border: '1px solid #F0EBE4' },
+    modalInfoMain: { fontSize: '1rem', fontWeight: '700', color: '#1A1A1A', marginBottom: '4px' },
+    modalInfoSub: { fontSize: '0.88rem', color: '#777', fontWeight: '500' },
+    input: { padding: '20px', borderRadius: '16px', border: '1.5px solid #F0EBE4', fontSize: '1rem', outline: 'none', background: '#fff', width: '100%', boxSizing: 'border-box' },
     label: { fontSize: '0.68rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' },
-    modalFooter: { display: 'flex', gap: '12px', marginTop: '40px', justifyContent: 'flex-end' },
-    cancelBtn: { padding: '12px 24px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontWeight: '800', color: '#666', cursor: 'pointer', fontSize: '0.9rem' },
-    saveBtn: { padding: '12px 24px', background: '#1A1A1A', border: 'none', borderRadius: '12px', fontWeight: '800', color: '#fff', cursor: 'pointer', fontSize: '0.9rem' },
+    modalFooter: { display: 'flex', gap: '14px', marginTop: '10px' },
+    cancelBtn: { flex: 1, padding: '16px', background: '#f5f5f5', border: 'none', borderRadius: '14px', fontWeight: '800', fontSize: '1rem', color: '#666', cursor: 'pointer' },
+    saveBtn: { flex: 1, padding: '16px', background: '#1A1A1A', border: 'none', borderRadius: '14px', fontWeight: '800', fontSize: '1rem', color: '#fff', cursor: 'pointer' },
     warningIcon: { width: '50px', height: '50px', borderRadius: '50%', border: '3px solid #e74c3c', color: '#e74c3c', fontSize: '1.5rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
 
     // Schedule / Calendar Styles

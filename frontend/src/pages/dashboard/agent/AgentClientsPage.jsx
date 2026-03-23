@@ -25,9 +25,9 @@ const AgentClientsPage = () => {
                 const data = await res.json();
                 if (res.ok && Array.isArray(data)) {
                     setAllVisits(data);
-                    // Unique buyers from all assignments (Assigned, Accepted, Completed)
+                    // Unique buyers from accepted assignments (Accepted, Completed)
                     const buyersMap = {};
-                    data.forEach(v => {
+                    data.filter(v => v.status === 'Accepted' || v.status === 'Completed').forEach(v => {
                         const bName = v.buyer_name || 'Buyer';
                         if (!buyersMap[bName]) {
                             buyersMap[bName] = {

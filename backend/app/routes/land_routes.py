@@ -294,12 +294,17 @@ async def update_land(
     data: dict, # Using dict to handle mixed fields flexibly durante transition
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "seller":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can update land listings")
+    if current_user.role not in ["seller", "admin"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers or admins can update land listings")
 
-    land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
-    if not land:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
+    if current_user.role == "seller":
+        land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
+        if not land:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
+    else:
+        land = await Land.find_one(Land.id == land_id)
+        if not land:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found")
 
     bidding = await BiddingSetup.find_one(BiddingSetup.land_id == land_id)
 
@@ -337,12 +342,13 @@ async def update_land(
         land.total_price = p * ppp
 
     if land_fields_updated or bidding_fields_updated:
-        # Any seller-side update requires admin re-verification.
-        land.is_verified = False
-        land.review_status = "pending"
-        land.verified_by = None
-        land.verified_at = None
-        land.verification_note = None
+        # Only seller-side edits require re-verification. Admin edits keep current review state.
+        if current_user.role == "seller":
+            land.is_verified = False
+            land.review_status = "pending"
+            land.verified_by = None
+            land.verified_at = None
+            land.verification_note = None
 
     land.updated_at = datetime.utcnow()
 
@@ -361,12 +367,17 @@ async def delete_land(
     land_id: PydanticObjectId,
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "seller":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can delete land listings")
+    if current_user.role not in ["seller", "admin"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers or admins can delete land listings")
 
-    land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
-    if not land:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
+    if current_user.role == "seller":
+        land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
+        if not land:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
+    else:
+        land = await Land.find_one(Land.id == land_id)
+        if not land:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found")
 
     image_paths = get_local_uploaded_image_paths(land.image_url or "")
     

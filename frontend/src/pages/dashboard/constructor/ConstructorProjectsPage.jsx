@@ -19,10 +19,12 @@ const deriveDisplayStatus = (status) => {
     return 'Accepted'; // fallback
 };
 
-const deriveProgress = (status) => {
-    if (status === 'Accepted') return 50;
-    if (status === 'Completed') return 100;
-    return 0;
+const deriveProgress = (p) => {
+    if (p.status === 'Completed') return 100;
+    if (p.status === 'Cancelled') return 0;
+    if (!p.milestones || p.milestones.length === 0) return 0;
+    const done = p.milestones.filter(m => m.is_completed).length;
+    return Math.round((done / p.milestones.length) * 100);
 };
 
 const formatBudget = (value) => {
@@ -50,7 +52,8 @@ const ConstructorProjectsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [updatingId, setUpdatingId] = useState('');
-    const [animatedCards, setAnimatedCards] = useState({});
+    const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
+    const [milestoneIdx, setMilestoneIdx] = useState(null);
 
     const fetchProjects = async () => {
         if (!token) {
@@ -90,6 +93,48 @@ const ConstructorProjectsPage = () => {
         };
     }, [token]);
 
+    const addMilestone = async (bookingId) => {
+        if (!newMilestoneTitle.trim()) return;
+        setUpdatingId(bookingId);
+        try {
+            const res = await fetch(`${API}/service-bookings/${bookingId}/milestones`, {
+                method: 'POST',
+                headers: authH,
+                body: JSON.stringify({ title: newMilestoneTitle }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Failed to add milestone');
+            
+            setBookings(prev => prev.map(b => b.id === bookingId ? data : b));
+            setActiveProject(data);
+            setNewMilestoneTitle('');
+            toast.success('Milestone added!');
+        } catch (e) {
+            toast.error(e.message);
+        } finally {
+            setUpdatingId('');
+        }
+    };
+
+    const toggleMilestone = async (bookingId, mId) => {
+        setMilestoneIdx(mId);
+        try {
+            const res = await fetch(`${API}/service-bookings/${bookingId}/milestones/${mId}`, {
+                method: 'PATCH',
+                headers: authH,
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Failed to update milestone');
+            
+            setBookings(prev => prev.map(b => b.id === bookingId ? data : b));
+            setActiveProject(data);
+        } catch (e) {
+            toast.error(e.message);
+        } finally {
+            setMilestoneIdx(null);
+        }
+    };
+
     const updateStatus = async (bookingId, nextStatus) => {
         setUpdatingId(bookingId);
         try {
@@ -116,18 +161,8 @@ const ConstructorProjectsPage = () => {
         [bookings, filter]
     );
 
-    useEffect(() => {
-        const timers = filtered.map((booking, idx) =>
-            setTimeout(() => {
-                setAnimatedCards((prev) => ({ ...prev, [booking.id]: true }));
-            }, idx * 70)
-        );
-
-        return () => timers.forEach(clearTimeout);
-    }, [filtered]);
-
     return (
-        <div style={S.root} className="ui-page">
+        <div style={S.root}>
             <div style={S.header}>
                 <h1 style={S.title}>My Workshop</h1>
                 <p style={S.subtitle}>Manage active and completed projects that you have accepted.</p>
@@ -158,19 +193,10 @@ const ConstructorProjectsPage = () => {
             <div style={S.projectGrid}>
                 {filtered.map((p) => {
                     const displayStatus = deriveDisplayStatus(p.status);
-                    const progress = deriveProgress(p.status);
+                    const progress = deriveProgress(p);
 
                     return (
-                    <div
-                        key={p.id}
-                        className="ui-card ui-lift"
-                        style={{
-                            ...S.projectCard,
-                            opacity: animatedCards[p.id] ? 1 : 0,
-                            transform: animatedCards[p.id] ? 'translateY(0)' : 'translateY(14px)',
-                            transition: 'opacity 0.38s ease, transform 0.38s ease'
-                        }}
-                    >
+                    <div key={p.id} style={S.projectCard}>
                         <div style={S.cardHeader}>
                             <span style={S.projectId}>{toProjectCode(p.id)}</span>
                             <span style={{ ...S.statusBadge, ...getStatusStyle(displayStatus) }}>{displayStatus}</span>
@@ -207,8 +233,8 @@ const ConstructorProjectsPage = () => {
             )}
 
             {showModal && activeProject && (
-                <div style={S.modalOverlay} className="profile-overlay">
-                    <div style={S.modal} className="profile-modal">
+                <div style={S.modalOverlay}>
+                    <div style={S.modal}>
                         <div style={S.modalHeader}>
                             <h2 style={S.modalTitle}>{activeProject.land_name || activeProject.service_type}</h2>
                             <button style={S.closeBtn} onClick={() => setShowModal(false)}>✕</button>
@@ -233,6 +259,44 @@ const ConstructorProjectsPage = () => {
                                 <div style={S.modalField}>
                                     <span style={S.label}>District</span>
                                     <span style={S.valueLarge}>{activeProject.land_district || 'N/A'}</span>
+                                </div>
+                            </div>
+
+                            <div style={S.updateSection}>
+                                <h4 style={S.sectionLabel}>Milestones & Progress</h4>
+                                <div style={S.milestoneContainer}>
+                                    <div style={S.mList}>
+                                        {activeProject.milestones?.map(m => (
+                                            <div key={m.id} style={S.mItem}>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={m.is_completed} 
+                                                    disabled={milestoneIdx === m.id}
+                                                    onChange={() => toggleMilestone(activeProject.id, m.id)}
+                                                />
+                                                <span style={{ 
+                                                    fontSize: '0.9rem', 
+                                                    textDecoration: m.is_completed ? 'line-through' : 'none',
+                                                    color: m.is_completed ? '#999' : '#333'
+                                                }}>
+                                                    {m.title}
+                                                </span>
+                                            </div>
+                                        ))}
+                                        {(!activeProject.milestones || activeProject.milestones.length === 0) && (
+                                            <div style={{ color: '#999', fontSize: '0.85rem', fontStyle: 'italic' }}>No milestones added yet.</div>
+                                        )}
+                                    </div>
+                                    <div style={S.addMBox}>
+                                        <input 
+                                            style={S.mInput} 
+                                            placeholder="Add new milestone..." 
+                                            value={newMilestoneTitle}
+                                            onChange={e => setNewMilestoneTitle(e.target.value)}
+                                            onKeyPress={e => e.key === 'Enter' && addMilestone(activeProject.id)}
+                                        />
+                                        <button style={S.mAddBtn} onClick={() => addMilestone(activeProject.id)}>+</button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -266,10 +330,10 @@ const getStatusStyle = (status) => {
 };
 
 const S = {
-    root: { background: 'linear-gradient(180deg, #FAF6F1 0%, #F2ECE2 100%)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px', letterSpacing: '-0.01em' },
-    subtitle: { color: 'var(--color-muted)', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
+    subtitle: { color: '#777', fontSize: '1rem' },
 
     toolbar: { marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' },
     filterBar: { display: 'flex', gap: '8px', flexWrap: 'wrap', background: '#fff', padding: '6px', borderRadius: '12px', border: '1px solid #E5E7EB' },
@@ -315,7 +379,14 @@ const S = {
     sectionLabel: { margin: '0 0 12px 0', fontSize: '0.8rem', fontWeight: '800', color: '#9CA3AF', textTransform: 'uppercase' },
     actionRow: { display: 'flex', gap: '12px', flexWrap: 'wrap' },
     actionBtnSuccess: { flex: 1, padding: '12px', borderRadius: '10px', border: 'none', background: '#10B981', color: '#fff', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' },
-    doneText: { color: '#059669', fontWeight: '700', fontSize: '0.9rem', padding: '8px 0' }
+    doneText: { color: '#059669', fontWeight: '700', fontSize: '0.9rem', padding: '8px 0' },
+    
+    milestoneContainer: { display: 'flex', flexDirection: 'column', gap: '12px' },
+    mList: { display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto', paddingRight: '8px' },
+    mItem: { display: 'flex', alignItems: 'center', gap: '8px' },
+    addMBox: { display: 'flex', gap: '8px', marginTop: '4px' },
+    mInput: { flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none', fontSize: '0.85rem' },
+    mAddBtn: { background: '#111827', color: '#fff', border: 'none', borderRadius: '8px', width: '36px', height: '36px', fontWeight: '700', cursor: 'pointer' }
 };
 
 export default ConstructorProjectsPage;

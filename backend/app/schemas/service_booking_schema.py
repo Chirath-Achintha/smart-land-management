@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Any
+from typing import Optional, Any, List
 from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
 
 
 class ServiceBookingCreate(BaseModel):
@@ -24,6 +24,21 @@ class ServiceBookingStatusUpdate(BaseModel):
 
 class ServiceBookingAssignRequest(BaseModel):
     constructor_id: str
+
+
+class MilestoneCreate(BaseModel):
+    title: str
+
+
+class MilestoneResponse(BaseModel):
+    id: str
+    title: str
+    is_completed: bool = False
+
+
+class QuoteSubmitRequest(BaseModel):
+    quote_amount: float
+    quote_notes: Optional[str] = None
 
 
 class ConstructorOptionResponse(BaseModel):
@@ -51,7 +66,7 @@ class ConstructorOptionResponse(BaseModel):
 
 
 class ServiceBookingResponse(BaseModel):
-    id:             str = Field(alias="_id")
+    id:             str = Field(validation_alias="_id")
     buyer_id:       str
     land_id:        Optional[str]
     constructor_id: Optional[str]
@@ -69,6 +84,11 @@ class ServiceBookingResponse(BaseModel):
     constructor_name: Optional[str] = None
     constructor_phone: Optional[str] = None
     constructor_email: Optional[str] = None
+    
+    # Premium Fields
+    quote_amount: Optional[float] = None
+    quote_notes: Optional[str] = None
+    milestones: List[MilestoneResponse] = []
 
     @field_validator("id", "buyer_id", "land_id", "constructor_id", mode="before")
     @classmethod

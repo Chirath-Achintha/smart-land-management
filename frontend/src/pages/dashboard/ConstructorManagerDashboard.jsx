@@ -148,7 +148,7 @@ const ConstructorManagerDashboard = () => {
                 ) : recentActivity.length === 0 ? (
                     <div style={S.empty}>No recent activity found.</div>
                 ) : (
-                    <div className="ui-card" style={S.tableCard}>
+                    <div style={S.tableCard}>
                         <table style={S.table}>
                             <thead>
                                 <tr style={S.tableHeaderTr}>
@@ -214,10 +214,10 @@ const SafeConstructorManagerDashboard = (props) => (
 );
 
 const S = {
-    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '26px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
-    subtitle: { color: 'var(--color-muted)', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
+    subtitle: { color: '#777', fontSize: '1rem' },
 
     topSection: { marginBottom: '32px' },
     statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' },

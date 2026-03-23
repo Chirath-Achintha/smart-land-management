@@ -21,7 +21,6 @@ const UserManagement = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
-    const [animatedRows, setAnimatedRows] = useState({});
 
     // Fetch users from DB
     const fetchUsers = () => {
@@ -61,16 +60,6 @@ const UserManagement = () => {
         const matchesRole = roleFilter === 'all' || user.roleKey === roleFilter;
         return matchesSearch && matchesRole;
     });
-
-    useEffect(() => {
-        const timers = filteredUsers.map((user, idx) =>
-            setTimeout(() => {
-                setAnimatedRows((prev) => ({ ...prev, [user.id]: true }));
-            }, idx * 55)
-        );
-
-        return () => timers.forEach(clearTimeout);
-    }, [filteredUsers]);
 
     const roleCounts = {
         buyer: users.filter(u => u.roleKey === 'buyer').length,
@@ -210,18 +199,10 @@ const UserManagement = () => {
                     </thead>
                     <tbody>
                         {filteredUsers.map((user) => (
-                            <tr
-                                key={user.id}
-                                style={{
-                                    ...styles.tr,
-                                    opacity: animatedRows[user.id] ? 1 : 0,
-                                    transform: animatedRows[user.id] ? 'translateY(0)' : 'translateY(10px)',
-                                    transition: 'opacity 0.32s ease, transform 0.32s ease'
-                                }}
-                            >
+                            <tr key={user.id} style={styles.tr}>
                                 <td style={styles.td}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ ...styles.avatar, backgroundColor: user.status === 'Suspended' ? '#9CA3AF' : 'var(--color-dark)' }}>
+                                        <div style={{ ...styles.avatar, backgroundColor: user.status === 'Suspended' ? '#9CA3AF' : '#1A1A1A' }}>
                                             {user.name.charAt(0)}
                                         </div>
                                         <div>
@@ -233,8 +214,8 @@ const UserManagement = () => {
                                 <td style={styles.td}>
                                     <span style={{
                                         ...styles.roleTag,
-                                        backgroundColor: user.role === 'Admin' ? 'rgba(32, 129, 226, 0.12)' : '#F9FAFB',
-                                        color: user.role === 'Admin' ? 'var(--color-blue)' : '#4B5563'
+                                        backgroundColor: user.role === 'Admin' ? '#EEF2FF' : '#F9FAFB',
+                                        color: user.role === 'Admin' ? '#4F46E5' : '#4B5563'
                                     }}>
                                         {user.role}
                                     </span>
@@ -243,8 +224,8 @@ const UserManagement = () => {
                                 <td style={styles.td}>
                                     <span style={{
                                         ...styles.statusTag,
-                                        backgroundColor: user.status === 'Active' ? 'rgba(59, 130, 86, 0.14)' : '#FEE2E2',
-                                        color: user.status === 'Active' ? '#166534' : '#B91C1C'
+                                        backgroundColor: user.status === 'Active' ? '#D1FAE5' : '#FEE2E2',
+                                        color: user.status === 'Active' ? '#059669' : '#DC2626'
                                     }}>
                                         {user.status}
                                     </span>
@@ -255,9 +236,9 @@ const UserManagement = () => {
                                             onClick={() => handleToggleStatus(user)}
                                             style={{
                                                 ...styles.iconBtn,
-                                                color: '#166534',
-                                                border: '1px solid #86EFAC',
-                                                backgroundColor: '#ECFDF5',
+                                                color: user.status === 'Active' ? '#DC2626' : '#059669',
+                                                border: `1px solid ${user.status === 'Active' ? '#FECACA' : '#BBF7D0'}`,
+                                                backgroundColor: user.status === 'Active' ? '#FEF2F2' : '#F0FDF4',
                                                 gap: '6px',
                                                 padding: '6px 10px'
                                             }}
@@ -287,43 +268,42 @@ const styles = {
     container: { padding: '32px' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px', gap: '20px', flexWrap: 'wrap' },
     titleArea: { flex: 1 },
-    title: { fontSize: '1.75rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
-    subtitle: { color: 'var(--color-muted)', fontSize: '0.95rem' },
+    title: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
+    subtitle: { color: '#666', fontSize: '0.95rem' },
     filterRow: { display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '18px' },
     filterBtn: {
-        border: '1px solid var(--color-accent)',
+        border: '1px solid #E5E7EB',
         backgroundColor: '#fff',
         color: '#4B5563',
         padding: '8px 12px',
         borderRadius: '999px',
         fontSize: '0.82rem',
         fontWeight: 700,
-        cursor: 'pointer',
-        transition: 'all 0.25s ease'
+        cursor: 'pointer'
     },
     filterBtnActive: {
-        backgroundColor: 'var(--color-primary)',
+        backgroundColor: '#1A1A1A',
         color: '#fff',
-        borderColor: 'var(--color-primary)',
-        boxShadow: '0 10px 22px rgba(59, 130, 86, 0.22)'
+        borderColor: '#1A1A1A'
     },
     searchBar: { width: '300px' },
-    searchInput: { width: '100%', padding: '12px 20px', borderRadius: '10px', border: '1px solid var(--color-accent)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', transition: 'all 0.2s', boxShadow: '0 6px 18px rgba(26, 26, 26, 0.06)' },
-    tableCard: { backgroundColor: '#fff', borderRadius: '16px', border: '1px solid var(--color-accent)', overflow: 'hidden', boxShadow: '0 16px 30px rgba(26, 26, 26, 0.06)' },
+    searchInput: { width: '100%', padding: '12px 20px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' },
+    tableCard: { backgroundColor: '#fff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.05)', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' },
     table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
-    thRow: { backgroundColor: '#ffffff', borderBottom: '1px solid var(--color-accent)' },
-    th: { padding: '20px 24px', fontSize: '0.75rem', fontWeight: '700', color: '#8A8A8A', textTransform: 'uppercase', letterSpacing: '0.08em' },
-    tr: { borderBottom: '1px solid #F4EFE7', transition: 'background 0.2s' },
+    thRow: { backgroundColor: '#ffffff', borderBottom: '1px solid rgba(0,0,0,0.05)' },
+    th: { padding: '20px 24px', fontSize: '0.75rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em' },
+    tr: { borderBottom: '1px solid rgba(0,0,0,0.02)', transition: 'background 0.2s' },
     td: { padding: '20px 24px', fontSize: '0.9rem' },
 
     avatar: { width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '1.1rem' },
-    userName: { fontWeight: '700', color: 'var(--color-dark)' },
-    userEmail: { fontSize: '0.8rem', color: 'var(--color-muted)' },
+    userName: { fontWeight: '700', color: '#1A1A1A' },
+    userEmail: { fontSize: '0.8rem', color: '#666' },
     roleTag: { padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' },
     statusTag: { padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
+    statusTag: { padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     actionGroup: { display: 'flex', gap: '8px' },
-    iconBtn: { background: '#ECFDF5', border: '1px solid #86EFAC', cursor: 'pointer', fontSize: '1rem', color: '#166534', transition: 'color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '6px' },
-    noResults: { padding: '40px', textAlign: 'center', color: 'var(--color-muted)', borderTop: '1px solid #f9fafb' }
+    iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#666', transition: 'color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '6px' },
+    noResults: { padding: '40px', textAlign: 'center', color: '#666', borderTop: '1px solid #f9fafb' }
 };
 
 export default UserManagement;

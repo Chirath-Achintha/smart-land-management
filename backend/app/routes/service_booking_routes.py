@@ -11,7 +11,8 @@ from app.models.constructor_team_model import ConstructorTeam
 from app.schemas.service_booking_schema import (
     ServiceBookingCreate, ServiceBookingUpdate,
     ServiceBookingStatusUpdate, ServiceBookingResponse,
-    ServiceBookingAssignRequest, ConstructorOptionResponse
+    ServiceBookingAssignRequest, ConstructorOptionResponse,
+    QuoteSubmitRequest, MilestoneCreate, MilestoneResponse
 )
 from app.routes.auth_routes import get_current_user
 
@@ -44,6 +45,9 @@ async def _build_response(b: ServiceBooking) -> ServiceBookingResponse:
         constructor_name=team.team_name if team else (constructor.full_name if constructor else None),
         constructor_phone=team.phone if team else (constructor.phone if constructor else None),
         constructor_email=constructor.email if constructor else None,
+        quote_amount=b.quote_amount,
+        quote_notes=b.quote_notes,
+        milestones=[MilestoneResponse(id=m.id, title=m.title, is_completed=m.is_completed) for m in b.milestones],
     )
 
 
@@ -250,5 +254,100 @@ async def update_status(
 
     booking.status = data.status
     booking.updated_at = datetime.utcnow()
+    await booking.save()
+    return await _build_response(booking)
+
+
+# ── Constructor: submit a quote ────────────────────────────────────────────────
+@router.post("/{booking_id}/quote", response_model=ServiceBookingResponse)
+async def submit_quote(
+    booking_id: PydanticObjectId,
+    data: QuoteSubmitRequest,
+    current_user: User = Depends(get_current_user)
+):
+    if not _is_constructor_manager(current_user):
+        raise HTTPException(status_code=403, detail="Not a constructor manager")
+    
+    booking = await ServiceBooking.find_one(
+        ServiceBooking.id == booking_id,
+        ServiceBooking.constructor_id == current_user.id
+    )
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    booking.quote_amount = data.quote_amount
+    booking.quote_notes = data.quote_notes
+    booking.status = "Quote Submitted"
+    booking.updated_at = datetime.utcnow()
+    await booking.save()
+    return await _build_response(booking)
+
+
+# ── Buyer: approve a quote ─────────────────────────────────────────────────────
+@router.patch("/{booking_id}/approve-quote", response_model=ServiceBookingResponse)
+async def approve_quote(
+    booking_id: PydanticObjectId,
+    current_user: User = Depends(get_current_user)
+):
+    booking = await ServiceBooking.find_one(
+        ServiceBooking.id == booking_id,
+        ServiceBooking.buyer_id == current_user.id
+    )
+    if not booking or booking.status != "Quote Submitted":
+        raise HTTPException(status_code=400, detail="Quote not found or not in correct status")
+    
+    booking.status = "Accepted"
+    booking.updated_at = datetime.utcnow()
+    await booking.save()
+    return await _build_response(booking)
+
+
+# ── Constructor: manage milestones ──────────────────────────────────────────────
+@router.post("/{booking_id}/milestones", response_model=ServiceBookingResponse)
+async def add_milestone(
+    booking_id: PydanticObjectId,
+    data: MilestoneCreate,
+    current_user: User = Depends(get_current_user)
+):
+    if not _is_constructor_manager(current_user):
+        raise HTTPException(status_code=403, detail="Not a constructor manager")
+    
+    booking = await ServiceBooking.find_one(
+        ServiceBooking.id == booking_id,
+        ServiceBooking.constructor_id == current_user.id
+    )
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    from app.models.service_booking_model import Milestone
+    new_milestone = Milestone(title=data.title)
+    booking.milestones.append(new_milestone)
+    await booking.save()
+    return await _build_response(booking)
+
+
+@router.patch("/{booking_id}/milestones/{milestone_id}", response_model=ServiceBookingResponse)
+async def toggle_milestone(
+    booking_id: PydanticObjectId,
+    milestone_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    if not _is_constructor_manager(current_user):
+        raise HTTPException(status_code=403, detail="Not a constructor manager")
+    
+    booking = await ServiceBooking.find_one(
+        ServiceBooking.id == booking_id,
+        ServiceBooking.constructor_id == current_user.id
+    )
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    for m in booking.milestones:
+        if m.id == milestone_id:
+            m.is_completed = not m.is_completed
+            break
+    else:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+        
     await booking.save()
     return await _build_response(booking)

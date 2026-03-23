@@ -50,7 +50,7 @@ class UserProfileUpdate(BaseModel):
 # ---- Response Schemas ----
 
 class UserResponse(BaseModel):
-    id: str = Field(alias="_id")
+    id: str = Field(validation_alias="_id")
     full_name: str
     nic_number: str
     role: UserRole

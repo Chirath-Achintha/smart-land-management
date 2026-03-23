@@ -6,6 +6,7 @@ const API = API_BASE_URL;
 
 const STATUS_STYLE = {
     Pending: { color: '#92400e', background: '#FEF3C7' },
+    'Quote Submitted': { color: '#1e40af', background: '#dbeafe' },
 };
 
 const toErrorMessage = (payload, fallback) => {
@@ -34,7 +35,8 @@ const ConstructorServiceBookingsPage = () => {
     const [loading, setLoading] = useState(true);
     const [active, setActive] = useState(null);
     const [updating, setUpdating] = useState(null);
-    const [animatedRows, setAnimatedRows] = useState({});
+    const [quoteModal, setQuoteModal] = useState(null);
+    const [quoteData, setQuoteData] = useState({ amount: '', notes: '' });
 
     const fetchBookings = () => {
         fetch(`${API}/service-bookings/assigned`, { headers: authH })
@@ -42,9 +44,9 @@ const ConstructorServiceBookingsPage = () => {
             .then(({ ok, body }) => {
                 if (!ok) throw new Error(toErrorMessage(body, 'Failed to load service requests'));
                 const normalized = (Array.isArray(body) ? body : []).map(normalizeBooking);
-                // ONLY keep 'Pending' requests for the Inbox
-                const pendingOnly = normalized.filter(b => b.status === "Pending");
-                setBookings(pendingOnly);
+                // Keep 'Pending' and 'Quote Submitted' requests for the Inbox
+                const inboxBookings = normalized.filter(b => b.status === "Pending" || b.status === "Quote Submitted");
+                setBookings(inboxBookings);
             })
             .catch(() => setBookings([]))
             .finally(() => setLoading(false));
@@ -62,6 +64,38 @@ const ConstructorServiceBookingsPage = () => {
             window.removeEventListener('focus', onFocus);
         };
     }, [token]);
+
+    const submitQuote = async (id) => {
+        if (!quoteData.amount || isNaN(quoteData.amount)) {
+            toast.error('Please enter a valid amount');
+            return;
+        }
+        setUpdating(id);
+        try {
+            const res = await fetch(`${API}/service-bookings/${id}/quote`, {
+                method: 'POST',
+                headers: authH,
+                body: JSON.stringify({
+                    quote_amount: parseFloat(quoteData.amount),
+                    quote_notes: quoteData.notes
+                }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                toast.error(toErrorMessage(data, 'Failed to submit quote'));
+                setUpdating(null);
+                return;
+            }
+
+            toast.success('Quote submitted! Awaiting buyer approval.');
+            fetchBookings(); // Refresh list
+            setQuoteModal(null);
+            setQuoteData({ amount: '', notes: '' });
+        } catch {
+            toast.error('Server error while submitting quote');
+        }
+        setUpdating(null);
+    };
 
     const updateStatus = async (id, newStatus) => {
         setUpdating(id);
@@ -111,7 +145,7 @@ const ConstructorServiceBookingsPage = () => {
                         <div key={b.id} style={S.card}>
                             <div style={S.cardTop}>
                                 <span style={S.idBadge}>#{b.id.substring(b.id.length - 6).toUpperCase()}</span>
-                                <span style={S.dateBadge}>{b.preferred_date}</span>
+                                <span style={{ ...S.statusPill, ...STATUS_STYLE[b.status] }}>{b.status}</span>
                             </div>
                             <h3 style={S.cardTitle}>{b.service_type}</h3>
                             <div style={S.cardInfo}>
@@ -123,20 +157,29 @@ const ConstructorServiceBookingsPage = () => {
                                     <span style={S.infoLabel}>Land Details</span>
                                     <span style={S.infoValue}>{b.land_name || 'N/A'} {b.land_district ? `(${b.land_district})` : ''}</span>
                                 </div>
+                                {b.status === 'Quote Submitted' && (
+                                    <div style={S.quoteBadge}>
+                                        💰 Quote: Rs. {b.quote_amount.toLocaleString()}
+                                    </div>
+                                )}
                             </div>
                             
                             <div style={S.cardActions}>
                                 <button style={S.viewBtn} onClick={() => setActive(b)}>View Details</button>
-                                <div style={{display: 'flex', gap: '8px', flex: 1}}>
-                                    <button style={S.acceptBtn} disabled={updating === b.id}
-                                        onClick={() => updateStatus(b.id, 'Accepted')}>
-                                        {updating === b.id ? '...' : 'Accept'}
-                                    </button>
-                                    <button style={S.rejectBtn} disabled={updating === b.id}
-                                        onClick={() => updateStatus(b.id, 'Cancelled')}>
-                                        {updating === b.id ? '...' : 'Reject'}
-                                    </button>
-                                </div>
+                                {b.status === 'Pending' ? (
+                                    <div style={{display: 'flex', gap: '8px', flex: 1}}>
+                                        <button style={S.acceptBtn} disabled={updating === b.id}
+                                            onClick={() => setQuoteModal(b)}>
+                                            {updating === b.id ? '...' : 'Send Quote'}
+                                        </button>
+                                        <button style={S.rejectBtn} disabled={updating === b.id}
+                                            onClick={() => updateStatus(b.id, 'Cancelled')}>
+                                            {updating === b.id ? '...' : 'Reject'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button style={S.waitingBtn} disabled>Awaiting Buyer Approval</button>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -163,13 +206,63 @@ const ConstructorServiceBookingsPage = () => {
                             {active.notes && <div style={S.notesBox}>📝 {active.notes}</div>}
                         </div>
                         <div style={S.modalFoot}>
-                            <button style={S.mAcceptBtn} disabled={updating === active.id}
-                                onClick={() => updateStatus(active.id, 'Accepted')}>
-                                {updating === active.id ? '...' : 'Accept Project'}
-                            </button>
-                            <button style={S.mRejectBtn} disabled={updating === active.id}
-                                onClick={() => updateStatus(active.id, 'Cancelled')}>
-                                {updating === active.id ? '...' : 'Reject / Cancel'}
+                            {active.status === 'Pending' ? (
+                                <>
+                                    <button style={S.mAcceptBtn} disabled={updating === active.id}
+                                        onClick={() => { setQuoteModal(active); setActive(null); }}>
+                                        {updating === active.id ? '...' : 'Send Quote'}
+                                    </button>
+                                    <button style={S.mRejectBtn} disabled={updating === active.id}
+                                        onClick={() => updateStatus(active.id, 'Cancelled')}>
+                                        {updating === active.id ? '...' : 'Reject Project'}
+                                    </button>
+                                </>
+                            ) : (
+                                <button style={{ ...S.mAcceptBtn, background: '#9CA3AF' }} disabled>
+                                    Waiting for Buyer...
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Quote Modal */}
+            {quoteModal && (
+                <div style={S.overlay}>
+                    <div style={{ ...S.modal, maxWidth: '440px' }}>
+                        <div style={S.modalHead}>
+                            <h2 style={S.modalTitle}>Submit Quote</h2>
+                            <button style={S.closeX} onClick={() => setQuoteModal(null)}>✕</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            <p style={{ margin: '0 0 20px', fontSize: '0.9rem', color: '#666' }}>
+                                Proposal for <strong>{quoteModal.service_type}</strong>
+                            </p>
+                            <div style={S.formGroup}>
+                                <label style={S.label}>Quote Amount (Rs.)</label>
+                                <input 
+                                    style={S.input}
+                                    type="number"
+                                    placeholder="e.g. 500000"
+                                    value={quoteData.amount}
+                                    onChange={e => setQuoteData({ ...quoteData, amount: e.target.value })}
+                                />
+                            </div>
+                            <div style={S.formGroup}>
+                                <label style={S.label}>Note to Buyer (optional)</label>
+                                <textarea 
+                                    style={S.textarea}
+                                    placeholder="Explain your quote or estimated timeline..."
+                                    value={quoteData.notes}
+                                    onChange={e => setQuoteData({ ...quoteData, notes: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div style={S.modalFoot}>
+                            <button style={S.mAcceptBtn} disabled={updating === quoteModal.id}
+                                onClick={() => submitQuote(quoteModal.id)}>
+                                {updating === quoteModal.id ? 'Submitting...' : 'Submit Quote to Buyer'}
                             </button>
                         </div>
                     </div>
@@ -180,7 +273,7 @@ const ConstructorServiceBookingsPage = () => {
 };
 
 const S = {
-    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
     title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
     subtitle: { color: '#777', fontSize: '0.95rem' },
@@ -208,8 +301,8 @@ const S = {
     overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
     modal: { background: '#fff', borderRadius: '28px', padding: '36px', width: '100%', maxWidth: '520px', boxShadow: '0 24px 60px rgba(0,0,0,0.15)' },
     modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
-    modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
-    closeX: { background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--color-muted)' },
+    modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    closeX: { background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#AAA' },
     modalBody: { marginBottom: '24px' },
     mGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' },
     mLabel: { fontSize: '0.72rem', color: '#AAA', fontWeight: '700', textTransform: 'uppercase' },
@@ -218,6 +311,14 @@ const S = {
     modalFoot: { display: 'flex', gap: '12px' },
     mAcceptBtn: { flex: 1, padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem' },
     mRejectBtn: { flex: 1, padding: '14px', background: '#FEF2F2', color: '#EF4444', border: '1px dashed #FECACA', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem' },
+    
+    statusPill: { fontSize: '0.7rem', fontWeight: '800', padding: '4px 10px', borderRadius: '20px', textTransform: 'uppercase' },
+    quoteBadge: { background: '#eff6ff', color: '#1e40af', padding: '10px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '700', marginTop: '4px' },
+    waitingBtn: { width: '100%', padding: '10px', background: '#F3F4F6', color: '#9CA3AF', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'not-allowed', fontSize: '0.85rem' },
+    formGroup: { marginBottom: '16px' },
+    label: { display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#374151', marginBottom: '6px' },
+    input: { width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E5E7EB', boxSizing: 'border-box' },
+    textarea: { width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E5E7EB', boxSizing: 'border-box', height: '100px', resize: 'none' },
 };
 
 export default ConstructorServiceBookingsPage;

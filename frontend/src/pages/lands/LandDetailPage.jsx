@@ -6,15 +6,6 @@ import './LandListingPage.css';
 import API_BASE_URL from '../../apiConfig';
 
 const API = API_BASE_URL;
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80';
-
-function getImageUrls(imageUrlValue) {
-    if (!imageUrlValue) return [];
-    return imageUrlValue
-        .split(',')
-        .map((url) => url.trim())
-        .filter(Boolean);
-}
 
 
 // ── Land Detail Page ──────────────────────────────────────────────────────────
@@ -25,8 +16,6 @@ const LandDetailPage = () => {
     const [land, setLand] = useState(null);
     const [bids, setBids] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeImage, setActiveImage] = useState('');
-    const [isViewerOpen, setIsViewerOpen] = useState(false);
 
     // ── Tab state ──────────────────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState('property'); // 'property' | 'services'
@@ -38,10 +27,25 @@ const LandDetailPage = () => {
     const [bkgErr, setBkgErr] = useState('');
     const [bkgLoading, setBkgLoading] = useState(false);
 
-    const SERVICES = [
-        { type: 'Full Construction', icon: '🏗️', desc: 'Architectural design & complete building services.', estimate: 'Rs. 25,000,000+' },
-        { type: 'Land Development', icon: '🚜', desc: 'Clearance, leveling, and utility infrastructure.', estimate: 'Rs. 5,000,000+' },
-    ];
+    const getServices = () => {
+        if (!land) return [];
+        const p = land.perches || 0;
+        return [
+            { 
+                type: 'Full Construction', 
+                icon: '🏗️', 
+                desc: 'Architectural design & complete building services.', 
+                estimate: `Rs. ${(5000000 + (p * 500000)).toLocaleString()}+` 
+            },
+            { 
+                type: 'Land Development', 
+                icon: '🚜', 
+                desc: 'Clearance, leveling, and utility infrastructure.', 
+                estimate: `Rs. ${(500000 + (p * 100000)).toLocaleString()}+` 
+            },
+        ];
+    };
+    const SERVICES = getServices();
 
     const openBookingModal = (svc) => {
         setBookingService(svc);
@@ -89,12 +93,6 @@ const LandDetailPage = () => {
         fetchBids();
     }, [id]);
 
-    useEffect(() => {
-        if (!land) return;
-        const images = getImageUrls(land.image_url);
-        setActiveImage(images[0] || FALLBACK_IMAGE);
-    }, [land]);
-
     if (loading) return <div className="lands-root" style={{ textAlign: 'center', padding: '100px', color: '#999' }}>Loading…</div>;
     if (!land) return (
         <div className="lands-root" style={{ textAlign: 'center', padding: '100px 20px' }}>
@@ -104,65 +102,22 @@ const LandDetailPage = () => {
     );
 
     const highestBid = bids.length > 0 ? Math.max(...bids.map(b => b.amount)) : null;
-    const landImages = getImageUrls(land.image_url);
-    const heroImage = activeImage || landImages[0] || FALLBACK_IMAGE;
-
-    const openViewer = (imgUrl) => {
-        setActiveImage(imgUrl || heroImage);
-        setIsViewerOpen(true);
-    };
-
-    const closeViewer = () => setIsViewerOpen(false);
-
-    const showNextImage = () => {
-        if (landImages.length <= 1) return;
-        const currentIndex = Math.max(0, landImages.indexOf(activeImage));
-        const nextIndex = (currentIndex + 1) % landImages.length;
-        setActiveImage(landImages[nextIndex]);
-    };
-
-    const showPrevImage = () => {
-        if (landImages.length <= 1) return;
-        const currentIndex = Math.max(0, landImages.indexOf(activeImage));
-        const prevIndex = (currentIndex - 1 + landImages.length) % landImages.length;
-        setActiveImage(landImages[prevIndex]);
-    };
 
     return (
-        <div className="ui-page" style={{ background: 'linear-gradient(180deg, #FAF6F1 0%, #F3ECE4 100%)', minHeight: '100vh', paddingBottom: '80px' }}>
+        <div style={{ background: '#FAF6F1', minHeight: '100vh', paddingBottom: '80px' }}>
             <div style={S.container}>
                 <button onClick={() => navigate('/lands')} style={S.backBtn}>← Back to Listings</button>
 
                 <div style={S.layout}>
                     {/* Image */}
                     <div style={S.imageSection}>
-                        <div style={S.heroWrap}>
-                            <img
-                                src={heroImage}
-                                alt={land.name}
-                                style={S.heroImg}
-                                onClick={() => openViewer(heroImage)}
-                                title="Click to view image"
-                            />
-                            <div style={S.priceBadge}>Rs. {Number(land.total_price).toLocaleString()}</div>
-                        </div>
-                        {landImages.length > 1 && (
-                            <div style={S.thumbStrip}>
-                                {landImages.map((imgUrl, idx) => (
-                                    <button
-                                        key={`${imgUrl}-${idx}`}
-                                        type="button"
-                                        style={{ ...S.thumbBtn, ...(heroImage === imgUrl ? S.thumbBtnActive : {}) }}
-                                        onClick={() => setActiveImage(imgUrl)}
-                                        onDoubleClick={() => openViewer(imgUrl)}
-                                        aria-label={`View image ${idx + 1}`}
-                                        title="Click to select, double-click to open"
-                                    >
-                                        <img src={imgUrl} alt={`${land.name} ${idx + 1}`} style={S.thumbImage} />
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        <img
+                            src={land.image_url
+                                ? land.image_url.split(',')[0]
+                                : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80'}
+                            alt={land.name} style={S.heroImg}
+                        />
+                        <div style={S.priceBadge}>Rs. {Number(land.total_price).toLocaleString()}</div>
                     </div>
 
                     {/* Content */}
@@ -289,7 +244,7 @@ const LandDetailPage = () => {
                                     Place a Bid
                                 </button>
                                 <button
-                                    style={{ flex: 1, padding: '14px', background: '#ECFDF5', border: '1.5px solid #86EFAC', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem', color: '#166534' }}
+                                    style={{ flex: 1, padding: '14px', background: '#fff', border: '1.5px solid #1A1A1A', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' }}
                                     onClick={() => navigate(`/schedule-visit/${id}`)}>
                                     Schedule a Visit
                                 </button>
@@ -456,62 +411,39 @@ const LandDetailPage = () => {
                     </div>
                 </div>
             )}
-
-            {isViewerOpen && (
-                <div style={IV.overlay} onClick={closeViewer}>
-                    <div style={IV.container} onClick={(e) => e.stopPropagation()}>
-                        <button type="button" style={IV.closeBtn} onClick={closeViewer}>✕</button>
-
-                        {landImages.length > 1 && (
-                            <button type="button" style={IV.navLeft} onClick={showPrevImage} aria-label="Previous image">‹</button>
-                        )}
-
-                        <img src={activeImage || heroImage} alt={land.name} style={IV.image} />
-
-                        {landImages.length > 1 && (
-                            <button type="button" style={IV.navRight} onClick={showNextImage} aria-label="Next image">›</button>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
 
 // ── Page Styles ───────────────────────────────────────────────────────────────
 const S = {
-    container: { maxWidth: '1120px', margin: '0 auto', padding: '36px 20px' },
-    backBtn: { background: '#ECFDF5', border: '1px solid #86EFAC', color: '#166534', fontSize: '0.92rem', fontWeight: '700', cursor: 'pointer', marginBottom: '20px', padding: '8px 14px', borderRadius: '999px' },
-    layout: { display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, #FFFFFF 0%, #FCFAF7 100%)', borderRadius: '26px', overflow: 'hidden', boxShadow: '0 18px 36px rgba(38,50,56,0.1)', border: '1px solid var(--color-accent)', margin: '0 auto 40px', maxWidth: '1020px' },
-    imageSection: { width: '100%', background: '#fff' },
-    heroWrap: { position: 'relative', width: '100%', height: '420px' },
-    heroImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.35s ease' },
-    priceBadge: { position: 'absolute', bottom: '24px', right: '24px', background: 'rgba(21, 32, 43, 0.92)', color: '#fff', padding: '12px 24px', borderRadius: '14px', fontSize: '1.3rem', fontWeight: '800', boxShadow: '0 10px 22px rgba(0,0,0,0.28)' },
-    thumbStrip: { display: 'flex', gap: '12px', padding: '14px 18px', overflowX: 'auto', background: '#F7F9F7', borderTop: '1px solid #e5ece5' },
-    thumbBtn: { border: '2px solid transparent', borderRadius: '12px', background: '#fff', padding: 0, cursor: 'pointer', flex: '0 0 auto', width: '98px', height: '72px', overflow: 'hidden', boxShadow: '0 6px 12px rgba(38,50,56,0.1)' },
-    thumbBtnActive: { borderColor: 'var(--color-primary)' },
-    thumbImage: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-    contentSection: { padding: '34px 44px', display: 'flex', flexDirection: 'column', gap: '26px' },
-    tag: { display: 'inline-block', background: 'rgba(76,175,80,0.14)', border: '1px solid rgba(76,175,80,0.26)', padding: '6px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '700', color: '#2f6d2f', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' },
-    title: { fontSize: '2.25rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '10px', lineHeight: 1.1, letterSpacing: '-0.02em' },
-    location: { display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-muted)', fontWeight: '600' },
+    container: { maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' },
+    backBtn: { background: 'none', border: 'none', color: '#555', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', marginBottom: '24px', padding: 0 },
+    layout: { display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', marginBottom: '40px' },
+    imageSection: { position: 'relative', width: '100%', height: '450px' },
+    heroImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+    priceBadge: { position: 'absolute', bottom: '24px', right: '24px', background: '#1A1A1A', color: '#fff', padding: '12px 24px', borderRadius: '12px', fontSize: '1.25rem', fontWeight: '800', boxShadow: '0 8px 16px rgba(0,0,0,0.2)' },
+    contentSection: { padding: '40px 60px', display: 'flex', flexDirection: 'column', gap: '32px' },
+    tag: { display: 'inline-block', background: '#FAF6F1', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#1A1A1A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' },
+    title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '10px', lineHeight: 1.1 },
+    location: { display: 'flex', alignItems: 'center', gap: '8px', color: '#555', fontWeight: '500' },
     // ── Tab ──
-    tabRow: { display: 'flex', background: '#EEF2EE', borderRadius: '12px', padding: '4px', gap: '4px', border: '1px solid #d9e4d9' },
-    tabBtn: { flex: 1, padding: '10px 14px', border: 'none', borderRadius: '9px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', background: 'transparent', color: '#6a7a70', transition: 'all 0.18s ease' },
-    tabActive: { background: '#fff', color: '#1f4d2e', fontWeight: '700', boxShadow: '0 4px 10px rgba(38,50,56,0.1)' },
+    tabRow: { display: 'flex', background: '#F5F5F5', borderRadius: '12px', padding: '4px', gap: '4px' },
+    tabBtn: { flex: 1, padding: '10px 14px', border: 'none', borderRadius: '9px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', background: 'transparent', color: '#888', transition: 'all 0.15s' },
+    tabActive: { background: '#fff', color: '#1A1A1A', fontWeight: '700', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
     // ── Service rows ──
-    svcRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: '1px solid #e7ece7', gap: '12px' },
-    svcBookBtn: { padding: '10px 20px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
-    svcBanner: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ECF3FF', border: '1px solid #d6e4ff', borderRadius: '12px', padding: '16px 20px', cursor: 'pointer', gap: '12px' },
+    svcRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: '1px solid #EEE', gap: '12px' },
+    svcBookBtn: { padding: '10px 20px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
+    svcBanner: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#EEF2FF', borderRadius: '12px', padding: '16px 20px', cursor: 'pointer', gap: '12px' },
     // ── Property ──
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' },
-    infoCard: { background: '#F8FAF8', padding: '22px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '6px', border: '1px solid #e0e8e0' },
-    infoLabel: { fontSize: '0.72rem', color: '#75847b', fontWeight: '700', textTransform: 'uppercase' },
-    infoValue: { fontSize: '1.05rem', fontWeight: '700', color: 'var(--color-dark)' },
-    subTitle: { fontSize: '1rem', fontWeight: '800', marginBottom: '14px', color: 'var(--color-dark)' },
-    amenityRow: { display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #e7ece7', marginBottom: '10px' },
-    actionBox: { background: 'linear-gradient(180deg, #F7FBF7 0%, #F2F7F2 100%)', padding: '28px', borderRadius: '18px', border: '1px solid #dce8dc' },
-    bidsSection: { background: '#fff', borderRadius: '24px', padding: '40px', boxShadow: '0 12px 28px rgba(38,50,56,0.08)', border: '1px solid var(--color-accent)' },
+    infoCard: { background: '#F9F9F9', padding: '24px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '6px' },
+    infoLabel: { fontSize: '0.72rem', color: '#777', fontWeight: '700', textTransform: 'uppercase' },
+    infoValue: { fontSize: '1.05rem', fontWeight: '700', color: '#1A1A1A' },
+    subTitle: { fontSize: '1rem', fontWeight: '800', marginBottom: '14px', color: '#1A1A1A' },
+    amenityRow: { display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #EEE', marginBottom: '10px' },
+    actionBox: { background: '#FAF6F1', padding: '28px', borderRadius: '18px' },
+    bidsSection: { background: '#fff', borderRadius: '24px', padding: '40px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' },
 };
 
 // ── Bid Modal Styles ──────────────────────────────────────────────────────────
@@ -536,73 +468,6 @@ const BK = {
     reviewBox: { background: '#FAF6F1', borderRadius: '14px', padding: '24px', marginBottom: '20px' },
     noticeBox: { background: '#F5F5F5', borderRadius: '10px', padding: '16px', borderLeft: '4px solid #1A1A1A', fontSize: '0.85rem', color: '#555', marginBottom: '24px' },
     err: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', fontSize: '0.88rem', marginBottom: '16px' },
-};
-
-const IV = {
-    overlay: {
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.8)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '20px'
-    },
-    container: {
-        position: 'relative',
-        width: 'min(95vw, 1200px)',
-        height: 'min(90vh, 760px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    image: {
-        maxWidth: '100%',
-        maxHeight: '100%',
-        objectFit: 'contain',
-        borderRadius: '12px',
-        boxShadow: '0 12px 36px rgba(0,0,0,0.45)'
-    },
-    closeBtn: {
-        position: 'absolute',
-        top: '-8px',
-        right: '0',
-        width: '40px',
-        height: '40px',
-        border: 'none',
-        borderRadius: '999px',
-        background: 'rgba(255,255,255,0.15)',
-        color: '#fff',
-        fontSize: '1.2rem',
-        cursor: 'pointer'
-    },
-    navLeft: {
-        position: 'absolute',
-        left: '10px',
-        width: '44px',
-        height: '44px',
-        border: 'none',
-        borderRadius: '999px',
-        background: 'rgba(255,255,255,0.18)',
-        color: '#fff',
-        fontSize: '2rem',
-        lineHeight: 1,
-        cursor: 'pointer'
-    },
-    navRight: {
-        position: 'absolute',
-        right: '10px',
-        width: '44px',
-        height: '44px',
-        border: 'none',
-        borderRadius: '999px',
-        background: 'rgba(255,255,255,0.18)',
-        color: '#fff',
-        fontSize: '2rem',
-        lineHeight: 1,
-        cursor: 'pointer'
-    }
 };
 
 export default LandDetailPage;

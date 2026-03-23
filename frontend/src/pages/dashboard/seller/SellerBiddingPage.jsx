@@ -218,7 +218,7 @@ const SellerBiddingPage = () => {
                 <div style={S.empty}>No listings found. Add a listing from <strong>My Listings</strong> first.</div>
             ) : (
                 <form onSubmit={handleSave}>
-                    <div className="ui-card" style={S.card}>
+                    <div style={S.card}>
 
                         {/* ── Land Selector ── */}
                         <div style={S.sectionLabel}>Select Land</div>
@@ -240,7 +240,7 @@ const SellerBiddingPage = () => {
                         <div style={S.sectionLabel}>Bidding Status</div>
                         <label style={S.toggleRow}>
                             <input type="checkbox" name="open_for_bidding" checked={form.open_for_bidding} onChange={handleChange} style={{ display: 'none' }} />
-                            <div style={{ ...S.toggleTrack, background: form.open_for_bidding ? 'var(--color-primary)' : 'rgba(38, 50, 56, 0.22)' }}>
+                            <div style={{ ...S.toggleTrack, background: form.open_for_bidding ? '#1A1A1A' : '#ddd' }}>
                                 <div style={{ ...S.toggleThumb, transform: form.open_for_bidding ? 'translateX(22px)' : 'translateX(2px)' }} />
                             </div>
                             <span style={S.toggleLabel}>{form.open_for_bidding ? 'Open for Bidding' : 'Bidding Closed'}</span>
@@ -293,7 +293,7 @@ const SellerBiddingPage = () => {
                                                 <button type="button" style={S.spinBtn} onClick={() => setForm(f => ({ ...f, durationHours: String(parseInt(f.durationHours || 0) + 1) }))}>+</button>
                                             </div>
                                         </div>
-                                        <div style={{ ...S.durationUnit, alignSelf: 'flex-end', paddingBottom: '10px', fontSize: '1.4rem', color: 'var(--color-muted)', fontWeight: '300' }}>:</div>
+                                        <div style={{ ...S.durationUnit, alignSelf: 'flex-end', paddingBottom: '10px', fontSize: '1.4rem', color: '#ccc', fontWeight: '300' }}>:</div>
                                         <div style={S.durationUnit}>
                                             <label style={S.label}>Minutes</label>
                                             <div style={S.spinnerWrap}>
@@ -348,12 +348,12 @@ const SellerBiddingPage = () => {
                                 <div style={S.scheduleBox}>
                                     <label style={S.toggleRow}>
                                         <input type="checkbox" name="useSchedule" checked={form.useSchedule} onChange={handleChange} style={{ display: 'none' }} />
-                                        <div style={{ ...S.toggleTrack, background: form.useSchedule ? 'var(--color-blue)' : 'rgba(38, 50, 56, 0.22)' }}>
+                                        <div style={{ ...S.toggleTrack, background: form.useSchedule ? '#1A1A1A' : '#ddd' }}>
                                             <div style={{ ...S.toggleThumb, transform: form.useSchedule ? 'translateX(22px)' : 'translateX(2px)' }} />
                                         </div>
                                         <div>
                                             <div style={S.toggleLabel}>Schedule Start</div>
-                                            <div style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '2px' }}>
+                                            <div style={{ fontSize: '0.78rem', color: '#aaa', marginTop: '2px' }}>
                                                 {form.useSchedule ? 'Bid will start automatically at the scheduled time' : 'Bid starts immediately when you save'}
                                             </div>
                                         </div>
@@ -414,14 +414,14 @@ const SellerBiddingPage = () => {
                                         key={l.id || l._id}
                                         style={{
                                             ...S.quickRow,
-                                            background: String(l.id || l._id) === selectedId ? 'rgba(76, 175, 80, 0.12)' : '#fff',
-                                            border: String(l.id || l._id) === selectedId ? '1px solid rgba(76, 175, 80, 0.4)' : '1px solid rgba(38, 50, 56, 0.1)',
+                                            background: String(l.id || l._id) === selectedId ? '#f5f0ea' : '#fdfaf7',
+                                            border: String(l.id || l._id) === selectedId ? '1px solid #ddd' : '1px solid #f0ebe4',
                                         }}
                                         onClick={() => handleSelectListing(String(l.id || l._id))}
                                     >
                                         <div>
                                             <span style={S.quickName}>{l.name}</span>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginLeft: '10px' }}>
+                                            <span style={{ fontSize: '0.75rem', color: '#bbb', marginLeft: '10px' }}>
                                                 {l.village}, {l.district}
                                             </span>
                                         </div>
@@ -476,73 +476,73 @@ const SellerBiddingPage = () => {
 };
 
 const S = {
-    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
-    subtitle: { color: 'var(--color-muted)', fontSize: '0.95rem' },
-    empty: { textAlign: 'center', color: 'var(--color-muted)', marginTop: '80px', fontSize: '1rem' },
-    card: { background: '#fff', borderRadius: '20px', padding: '36px', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.1)', maxWidth: '820px' },
-    sectionLabel: { fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: '12px', display: 'block' },
+    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
+    subtitle: { color: '#777', fontSize: '0.95rem' },
+    empty: { textAlign: 'center', color: '#aaa', marginTop: '80px', fontSize: '1rem' },
+    card: { background: '#fff', borderRadius: '20px', padding: '36px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)', maxWidth: '820px' },
+    sectionLabel: { fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa', marginBottom: '12px', display: 'block' },
     selectorRow: { display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' },
-    select: { padding: '11px 14px', border: '1px solid rgba(38, 50, 56, 0.18)', borderRadius: '8px', fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif", outline: 'none', cursor: 'pointer', background: '#fff', minWidth: '240px', color: 'var(--color-dark)' },
-    locationTag: { fontSize: '0.8rem', color: 'var(--color-dark)', background: 'rgba(139, 195, 74, 0.16)', padding: '5px 12px', borderRadius: '20px', fontWeight: '600' },
-    divider: { border: 'none', borderTop: '1px solid rgba(38, 50, 56, 0.1)', margin: '24px 0' },
+    select: { padding: '11px 14px', border: '1px solid #e5e0da', borderRadius: '8px', fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif", outline: 'none', cursor: 'pointer', background: '#fff', minWidth: '240px' },
+    locationTag: { fontSize: '0.8rem', color: '#999', background: '#f5f0ea', padding: '5px 12px', borderRadius: '20px', fontWeight: '600' },
+    divider: { border: 'none', borderTop: '1px solid #f0ebe4', margin: '24px 0' },
     toggleRow: { display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none', marginBottom: '4px' },
     toggleTrack: { width: '46px', height: '24px', borderRadius: '12px', position: 'relative', transition: 'background 0.2s', flexShrink: 0 },
     toggleThumb: { position: 'absolute', top: '3px', width: '18px', height: '18px', background: '#fff', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'transform 0.2s' },
-    toggleLabel: { fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-dark)' },
+    toggleLabel: { fontSize: '0.9rem', fontWeight: '700', color: '#333' },
     formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
-    label: { fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-muted)' },
-    input: { padding: '12px 14px', border: '1px solid rgba(38, 50, 56, 0.16)', borderRadius: '8px', fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif", outline: 'none', width: '100%', boxSizing: 'border-box', color: 'var(--color-dark)' },
+    label: { fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' },
+    input: { padding: '12px 14px', border: '1px solid #e5e0da', borderRadius: '8px', fontSize: '0.9rem', fontFamily: "'DM Sans', sans-serif", outline: 'none', width: '100%', boxSizing: 'border-box' },
 
     // Duration
-    durationBox: { background: 'rgba(139, 195, 74, 0.1)', border: '1px solid rgba(139, 195, 74, 0.24)', borderRadius: '12px', padding: '20px 24px', marginBottom: '4px' },
+    durationBox: { background: '#f9f6f2', border: '1px solid #ede8e2', borderRadius: '12px', padding: '20px 24px', marginBottom: '4px' },
     durationHeader: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' },
     durationIcon: { fontSize: '1.4rem' },
-    durationTitle: { fontWeight: '700', color: 'var(--color-dark)', fontSize: '0.92rem' },
-    durationSub: { fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '2px' },
+    durationTitle: { fontWeight: '700', color: '#1A1A1A', fontSize: '0.92rem' },
+    durationSub: { fontSize: '0.75rem', color: '#aaa', marginTop: '2px' },
     durationControls: { display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' },
     durationUnit: { display: 'flex', flexDirection: 'column', gap: '6px' },
-    spinnerWrap: { display: 'flex', alignItems: 'center', border: '1px solid rgba(38, 50, 56, 0.14)', borderRadius: '8px', overflow: 'hidden', background: '#fff' },
-    spinBtn: { border: 'none', background: 'rgba(38, 50, 56, 0.08)', color: 'var(--color-dark)', fontWeight: '700', fontSize: '1.1rem', padding: '8px 14px', cursor: 'pointer', lineHeight: 1, userSelect: 'none' },
-    spinInput: { border: 'none', outline: 'none', textAlign: 'center', width: '54px', fontSize: '1.05rem', fontWeight: '700', color: 'var(--color-dark)', fontFamily: "'DM Sans', sans-serif", padding: '8px 4px' },
-    durationPreview: { marginLeft: 'auto', textAlign: 'right', paddingLeft: '16px', borderLeft: '1px solid rgba(38, 50, 56, 0.12)' },
-    durationPreviewLabel: { fontSize: '0.68rem', color: 'var(--color-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' },
-    durationPreviewVal: { fontSize: '1.6rem', fontWeight: '800', color: 'var(--color-dark)', letterSpacing: '-0.5px' },
+    spinnerWrap: { display: 'flex', alignItems: 'center', border: '1px solid #e5e0da', borderRadius: '8px', overflow: 'hidden', background: '#fff' },
+    spinBtn: { border: 'none', background: '#f5f0ea', color: '#555', fontWeight: '700', fontSize: '1.1rem', padding: '8px 14px', cursor: 'pointer', lineHeight: 1, userSelect: 'none' },
+    spinInput: { border: 'none', outline: 'none', textAlign: 'center', width: '54px', fontSize: '1.05rem', fontWeight: '700', color: '#1A1A1A', fontFamily: "'DM Sans', sans-serif", padding: '8px 4px' },
+    durationPreview: { marginLeft: 'auto', textAlign: 'right', paddingLeft: '16px', borderLeft: '1px solid #ede8e2' },
+    durationPreviewLabel: { fontSize: '0.68rem', color: '#bbb', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' },
+    durationPreviewVal: { fontSize: '1.6rem', fontWeight: '800', color: '#1A1A1A', letterSpacing: '-0.5px' },
     presets: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-    presetBtn: { padding: '5px 13px', border: '1px solid rgba(38, 50, 56, 0.14)', borderRadius: '20px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', background: '#fff', color: 'var(--color-dark)', transition: 'all 0.15s' },
-    presetBtnActive: { background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)' },
+    presetBtn: { padding: '5px 13px', border: '1px solid #e5e0da', borderRadius: '20px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', background: '#fff', color: '#555', transition: 'all 0.15s' },
+    presetBtnActive: { background: '#1A1A1A', color: '#fff', border: '1px solid #1A1A1A' },
 
     // Schedule
-    scheduleBox: { background: 'rgba(33, 150, 243, 0.08)', border: '1px solid rgba(33, 150, 243, 0.24)', borderRadius: '12px', padding: '20px 24px', marginBottom: '4px' },
+    scheduleBox: { background: '#f5f8ff', border: '1px solid #dde8ff', borderRadius: '12px', padding: '20px 24px', marginBottom: '4px' },
     scheduleInputRow: { marginTop: '16px', maxWidth: '320px' },
 
     // Summary
-    summaryBox: { background: 'rgba(76, 175, 80, 0.14)', border: '1px solid rgba(76, 175, 80, 0.28)', borderRadius: '10px', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' },
-    summaryRow: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.86rem', color: '#2e7d32' },
+    summaryBox: { background: '#eafaf1', border: '1px solid #c3e8d4', borderRadius: '10px', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' },
+    summaryRow: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.86rem', color: '#2c6e49' },
     summaryIcon: { fontSize: '1rem' },
 
     // Quick list
     quickList: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' },
     quickRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', cursor: 'pointer', transition: 'background 0.15s' },
-    quickName: { fontWeight: '700', fontSize: '0.88rem', color: 'var(--color-dark)' },
+    quickName: { fontWeight: '700', fontSize: '0.88rem', color: '#1A1A1A' },
     quickRight: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' },
-    quickPrice: { fontSize: '0.8rem', fontWeight: '700', color: 'var(--color-dark)' },
-    quickDate: { fontSize: '0.72rem', color: 'var(--color-muted)' },
+    quickPrice: { fontSize: '0.8rem', fontWeight: '700', color: '#555' },
+    quickDate: { fontSize: '0.72rem', color: '#bbb' },
     quickBadge: { fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '20px' },
-    quickOpen: { background: 'rgba(76, 175, 80, 0.18)', color: '#2e7d32', border: '1px solid rgba(76, 175, 80, 0.4)' },
-    quickPending: { background: 'rgba(33, 150, 243, 0.14)', color: '#145b97', border: '1px solid rgba(33, 150, 243, 0.35)' },
-    quickEnded: { background: 'rgba(161, 136, 127, 0.18)', color: '#6d4c41', border: '1px solid rgba(161, 136, 127, 0.45)' },
-    quickClosed: { background: 'rgba(38, 50, 56, 0.12)', color: 'var(--color-muted)', border: '1px solid rgba(38, 50, 56, 0.2)' },
+    quickOpen: { background: '#eafaf1', color: '#27ae60', border: '1px solid #27ae60' },
+    quickPending: { background: '#eaf4fb', color: '#1565c0', border: '1px solid #90caf9' },
+    quickEnded: { background: '#f5f5f5', color: '#777', border: '1px solid #ccc' },
+    quickClosed: { background: '#f5f0ea', color: '#aaa', border: '1px solid #ddd' },
 
     // Footer
-    footer: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px', borderTop: '1px solid rgba(38, 50, 56, 0.1)', paddingTop: '24px', flexWrap: 'wrap' },
-    errMsg: { fontSize: '0.85rem', color: '#7a4f41', fontWeight: '600' },
+    footer: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px', borderTop: '1px solid #f0ebe4', paddingTop: '24px', flexWrap: 'wrap' },
+    errMsg: { fontSize: '0.85rem', color: '#d32f2f', fontWeight: '600' },
     saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700', fontSize: '0.95rem' },
-    successToast: { background: '#fff', border: '1px solid rgba(76, 175, 80, 0.4)', borderRadius: '12px', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 4px 16px rgba(76,175,80,0.15)' },
-    toastIcon: { background: 'var(--color-primary)', color: '#fff', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.85rem' },
-    toastTitle: { fontWeight: '800', fontSize: '0.88rem', color: 'var(--color-dark)', marginBottom: '2px' },
-    toastDesc: { fontSize: '0.8rem', color: 'var(--color-muted)' },
+    successToast: { background: '#fff', border: '1px solid #27ae60', borderRadius: '12px', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 4px 16px rgba(39,174,96,0.15)' },
+    toastIcon: { background: '#27ae60', color: '#fff', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.85rem' },
+    toastTitle: { fontWeight: '800', fontSize: '0.88rem', color: '#1A1A1A', marginBottom: '2px' },
+    toastDesc: { fontSize: '0.8rem', color: '#666' },
 };
 
 export default SellerBiddingPage;

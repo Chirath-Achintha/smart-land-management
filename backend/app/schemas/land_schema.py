@@ -45,8 +45,8 @@ class LandCreate(BaseModel):
     name: str
     district: str
     village: str
-    perches: float = Field(ge=0)
-    price_per_perch: float = Field(ge=0)
+    perches: float
+    price_per_perch: float
     land_type: LandType = LandType.Residential
     status: LandStatus = LandStatus.Available
     road_access: Optional[str] = None
@@ -68,8 +68,8 @@ class LandUpdate(BaseModel):
     name: Optional[str] = None
     district: Optional[str] = None
     village: Optional[str] = None
-    perches: Optional[float] = Field(default=None, ge=0)
-    price_per_perch: Optional[float] = Field(default=None, ge=0)
+    perches: Optional[float] = None
+    price_per_perch: Optional[float] = None
     land_type: Optional[LandType] = None
     status: Optional[LandStatus] = None
     road_access: Optional[str] = None
@@ -95,7 +95,7 @@ class LandVerificationUpdate(BaseModel):
 # ── Response Schema ───────────────────────────────────────────────────────────
 
 class LandResponse(BaseModel):
-    id: str = Field(alias="_id")
+    id: str = Field(validation_alias="_id")
     seller_id: str
     name: str
     district: str

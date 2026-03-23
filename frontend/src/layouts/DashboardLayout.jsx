@@ -247,7 +247,7 @@ const DashboardLayout = ({ role }) => {
                     <div style={styles.topbarActions}>
                         {/* Notification Center */}
                         <div style={styles.notifWrapper}>
-                            <button type="button" className="dashboard-btn" style={styles.bellBtn} onClick={() => setShowNotif(!showNotif)} title="Notifications">
+                            <button type="button" style={styles.bellBtn} onClick={() => setShowNotif(!showNotif)} title="Notifications">
                                 <BellIcon />
                                 {unreadCount > 0 && <span style={styles.bellBadge}></span>}
                             </button>
@@ -281,7 +281,7 @@ const DashboardLayout = ({ role }) => {
                         </div>
 
                         {/* Home Button */}
-                        <button onClick={() => navigate('/')} className="dashboard-btn" style={styles.navbarBtn}>
+                        <button onClick={() => navigate('/')} style={styles.navbarBtn}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={styles.btnIcon}>
                                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                                 <polyline points="9 22 9 12 15 12 15 22"/>
@@ -290,7 +290,7 @@ const DashboardLayout = ({ role }) => {
                         </button>
 
                         {/* Profile Button */}
-                        <button onClick={openProfile} className="dashboard-btn" style={styles.navbarBtn}>
+                        <button onClick={openProfile} style={styles.navbarBtn}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={styles.btnIcon}>
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                 <circle cx="12" cy="7" r="4"/>
@@ -305,14 +305,12 @@ const DashboardLayout = ({ role }) => {
                         </div>
                     </div>
                 </div>
-                <div className="ui-page">
-                    <Outlet />
-                </div>
+                <Outlet />
             </main>
 
             {profileOpen && (
-                <div className="profile-overlay" style={styles.overlay}>
-                    <div className="ui-card profile-modal" style={styles.modal}>
+                <div style={styles.overlay}>
+                    <div style={styles.modal}>
                         <div style={styles.modalHead}>
                             <h2 style={styles.modalTitle}>My Profile</h2>
                             <div style={styles.modalActions}>
@@ -396,24 +394,24 @@ const DashboardLayout = ({ role }) => {
 
 const styles = {
     layout: { display: 'flex', minHeight: '100vh', width: '100%' },
-    main: { flex: 1, backgroundColor: 'var(--color-bg)', overflowY: 'auto' },
-    topbar: { position: 'sticky', top: 0, zIndex: 20, height: '68px', background: 'rgba(245, 247, 246, 0.94)', borderBottom: '1px solid rgba(38, 50, 56, 0.1)', boxShadow: '0 4px 16px rgba(38, 50, 56, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', backdropFilter: 'blur(8px)' },
-    topbarTitle: { fontSize: '1rem', fontWeight: '800', color: 'var(--color-dark)' },
+    main: { flex: 1, backgroundColor: 'var(--sage-bg)', overflowY: 'auto' },
+    topbar: { position: 'sticky', top: 0, zIndex: 20, height: '68px', background: 'rgba(250, 246, 241, 0.92)', borderBottom: '1px solid rgba(85, 107, 47, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', backdropFilter: 'blur(8px)' },
+    topbarTitle: { fontSize: '1rem', fontWeight: '800', color: 'var(--sage-text-dark)' },
     topbarActions: { display: 'flex', alignItems: 'center', gap: '12px' },
-    navbarBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', backgroundColor: '#fff', border: '1.5px solid rgba(38, 50, 56, 0.16)', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', color: 'var(--color-dark)', transition: 'all 0.25s ease', fontFamily: 'inherit' },
+    navbarBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', backgroundColor: '#fff', border: '1.5px solid #EAECEF', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', color: '#344054', transition: 'all 0.2s ease', fontFamily: 'inherit' },
     navbarLogoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', backgroundColor: '#FF3B30', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', color: '#fff', transition: 'all 0.2s ease', fontFamily: 'inherit' },
     btnIcon: { flexShrink: 0 },
-    divider: { width: '1px', height: '24px', backgroundColor: 'rgba(38, 50, 56, 0.14)', margin: '0 4px' },
+    divider: { width: '1px', height: '24px', backgroundColor: '#EAECEF', margin: '0 4px' },
     
     // Notifications styles
     notifWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
-    bellBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', backgroundColor: '#fff', border: '1.5px solid rgba(38, 50, 56, 0.16)', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.25s ease', position: 'relative', outline: 'none' },
+    bellBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', backgroundColor: '#fff', border: '1.5px solid #EAECEF', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', outline: 'none' },
     bellBadge: { position: 'absolute', top: '10px', right: '10px', width: '10px', height: '10px', background: '#FF3B30', borderRadius: '50%', border: '2px solid #fff' },
-    notifDropdown: { position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '320px', background: '#fff', borderRadius: '16px', boxShadow: '0 12px 40px rgba(38, 50, 56, 0.16)', border: '1px solid rgba(38, 50, 56, 0.12)', overflow: 'hidden', zIndex: 100 },
-    notifHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(38, 50, 56, 0.1)', background: '#f7faf8', color: 'var(--color-dark)', fontSize: '0.9rem' },
-    notifMarkBtn: { background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline' },
+    notifDropdown: { position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '320px', background: '#fff', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.12)', border: '1px solid rgba(85, 107, 47, 0.1)', overflow: 'hidden', zIndex: 100 },
+    notifHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(85, 107, 47, 0.08)', background: '#FAFAF8', color: '#1d2a12', fontSize: '0.9rem' },
+    notifMarkBtn: { background: 'none', border: 'none', color: '#556B2F', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline' },
     notifBody: { maxHeight: '320px', overflowY: 'auto', padding: '10px' },
-    notifItem: { display: 'flex', gap: '12px', padding: '12px', borderRadius: '10px', marginBottom: '8px', background: '#fff', border: '1px solid rgba(38, 50, 56, 0.08)', transition: 'all 0.2s', cursor: 'pointer' },
+    notifItem: { display: 'flex', gap: '12px', padding: '12px', borderRadius: '10px', marginBottom: '8px', background: '#fff', border: '1px solid rgba(85, 107, 47, 0.05)', transition: 'all 0.2s', cursor: 'pointer' },
     notifDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#e74c3c', marginTop: '6px', flexShrink: 0, transition: 'opacity 0.2s' },
     notifTitle: { fontSize: '0.85rem', fontWeight: '800', color: '#1d2a12', marginBottom: '4px' },
     notifMsg: { fontSize: '0.8rem', color: '#66735d', lineHeight: '1.4' },
@@ -421,25 +419,25 @@ const styles = {
  
     welcomeWrap: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.05 },
     userName: { fontSize: '0.9rem', color: '#2f3e1a', fontWeight: '800' },
-    overlay: { position: 'fixed', inset: 0, background: 'rgba(38, 50, 56, 0.42)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(6px)', padding: '18px' },
-    modal: { width: 'min(860px, 96vw)', background: 'linear-gradient(180deg, #ffffff 0%, #fbfcfb 100%)', borderRadius: '24px', border: '1px solid rgba(38, 50, 56, 0.12)', boxShadow: '0 26px 60px rgba(38, 50, 56, 0.24)', padding: '26px' },
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+    modal: { width: 'min(760px, 94vw)', background: '#fff', borderRadius: '20px', border: '1px solid #eceee8', boxShadow: '0 26px 60px rgba(0,0,0,0.18)', padding: '24px' },
     modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' },
-    modalTitle: { margin: 0, fontSize: '1.8rem', color: 'var(--color-dark)', letterSpacing: '-0.02em', fontWeight: '800' },
+    modalTitle: { margin: 0, fontSize: '1.25rem', color: '#1d2a12' },
     modalActions: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-    editBtn: { padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', background: 'var(--color-primary)', color: '#fff' },
-    saveBtn: { padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', background: 'var(--color-blue)', color: '#fff' },
-    cancelBtn: { padding: '10px 16px', border: '1px solid rgba(38, 50, 56, 0.18)', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', background: '#fff', color: 'var(--color-dark)' },
-    closeBtn: { padding: '10px 16px', border: '1px solid rgba(38, 50, 56, 0.18)', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', background: 'rgba(38, 50, 56, 0.06)', color: 'var(--color-dark)' },
-    errorBox: { marginBottom: '12px', background: 'rgba(161, 136, 127, 0.16)', border: '1px solid rgba(161, 136, 127, 0.35)', color: '#6d4c41', padding: '10px 12px', borderRadius: '10px', fontSize: '0.9rem' },
-    loadingText: { color: 'var(--color-muted)', padding: '16px 0' },
-    profileGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' },
+    editBtn: { padding: '9px 14px', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', background: '#1d2a12', color: '#fff' },
+    saveBtn: { padding: '9px 14px', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', background: '#2f6b2f', color: '#fff' },
+    cancelBtn: { padding: '9px 14px', border: '1px solid #d9ded2', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', background: '#fff', color: '#4a5740' },
+    closeBtn: { padding: '9px 14px', border: '1px solid #d9ded2', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', background: '#f6f7f4', color: '#4a5740' },
+    errorBox: { marginBottom: '12px', background: '#fff0ee', border: '1px solid #f2c2bc', color: '#b7382a', padding: '10px 12px', borderRadius: '8px', fontSize: '0.9rem' },
+    loadingText: { color: '#66735d', padding: '16px 0' },
+    profileGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' },
     fieldItem: { display: 'flex', flexDirection: 'column', gap: '6px' },
-    label: { fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-muted)', fontWeight: '700' },
-    value: { padding: '12px 13px', background: 'rgba(139, 195, 74, 0.1)', borderRadius: '10px', border: '1px solid rgba(38, 50, 56, 0.12)', color: 'var(--color-dark)', minHeight: '44px' },
-    input: { padding: '12px 13px', background: '#fff', borderRadius: '10px', border: '1px solid rgba(38, 50, 56, 0.2)', color: 'var(--color-dark)', outline: 'none' },
-    deleteSection: { marginTop: '18px', borderTop: '1px dashed rgba(161, 136, 127, 0.45)', paddingTop: '14px' },
+    label: { fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7a8570', fontWeight: '700' },
+    value: { padding: '11px 12px', background: '#f8faf5', borderRadius: '8px', border: '1px solid #e7ebdf', color: '#243117', minHeight: '42px' },
+    input: { padding: '11px 12px', background: '#fff', borderRadius: '8px', border: '1px solid #d8ddcf', color: '#243117', outline: 'none' },
+    deleteSection: { marginTop: '18px', borderTop: '1px dashed #efc6c1', paddingTop: '14px' },
     deleteRow: { display: 'flex', justifyContent: 'flex-end' },
-    deleteBtn: { padding: '11px 14px', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', background: 'var(--color-accent)', color: '#fff' }
+    deleteBtn: { padding: '11px 14px', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', background: '#b3382b', color: '#fff' }
 };
 
 export default DashboardLayout;

@@ -26,7 +26,7 @@ class ConstructorTeamUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class ConstructorTeamResponse(BaseModel):
-    id: str = Field(alias="_id")
+    id: str = Field(validation_alias="_id")
     user_id: str
     team_name: str
     manager_name: str

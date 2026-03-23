@@ -1,11 +1,181 @@
-body,
-html {
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
+
+:root {
+  --color-primary: #4CAF50;
+  --color-secondary: #8BC34A;
+  --color-accent: #A1887F;
+  --color-bg: #F5F7F6;
+  --color-dark: #263238;
+  --color-blue: #2196F3;
+
+  --color-surface: #FFFFFF;
+  --color-text: #1F2A2D;
+  --color-text-soft: #5D6A6F;
+  --color-border: #DDE5E1;
+  --shadow-soft: 0 12px 30px rgba(38, 50, 56, 0.08);
+  --shadow-elevated: 0 18px 38px rgba(38, 50, 56, 0.14);
+
+  /* Backward-compatible aliases used across existing components. */
+  --sage-primary: var(--color-primary);
+  --sage-accent: var(--color-secondary);
+  --sage-bg: var(--color-bg);
+  --sage-card: var(--color-surface);
+  --sage-text-dark: var(--color-text);
+  --sage-text-med: var(--color-text-soft);
+  --sage-text-light: #7D8A90;
+  --white: #FFFFFF;
+  --primary: var(--color-primary);
+  --primary-hover: #43A047;
+  --accent: var(--color-accent);
+  --text-dark: var(--color-text);
+  --text-medium: var(--color-text-soft);
+  --text-light: #86949A;
+  --card-bg: var(--color-surface);
+  --root-bg: var(--color-bg);
+  --border: var(--color-border);
+}
+
+html,
+body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #f4f4f4;
+  min-height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(139, 195, 74, 0.2) 0%, rgba(139, 195, 74, 0) 32%),
+    radial-gradient(circle at 100% 0%, rgba(33, 150, 243, 0.12) 0%, rgba(33, 150, 243, 0) 30%),
+    var(--color-bg);
+  color: var(--color-text);
+}
+
+#root {
+  min-height: 100vh;
 }
 
 * {
   box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+input,
+select,
+textarea {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.2);
+}
+
+.btn-dark,
+.btn-outline,
+button {
+  transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+}
+
+.btn-dark,
+.ui-btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+}
+
+.btn-outline,
+.ui-btn-secondary {
+  background: #fff;
+  color: var(--color-primary);
+  border: 1px solid var(--color-secondary);
+}
+
+.btn-dark:hover,
+.btn-outline:hover,
+.ui-btn-primary:hover,
+.ui-btn-secondary:hover,
+button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.05);
+}
+
+.btn-dark:active,
+.btn-outline:active,
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.ui-card {
+  background: var(--color-surface);
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ui-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-elevated);
+}
+
+table {
+  border-collapse: collapse;
+}
+
+thead {
+  background: rgba(38, 50, 56, 0.04);
+}
+
+tbody tr {
+  transition: background-color 0.25s ease;
+}
+
+tbody tr:hover {
+  background: rgba(76, 175, 80, 0.08);
+}
+
+.page-fade {
+  animation: pageFadeIn 0.5s ease;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ui-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(38, 50, 56, 0.16);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

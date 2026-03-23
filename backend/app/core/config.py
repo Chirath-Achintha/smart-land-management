@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    USE_GOOGLE_DNS_FOR_MONGO: bool = False
 
     # Email configurations
     EMAIL_HOST: str = "smtp.gmail.com"

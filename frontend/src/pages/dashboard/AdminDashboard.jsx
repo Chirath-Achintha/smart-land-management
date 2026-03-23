@@ -23,6 +23,10 @@ const AdminDashboard = () => {
     const [allLandsError, setAllLandsError] = useState('');
     const [landTab, setLandTab] = useState('pending');
     const [actionLoadingId, setActionLoadingId] = useState('');
+    const [previewLand, setPreviewLand] = useState(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewError, setPreviewError] = useState('');
+    const [imageViewer, setImageViewer] = useState({ open: false, images: [], index: 0 });
     const [rejectLand, setRejectLand] = useState(null);
     const [rejectMessage, setRejectMessage] = useState('');
     const [rejectError, setRejectError] = useState('');
@@ -296,7 +300,70 @@ const AdminDashboard = () => {
         }
     };
 
-    const renderLandRow = (land, extraMeta = null, mode = 'full') => {
+    const getLandImages = (imageUrl) => {
+        if (!imageUrl) return [];
+        return String(imageUrl).split(',').map((u) => u.trim()).filter(Boolean);
+    };
+
+    const openPreviewModal = async (land) => {
+        const token = getToken();
+        const landId = land.id || land._id;
+
+        setPreviewLand(land);
+        setPreviewLoading(true);
+        setPreviewError('');
+
+        if (!token || !landId) {
+            setPreviewLoading(false);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API}/lands/${landId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to load full land details.');
+            }
+
+            const data = await res.json();
+            setPreviewLand(data || land);
+        } catch (e) {
+            setPreviewError(e.message || 'Failed to load full land details.');
+        } finally {
+            setPreviewLoading(false);
+        }
+    };
+
+    const openImageViewer = (images, index = 0) => {
+        if (!Array.isArray(images) || images.length === 0) return;
+        const safeIndex = Math.max(0, Math.min(index, images.length - 1));
+        setImageViewer({ open: true, images, index: safeIndex });
+    };
+
+    const closeImageViewer = () => {
+        setImageViewer({ open: false, images: [], index: 0 });
+    };
+
+    const showPrevImage = () => {
+        setImageViewer((prev) => {
+            if (!prev.open || prev.images.length === 0) return prev;
+            const nextIndex = (prev.index - 1 + prev.images.length) % prev.images.length;
+            return { ...prev, index: nextIndex };
+        });
+    };
+
+    const showNextImage = () => {
+        setImageViewer((prev) => {
+            if (!prev.open || prev.images.length === 0) return prev;
+            const nextIndex = (prev.index + 1) % prev.images.length;
+            return { ...prev, index: nextIndex };
+        });
+    };
+
+    const renderLandRow = (land, extraMeta = null, mode = 'pending') => {
         const landId = land.id || land._id;
         const isWorking = actionLoadingId === landId;
 
@@ -323,14 +390,13 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                {mode === 'full' ? (
+                {mode === 'pending' ? (
                     <div style={S.verifyActions}>
                         <button
-                            style={S.editActionBtn}
-                            disabled={isWorking}
-                            onClick={() => openEditModal(land)}
+                            style={S.viewActionBtn}
+                            onClick={() => openPreviewModal(land)}
                         >
-                            Edit
+                            View
                         </button>
                         <button
                             style={S.approveBtn}
@@ -345,13 +411,6 @@ const AdminDashboard = () => {
                             onClick={() => openRejectModal(land)}
                         >
                             {isWorking ? 'Saving...' : 'Reject'}
-                        </button>
-                        <button
-                            style={S.deleteActionBtn}
-                            disabled={isWorking}
-                            onClick={() => handleDeleteLand(land)}
-                        >
-                            {isWorking ? 'Saving...' : 'Delete'}
                         </button>
                     </div>
                 ) : (
@@ -430,6 +489,69 @@ const AdminDashboard = () => {
                         <div style={S.statLabel}>{c.label}</div>
                     </div>
                 ))}
+
+                {previewLand && (
+                    <div style={S.modalOverlay}>
+                        <div style={S.previewModalCard}>
+                            <div style={S.previewHeader}>
+                                <h3 style={S.modalTitle}>Land Details</h3>
+                                <button
+                                    style={S.modalCancelBtn}
+                                    onClick={() => {
+                                        setPreviewLand(null);
+                                        setPreviewError('');
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+
+                            {previewError && <div style={S.modalError}>{previewError}</div>}
+                            {previewLoading ? (
+                                <div style={S.emptyState}>Loading full details...</div>
+                            ) : (
+                                <>
+                                    <div style={S.previewDetailsGrid}>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Property</span><span style={S.previewValue}>{previewLand.name || '-'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Land Type</span><span style={S.previewValue}>{previewLand.land_type || '-'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>District</span><span style={S.previewValue}>{previewLand.district || '-'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Village</span><span style={S.previewValue}>{previewLand.village || '-'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Perches</span><span style={S.previewValue}>{previewLand.perches ?? '-'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Price / Perch</span><span style={S.previewValue}>Rs. {Number(previewLand.price_per_perch || 0).toLocaleString()}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Total Price</span><span style={S.previewValue}>Rs. {Number(previewLand.total_price || 0).toLocaleString()}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Road Access</span><span style={S.previewValue}>{previewLand.road_access || '-'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Status</span><span style={S.previewValue}>{previewLand.status || '-'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Verification</span><span style={S.previewValue}>{previewLand.is_verified ? 'Verified' : 'Pending'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Electricity</span><span style={S.previewValue}>{previewLand.electricity ? 'Yes' : 'No'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Water</span><span style={S.previewValue}>{previewLand.water ? 'Yes' : 'No'}</span></div>
+                                    </div>
+
+                                    {previewLand.verification_note && (
+                                        <div style={S.previewNote}>Verification Note: {previewLand.verification_note}</div>
+                                    )}
+
+                                    <div style={S.previewSectionTitle}>Property Images</div>
+                                    {getLandImages(previewLand.image_url).length > 0 ? (
+                                        <div style={S.previewImagesGrid}>
+                                            {getLandImages(previewLand.image_url).map((img, idx, images) => (
+                                                <button
+                                                    key={`${img}-${idx}`}
+                                                    type="button"
+                                                    style={S.previewImageBtn}
+                                                    onClick={() => openImageViewer(images, idx)}
+                                                >
+                                                    <img src={img} alt={`Land ${idx + 1}`} style={S.previewImage} />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={S.emptyState}>No images uploaded for this listing.</div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div style={S.dashboardContent}>
@@ -495,7 +617,7 @@ const AdminDashboard = () => {
                                                 <div style={S.emptyStateSmall}>No lands from this seller yet.</div>
                                             ) : (
                                                 <div style={S.landList}>
-                                                    {group.lands.map((land) => renderLandRow(land))}
+                                                    {group.lands.map((land) => renderLandRow(land, null, 'pending'))}
                                                 </div>
                                             )}
                                         </div>
@@ -541,6 +663,26 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             </div>
+
+            {imageViewer.open && (
+                <div style={S.imageViewerOverlay} onClick={closeImageViewer}>
+                    <div style={S.imageViewerCard} onClick={(e) => e.stopPropagation()}>
+                        <button style={S.imageViewerCloseBtn} onClick={closeImageViewer}>Close</button>
+                        <img
+                            src={imageViewer.images[imageViewer.index]}
+                            alt={`Preview ${imageViewer.index + 1}`}
+                            style={S.imageViewerMain}
+                        />
+                        {imageViewer.images.length > 1 && (
+                            <div style={S.imageViewerNavRow}>
+                                <button style={S.imageViewerNavBtn} onClick={showPrevImage}>Previous</button>
+                                <span style={S.imageViewerCount}>{imageViewer.index + 1} / {imageViewer.images.length}</span>
+                                <button style={S.imageViewerNavBtn} onClick={showNextImage}>Next</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {rejectLand && (
                 <div style={S.modalOverlay}>
@@ -841,6 +983,146 @@ const S = {
         borderRadius: '16px',
         padding: '22px',
         boxShadow: '0 20px 48px rgba(0,0,0,0.18)'
+    },
+    previewModalCard: {
+        width: '100%',
+        maxWidth: '900px',
+        maxHeight: '88vh',
+        overflowY: 'auto',
+        background: '#fff',
+        borderRadius: '16px',
+        padding: '22px',
+        boxShadow: '0 20px 48px rgba(0,0,0,0.18)'
+    },
+    previewHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '14px'
+    },
+    previewDetailsGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gap: '10px',
+        marginBottom: '12px'
+    },
+    previewDetailItem: {
+        border: '1px solid #e4ead9',
+        borderRadius: '10px',
+        padding: '10px 12px',
+        background: '#fbfdf8',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px'
+    },
+    previewLabel: {
+        fontSize: '0.73rem',
+        textTransform: 'uppercase',
+        letterSpacing: '0.04em',
+        color: '#7b876c',
+        fontWeight: '700'
+    },
+    previewValue: {
+        fontSize: '0.92rem',
+        color: '#2a3720',
+        fontWeight: '700'
+    },
+    previewNote: {
+        borderRadius: '10px',
+        border: '1px solid #ead8bc',
+        background: '#fff8ec',
+        color: '#7a5425',
+        fontSize: '0.85rem',
+        padding: '10px 12px',
+        marginBottom: '14px'
+    },
+    previewSectionTitle: {
+        marginTop: '2px',
+        marginBottom: '8px',
+        fontSize: '0.86rem',
+        fontWeight: '800',
+        color: '#425335',
+        textTransform: 'uppercase',
+        letterSpacing: '0.04em'
+    },
+    previewImagesGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+        gap: '10px'
+    },
+    previewImageBtn: {
+        border: 'none',
+        padding: 0,
+        margin: 0,
+        background: 'transparent',
+        cursor: 'pointer'
+    },
+    previewImage: {
+        width: '100%',
+        height: '140px',
+        objectFit: 'cover',
+        borderRadius: '10px',
+        border: '1px solid #dbe3ce'
+    },
+    imageViewerOverlay: {
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.72)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 2600,
+        padding: '16px'
+    },
+    imageViewerCard: {
+        width: '100%',
+        maxWidth: '980px',
+        maxHeight: '90vh',
+        background: '#fff',
+        borderRadius: '14px',
+        padding: '14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+    },
+    imageViewerCloseBtn: {
+        alignSelf: 'flex-end',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        border: '1px solid #d3d3d3',
+        background: '#fff',
+        cursor: 'pointer',
+        fontWeight: '700',
+        color: '#4f5d42'
+    },
+    imageViewerMain: {
+        width: '100%',
+        height: 'calc(90vh - 130px)',
+        minHeight: '280px',
+        objectFit: 'contain',
+        borderRadius: '10px',
+        background: '#f6f8f2'
+    },
+    imageViewerNavRow: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '14px'
+    },
+    imageViewerNavBtn: {
+        padding: '8px 12px',
+        borderRadius: '8px',
+        border: '1px solid #cfd8e4',
+        background: '#f4f8ff',
+        color: '#304a6b',
+        fontWeight: '700',
+        cursor: 'pointer'
+    },
+    imageViewerCount: {
+        fontSize: '0.88rem',
+        color: '#4f5d42',
+        fontWeight: '700'
     },
     modalTitle: { margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#263319' },
     modalText: { marginTop: '8px', marginBottom: '12px', fontSize: '0.9rem', color: '#5a6650' },

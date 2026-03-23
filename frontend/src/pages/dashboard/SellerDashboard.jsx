@@ -64,9 +64,9 @@ const SellerDashboard = () => {
     }, []);
 
     const cards = [
-        { label: 'Total Active Listings', value: stats.active, accent: '#1A1A1A' },
-        { label: 'Total Sold Properties', value: stats.sold, accent: '#2ecc71' },
-        { label: 'Pending Bids', value: stats.pendingBids, accent: '#e67e22' },
+        { label: 'Total Active Listings', value: stats.active, accent: 'var(--color-dark)' },
+        { label: 'Total Sold Properties', value: stats.sold, accent: 'var(--color-primary)' },
+        { label: 'Pending Bids', value: stats.pendingBids, accent: 'var(--color-accent)' },
     ];
 
     return (
@@ -139,7 +139,7 @@ const S = {
     title: { fontSize: '2rem', fontWeight: '800', color: 'var(--sage-text-dark)', marginBottom: '8px' },
     subtitle: { color: 'var(--sage-text-med)', fontSize: '1rem' },
     cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '40px' },
-    card: { background: 'var(--sage-card)', borderRadius: '16px', padding: '32px 28px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.2s', cursor: 'default' },
+    card: { background: 'var(--sage-card)', borderRadius: '16px', padding: '32px 28px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.3s ease, box-shadow 0.3s ease', cursor: 'default' },
     statVal: { fontSize: '2.8rem', fontWeight: '800', lineHeight: 1 },
     statLabel: { fontSize: '0.85rem', color: 'var(--sage-text-light)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
 
@@ -147,7 +147,7 @@ const S = {
     mainColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
     sideColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
 
-    sectionCard: { background: 'var(--sage-card)', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', border: '1px solid rgba(85, 107, 47, 0.05)' },
+    sectionCard: { background: 'var(--sage-card)', borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(85, 107, 47, 0.05)', paddingBottom: '16px' },
     sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--sage-text-dark)', margin: 0 },
 
@@ -167,7 +167,7 @@ const S = {
 
     btnRow: { display: 'flex', gap: '16px', flexWrap: 'wrap' },
     actionBtn: { padding: '14px 28px', borderRadius: '10px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer', border: 'none', fontFamily: "'DM Sans', sans-serif" },
-    outlineBtn: { background: 'var(--sage-card)', color: 'var(--sage-primary)', border: '2px solid var(--sage-primary)' },
+    outlineBtn: { background: 'var(--sage-card)', color: 'var(--sage-primary)', border: '2px solid var(--color-secondary)' },
 
     activityList: { display: 'flex', flexDirection: 'column' },
     activityItem: { display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 0', borderBottom: '1px solid rgba(85, 107, 47, 0.05)' },

@@ -1,12 +1,17 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Outlet } from 'react-router-dom';
 
 const AuthLayout = () => {
+    const location = useLocation();
+
     return (
         <div style={styles.container}>
             <div style={styles.content}>
                 <div style={styles.card}>
-                    <Outlet />
+                    <div key={location.pathname} className="page-fade">
+                        <Outlet />
+                    </div>
                 </div>
             </div>
         </div>
@@ -18,7 +23,7 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        backgroundColor: '#FAF6F1',
+        backgroundColor: 'var(--color-bg)',
         width: '100%',
         margin: 0,
         fontFamily: "'DM Sans', sans-serif",
@@ -31,10 +36,11 @@ const styles = {
         padding: '40px 20px'
     },
     card: {
-        backgroundColor: '#fff',
+        backgroundColor: 'var(--color-surface)',
         padding: '40px',
         borderRadius: '16px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-soft)',
         width: '100%',
         maxWidth: '450px'
     }

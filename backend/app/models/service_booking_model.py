@@ -9,8 +9,8 @@ class ServiceType(str, enum.Enum):
     Land_Development  = "Land Development"
 
 class BookingStatus(str, enum.Enum):
-    Scheduled   = "Scheduled"
-    In_Progress = "In Progress"
+    Pending     = "Pending"
+    Accepted    = "Accepted"
     Completed   = "Completed"
     Cancelled   = "Cancelled"
 
@@ -22,7 +22,7 @@ class ServiceBooking(Document):
     preferred_date: str = Field(alias="date")
     preferred_time: str = Field(alias="time")
     notes: Optional[str] = Field(None, alias="request")
-    status: str = Field(default="Scheduled")
+    status: str = Field(default="Pending")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
 

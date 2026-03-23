@@ -1,24 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import API_BASE_URL from '../../../apiConfig';
+import toast from 'react-hot-toast';
 
 const API = API_BASE_URL;
 
 const STATUS_STYLE = {
-    Requested: { color: '#145b97', background: 'rgba(33, 150, 243, 0.12)' },
-    Approved: { color: '#2e7d32', background: 'rgba(76, 175, 80, 0.14)' },
-    Scheduled: { color: '#0d47a1', background: 'rgba(33, 150, 243, 0.18)' },
-    'In Progress': { color: '#3f6e10', background: 'rgba(139, 195, 74, 0.22)' },
-    Completed: { color: '#1b5e20', background: 'rgba(76, 175, 80, 0.2)' },
-    Cancelled: { color: '#7a4f41', background: 'rgba(161, 136, 127, 0.24)' },
+    Pending: { color: '#92400e', background: '#FEF3C7' },
 };
-
-const isPendingRequest = (status) => status === 'Approved' || status === 'Scheduled';
 
 const toErrorMessage = (payload, fallback) => {
     const detail = payload?.detail ?? payload?.message ?? payload;
-
     if (typeof detail === 'string') return detail;
-
     if (Array.isArray(detail)) {
         const msg = detail
             .map((item) => (typeof item === 'string' ? item : item?.msg || ''))
@@ -26,7 +18,6 @@ const toErrorMessage = (payload, fallback) => {
             .join(', ');
         return msg || fallback;
     }
-
     return fallback;
 };
 
@@ -41,7 +32,6 @@ const ConstructorServiceBookingsPage = () => {
 
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('All');
     const [active, setActive] = useState(null);
     const [updating, setUpdating] = useState(null);
     const [animatedRows, setAnimatedRows] = useState({});
@@ -52,7 +42,9 @@ const ConstructorServiceBookingsPage = () => {
             .then(({ ok, body }) => {
                 if (!ok) throw new Error(toErrorMessage(body, 'Failed to load service requests'));
                 const normalized = (Array.isArray(body) ? body : []).map(normalizeBooking);
-                setBookings(normalized);
+                // ONLY keep 'Pending' requests for the Inbox
+                const pendingOnly = normalized.filter(b => b.status === "Pending");
+                setBookings(pendingOnly);
             })
             .catch(() => setBookings([]))
             .finally(() => setLoading(false));
@@ -62,11 +54,9 @@ const ConstructorServiceBookingsPage = () => {
 
     useEffect(() => {
         if (!token) return undefined;
-
         const intervalId = setInterval(fetchBookings, 15000);
         const onFocus = () => fetchBookings();
         window.addEventListener('focus', onFocus);
-
         return () => {
             clearInterval(intervalId);
             window.removeEventListener('focus', onFocus);
@@ -83,134 +73,73 @@ const ConstructorServiceBookingsPage = () => {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                alert(toErrorMessage(data, 'Failed to update request status'));
+                toast.error(toErrorMessage(data, 'Failed to update request status'));
                 setUpdating(null);
                 return;
             }
 
-            const updated = normalizeBooking(data);
-            setBookings(prev => prev.map(b => b.id === id ? updated : b));
-            if (active?.id === id) setActive(updated);
+            toast.success(`Request ${newStatus}!`);
+            // Remove it from the list because it's no longer Pending
+            setBookings(prev => prev.filter(b => b.id !== id));
+            if (active?.id === id) setActive(null); // close modal
         } catch {
-            alert('Server error while updating request status');
+            toast.error('Server error while updating request status');
         }
         setUpdating(null);
     };
-
-    const filtered = filter === 'All'
-        ? bookings
-        : filter === 'Pending'
-            ? bookings.filter((b) => isPendingRequest(b.status))
-            : bookings.filter((b) => b.status === filter);
-
-    useEffect(() => {
-        const timers = filtered.map((booking, idx) =>
-            setTimeout(() => {
-                setAnimatedRows((prev) => ({ ...prev, [booking.id]: true }));
-            }, idx * 50)
-        );
-
-        return () => timers.forEach(clearTimeout);
-    }, [filtered]);
 
     return (
         <div style={S.root}>
             <div style={S.header}>
                 <div>
-                    <h1 style={S.title}>Service Requests</h1>
-                    <p style={S.subtitle}>Review and manage construction booking requests from buyers.</p>
+                    <h1 style={S.title}>Incoming Requests</h1>
+                    <p style={S.subtitle}>Review new construction project requests. Accept them to move them to your Projects page.</p>
                 </div>
-                <span style={S.countBadge}>{bookings.length} total</span>
-            </div>
-
-            {/* Filter tabs */}
-            <div style={S.filterRow}>
-                {['All', 'Pending', 'In Progress', 'Completed', 'Cancelled'].map(f => (
-                    <button key={f} onClick={() => setFilter(f)}
-                        style={{
-                            ...S.filterBtn,
-                            background: filter === f ? 'var(--color-primary)' : '#fff',
-                            color: filter === f ? '#fff' : '#555',
-                            border: filter === f ? 'none' : '1px solid rgba(38, 50, 56, 0.16)',
-                        }}>
-                        {f}
-                        {f !== 'All' && (
-                            <span style={S.filterCount}>
-                                {f === 'Pending'
-                                    ? bookings.filter((b) => isPendingRequest(b.status)).length
-                                    : bookings.filter((b) => b.status === f).length}
-                            </span>
-                        )}
-                    </button>
-                ))}
+                <span style={S.countBadge}>{bookings.length} New</span>
             </div>
 
             {loading ? (
-                <div style={S.empty}>Loading service requests…</div>
+                <div style={S.empty}>Loading pending requests…</div>
+            ) : bookings.length === 0 ? (
+                <div style={S.emptyBox}>
+                    <h3 style={{marginTop: 0, color: '#111827'}}>You're all caught up!</h3>
+                    <p style={{margin: 0}}>There are no new pending requests assigned to your team.</p>
+                </div>
             ) : (
-                <div className="ui-card" style={S.tableCard}>
-                    <table style={S.table}>
-                        <thead>
-                            <tr style={S.theadRow}>
-                                <th style={S.th}>ID</th>
-                                <th style={S.th}>Service</th>
-                                <th style={S.th}>Buyer</th>
-                                <th style={S.th}>Schedule</th>
-                                <th style={S.th}>Status</th>
-                                <th style={S.th}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.length === 0 ? (
-                                <tr><td colSpan="6" style={S.emptyTd}>No {filter !== 'All' ? filter : ''} requests found.</td></tr>
-                            ) : filtered.map(b => {
-                                const sc = STATUS_STYLE[b.status] || STATUS_STYLE.Scheduled;
-                                return (
-                                    <tr
-                                        key={b.id}
-                                        style={{
-                                            ...S.tr,
-                                            opacity: animatedRows[b.id] ? 1 : 0,
-                                            transform: animatedRows[b.id] ? 'translateY(0)' : 'translateY(10px)',
-                                            transition: 'opacity 0.3s ease, transform 0.3s ease'
-                                        }}
-                                    >
-                                        <td style={S.td}><span style={S.idSpan}>#{b.id}</span></td>
-                                        <td style={S.td}><strong>{b.service_type}</strong></td>
-                                        <td style={S.td}>
-                                            <div><span style={S.buyerName}>{b.buyer_name || `Buyer #${b.buyer_id}`}</span>
-                                                {b.land_name && <div style={S.landTag}>🏡 {b.land_name}</div>}</div>
-                                        </td>
-                                        <td style={S.td}>{b.preferred_date} at {b.preferred_time}</td>
-                                        <td style={S.td}><span style={{ ...S.badge, ...sc }}>{b.status}</span></td>
-                                        <td style={S.td}>
-                                            <div style={S.actRow}>
-                                                <button style={S.viewBtn} onClick={() => setActive(b)}>View</button>
-                                                {(b.status === 'Approved' || b.status === 'Scheduled') && (
-                                                    <button style={S.acceptBtn} disabled={updating === b.id}
-                                                        onClick={() => updateStatus(b.id, 'In Progress')}>
-                                                        {updating === b.id ? '…' : 'Accept'}
-                                                    </button>
-                                                )}
-                                                {(b.status === 'Approved' || b.status === 'Scheduled') && (
-                                                    <button style={S.rejectBtn} disabled={updating === b.id}
-                                                        onClick={() => updateStatus(b.id, 'Cancelled')}>
-                                                        {updating === b.id ? '…' : 'Reject'}
-                                                    </button>
-                                                )}
-                                                {b.status === 'In Progress' && (
-                                                    <button style={S.completeBtn} disabled={updating === b.id}
-                                                        onClick={() => updateStatus(b.id, 'Completed')}>
-                                                        {updating === b.id ? '…' : 'Complete'}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                <div style={S.gridContainer}>
+                    {bookings.map(b => (
+                        <div key={b.id} style={S.card}>
+                            <div style={S.cardTop}>
+                                <span style={S.idBadge}>#{b.id.substring(b.id.length - 6).toUpperCase()}</span>
+                                <span style={S.dateBadge}>{b.preferred_date}</span>
+                            </div>
+                            <h3 style={S.cardTitle}>{b.service_type}</h3>
+                            <div style={S.cardInfo}>
+                                <div style={S.infoGroup}>
+                                    <span style={S.infoLabel}>Buyer</span>
+                                    <span style={S.infoValue}>{b.buyer_name || `Buyer #${b.buyer_id}`}</span>
+                                </div>
+                                <div style={S.infoGroup}>
+                                    <span style={S.infoLabel}>Land Details</span>
+                                    <span style={S.infoValue}>{b.land_name || 'N/A'} {b.land_district ? `(${b.land_district})` : ''}</span>
+                                </div>
+                            </div>
+                            
+                            <div style={S.cardActions}>
+                                <button style={S.viewBtn} onClick={() => setActive(b)}>View Details</button>
+                                <div style={{display: 'flex', gap: '8px', flex: 1}}>
+                                    <button style={S.acceptBtn} disabled={updating === b.id}
+                                        onClick={() => updateStatus(b.id, 'Accepted')}>
+                                        {updating === b.id ? '...' : 'Accept'}
+                                    </button>
+                                    <button style={S.rejectBtn} disabled={updating === b.id}
+                                        onClick={() => updateStatus(b.id, 'Cancelled')}>
+                                        {updating === b.id ? '...' : 'Reject'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
 
@@ -219,7 +148,7 @@ const ConstructorServiceBookingsPage = () => {
                 <div style={S.overlay}>
                     <div style={S.modal}>
                         <div style={S.modalHead}>
-                            <h2 style={S.modalTitle}>Request #{active.id}</h2>
+                            <h2 style={S.modalTitle}>Request #{String(active.id).substring(String(active.id).length - 6).toUpperCase()}</h2>
                             <button style={S.closeX} onClick={() => setActive(null)}>✕</button>
                         </div>
                         <div style={S.modalBody}>
@@ -234,25 +163,14 @@ const ConstructorServiceBookingsPage = () => {
                             {active.notes && <div style={S.notesBox}>📝 {active.notes}</div>}
                         </div>
                         <div style={S.modalFoot}>
-                            {(active.status === 'Approved' || active.status === 'Scheduled') && (
-                                <button style={S.mAcceptBtn} disabled={updating === active.id}
-                                    onClick={() => updateStatus(active.id, 'In Progress')}>
-                                    {updating === active.id ? '…' : 'Accept Request'}
-                                </button>
-                            )}
-                            {(active.status === 'Approved' || active.status === 'Scheduled') && (
-                                <button style={S.mRejectBtn} disabled={updating === active.id}
-                                    onClick={() => updateStatus(active.id, 'Cancelled')}>
-                                    {updating === active.id ? '…' : 'Reject Request'}
-                                </button>
-                            )}
-                            {active.status === 'In Progress' && (
-                                <button style={S.mCompleteBtn} disabled={updating === active.id}
-                                    onClick={() => updateStatus(active.id, 'Completed')}>
-                                    {updating === active.id ? '…' : 'Mark as Completed'}
-                                </button>
-                            )}
-                            <button style={S.mCloseBtn} onClick={() => setActive(null)}>Close</button>
+                            <button style={S.mAcceptBtn} disabled={updating === active.id}
+                                onClick={() => updateStatus(active.id, 'Accepted')}>
+                                {updating === active.id ? '...' : 'Accept Project'}
+                            </button>
+                            <button style={S.mRejectBtn} disabled={updating === active.id}
+                                onClick={() => updateStatus(active.id, 'Cancelled')}>
+                                {updating === active.id ? '...' : 'Reject / Cancel'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -264,44 +182,42 @@ const ConstructorServiceBookingsPage = () => {
 const S = {
     root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px' },
-    subtitle: { color: 'var(--color-muted)', fontSize: '0.95rem' },
-    countBadge: { background: 'var(--color-primary)', color: '#fff', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '0.9rem' },
-    filterRow: { display: 'flex', gap: '10px', marginBottom: '28px', flexWrap: 'wrap' },
-    filterBtn: { padding: '8px 18px', borderRadius: '20px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease' },
-    filterCount: { background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '1px 8px', fontSize: '0.72rem' },
-    empty: { textAlign: 'center', color: 'var(--color-muted)', padding: '60px', background: '#fff', borderRadius: '16px', border: '1px solid rgba(38, 50, 56, 0.1)' },
-    tableCard: { background: '#fff', borderRadius: '20px', overflow: 'hidden', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.1)' },
-    table: { width: '100%', borderCollapse: 'collapse' },
-    theadRow: { background: 'rgba(139, 195, 74, 0.12)' },
-    th: { textAlign: 'left', padding: '14px 20px', fontSize: '0.78rem', fontWeight: '800', color: 'var(--color-muted)', textTransform: 'uppercase' },
-    tr: { borderBottom: '1px solid rgba(38, 50, 56, 0.08)' },
-    td: { padding: '18px 20px', fontSize: '0.9rem', color: 'var(--color-dark)' },
-    emptyTd: { padding: '40px', textAlign: 'center', color: 'var(--color-muted)', fontStyle: 'italic' },
-    idSpan: { fontWeight: '800', color: 'var(--color-blue)', fontSize: '0.82rem' },
-    buyerName: { fontWeight: '700' },
-    landTag: { fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '2px' },
-    badge: { padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800' },
-    actRow: { display: 'flex', gap: '8px' },
-    viewBtn: { padding: '6px 14px', background: '#ECFDF5', color: '#166534', border: '1px solid #86EFAC', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
-    acceptBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
-    rejectBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
-    completeBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
-    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(38, 50, 56, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'overlayFadeIn 0.24s ease' },
-    modal: { background: '#fff', borderRadius: '28px', padding: '36px', width: '100%', maxWidth: '520px', boxShadow: '0 24px 60px rgba(38, 50, 56, 0.2)', border: '1px solid rgba(38, 50, 56, 0.12)', animation: 'modalPopIn 0.24s ease' },
+    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
+    subtitle: { color: '#777', fontSize: '0.95rem' },
+    countBadge: { background: '#d32f2f', color: '#fff', borderRadius: '20px', padding: '6px 16px', fontWeight: '800', fontSize: '0.9rem' },
+    
+    empty: { textAlign: 'center', color: '#aaa', padding: '60px', background: '#fff', borderRadius: '16px' },
+    emptyBox: { textAlign: 'center', color: '#6B7280', padding: '60px', background: '#fff', borderRadius: '16px', border: '1px dashed #E5E7EB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
+    
+    gridContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' },
+    card: { background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0', display: 'flex', flexDirection: 'column', gap: '16px' },
+    cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    idBadge: { background: '#F3F4F6', color: '#374151', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800' },
+    dateBadge: { color: '#6B7280', fontSize: '0.8rem', fontWeight: '600' },
+    cardTitle: { margin: 0, fontSize: '1.2rem', fontWeight: '800', color: '#111827' },
+    cardInfo: { display: 'flex', flexDirection: 'column', gap: '10px', background: '#F9FAFB', padding: '16px', borderRadius: '12px' },
+    infoGroup: { display: 'flex', flexDirection: 'column', gap: '2px' },
+    infoLabel: { fontSize: '0.7rem', fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase' },
+    infoValue: { fontSize: '0.95rem', fontWeight: '600', color: '#111827' },
+    
+    cardActions: { display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto' },
+    viewBtn: { padding: '10px', background: '#F3F4F6', color: '#374151', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.88rem' },
+    acceptBtn: { flex: 1, padding: '10px', background: '#111827', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.88rem' },
+    rejectBtn: { flex: 1, padding: '10px', background: '#fff', color: '#EF4444', border: '1px solid #FECACA', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.88rem' },
+
+    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
+    modal: { background: '#fff', borderRadius: '28px', padding: '36px', width: '100%', maxWidth: '520px', boxShadow: '0 24px 60px rgba(0,0,0,0.15)' },
     modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
     modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
     closeX: { background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--color-muted)' },
     modalBody: { marginBottom: '24px' },
     mGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' },
-    mLabel: { fontSize: '0.72rem', color: 'var(--color-muted)', fontWeight: '700', textTransform: 'uppercase' },
-    mVal: { fontWeight: '700', color: 'var(--color-dark)', margin: '4px 0 0', fontSize: '0.95rem' },
-    notesBox: { background: 'rgba(161, 136, 127, 0.12)', borderRadius: '10px', padding: '12px 16px', fontSize: '0.88rem', color: 'var(--color-muted)', fontStyle: 'italic' },
+    mLabel: { fontSize: '0.72rem', color: '#AAA', fontWeight: '700', textTransform: 'uppercase' },
+    mVal: { fontWeight: '700', color: '#1A1A1A', margin: '4px 0 0', fontSize: '0.95rem' },
+    notesBox: { background: '#F9FAFB', borderRadius: '10px', padding: '16px', fontSize: '0.9rem', color: '#374151', fontStyle: 'italic', border: '1px solid #E5E7EB' },
     modalFoot: { display: 'flex', gap: '12px' },
-    mAcceptBtn: { flex: 2, padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
-    mRejectBtn: { flex: 2, padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
-    mCompleteBtn: { flex: 2, padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
-    mCloseBtn: { flex: 1, padding: '13px', background: '#ECFDF5', color: '#166534', border: '1px solid #86EFAC', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
+    mAcceptBtn: { flex: 1, padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem' },
+    mRejectBtn: { flex: 1, padding: '14px', background: '#FEF2F2', color: '#EF4444', border: '1px dashed #FECACA', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem' },
 };
 
 export default ConstructorServiceBookingsPage;

@@ -33,6 +33,7 @@ import AgentVisitsPage from '../pages/dashboard/admin/AgentVisitsPage';
 import ServiceManagement from '../pages/dashboard/admin/ServiceManagement';
 import ComplaintsManagement from '../pages/dashboard/admin/ComplaintsManagement';
 import UserManagement from '../pages/dashboard/admin/UserManagement';
+import AdminConstructorTeamsPage from '../pages/dashboard/admin/AdminConstructorTeamsPage';
 import ConstructorProjectsPage from '../pages/dashboard/constructor/ConstructorProjectsPage';
 import ConstructorServiceBookingsPage from '../pages/dashboard/constructor/ConstructorServiceBookingsPage';
 
@@ -234,6 +235,7 @@ const AppRoutes = () => {
                     <Route path="/dashboard/admin/agents" element={<AgentAssignment />} />
                     <Route path="/dashboard/admin/agent-visits" element={<AgentVisitsPage />} />
                     <Route path="/dashboard/admin/services" element={<ServiceManagement />} />
+                    <Route path="/dashboard/admin/constructor-teams" element={<AdminConstructorTeamsPage />} />
                     <Route path="/dashboard/admin/complaints" element={<ComplaintsManagement />} />
                 </Route>
 

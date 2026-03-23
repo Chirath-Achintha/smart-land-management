@@ -70,20 +70,21 @@ const BuyerDashboard = () => {
                         Open Saved
                     </button>
                 </div>
-
-                <div className="ui-card ui-lift" style={S.card}>
+                
+                <div style={S.card}>
                     <h2 style={S.cardTitle}>Construction Services</h2>
                     <p style={S.cardText}>View request status and assigned constructor team details.</p>
                     <button className="btn-primary" style={S.actionBtn} onClick={() => navigate('/services')}>
                         Open Service Requests
                     </button>
                 </div>
+
+
             </div>
 
             <section style={S.section}>
                 <div style={S.sectionHead}>
                     <h2 style={S.sectionTitle}>Recent Service Booking Updates</h2>
-                    <button className="btn-secondary" style={S.smallBtn} onClick={() => navigate('/services')}>View All</button>
                 </div>
 
                 {serviceBookings.length === 0 ? (

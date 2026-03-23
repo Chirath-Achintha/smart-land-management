@@ -67,6 +67,19 @@ const mergeDistricts = (...groups) => {
 
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
 
+const normalizeDistrict = (value) => {
+    let base = normalizeText(value);
+    const aliases = {
+        'kaluthara': 'kalutara',
+        'moneragala': 'monaragala',
+        'anuradapura': 'anuradhapura',
+        'rathnapura': 'ratnapura',
+        'kurunagala': 'kurunegala',
+        'baticaloa': 'batticaloa',
+    };
+    return aliases[base] || base;
+};
+
 const toErrorMessage = (payload, fallback) => {
     if (payload instanceof Error) {
         return payload.message || fallback;
@@ -120,19 +133,6 @@ const ServiceManagement = () => {
     const [error, setError] = useState('');
     const [teams, setTeams] = useState([]);
     const [teamLoading, setTeamLoading] = useState(true);
-    const [creatingTeam, setCreatingTeam] = useState(false);
-    const [showTeamsModal, setShowTeamsModal] = useState(false);
-    const [districtOptions, setDistrictOptions] = useState(ALL_DISTRICTS);
-    const [animatedRows, setAnimatedRows] = useState({});
-    const [teamForm, setTeamForm] = useState({
-        team_name: '',
-        manager_name: '',
-        district: '',
-        specialization: '',
-        phone: '',
-        email: '',
-        password: '',
-    });
 
     const fetchBookings = async () => {
         if (!token) {
@@ -189,76 +189,16 @@ const ServiceManagement = () => {
         }
     };
 
-    const fetchDistrictOptions = async () => {
-        if (!token) return;
 
-        try {
-            const res = await fetch(`${API}/lands/admin/all`, { headers: authH });
-            const data = await res.json();
-            if (!res.ok) throw new Error(toErrorMessage(data, 'Failed to fetch districts'));
 
-            const districtsFromLands = (Array.isArray(data) ? data : [])
-                .map((land) => titleCaseDistrict(land?.district || ''))
-                .filter(Boolean);
-
-            setDistrictOptions((prev) => {
-                return mergeDistricts(ALL_DISTRICTS, prev, districtsFromLands);
-            });
-        } catch {
-            // Keep existing options from teams/bookings when lands endpoint is unavailable.
-        }
-    };
-
-    const handleCreateTeam = async (e) => {
-        e.preventDefault();
-        setCreatingTeam(true);
-        try {
-            const payload = {
-                ...teamForm,
-                // Backend expects state and address; district-only UI derives these values.
-                state: 'N/A',
-                address: teamForm.district,
-            };
-            const res = await fetch(`${API}/admin/constructor-teams/`, {
-                method: 'POST',
-                headers: authH,
-                body: JSON.stringify(payload),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(toErrorMessage(data, 'Failed to create constructor team'));
-
-            setTeamForm({
-                team_name: '',
-                manager_name: '',
-                district: '',
-                specialization: '',
-                phone: '',
-                email: '',
-                password: '',
-            });
-            await fetchTeams();
-            await fetchBookings();
-        } catch (e1) {
-            alert(toErrorMessage(e1, 'Failed to create constructor team'));
-        } finally {
-            setCreatingTeam(false);
-        }
-    };
+    // Form removed
 
     useEffect(() => {
         fetchBookings();
         fetchTeams();
-        fetchDistrictOptions();
     }, []);
 
-    useEffect(() => {
-        const districtsFromTeams = teams.map((team) => titleCaseDistrict(team?.district || '')).filter(Boolean);
-        const districtsFromBookings = bookings.map((booking) => titleCaseDistrict(booking?.land_district || '')).filter(Boolean);
 
-        setDistrictOptions((prev) => {
-            return mergeDistricts(ALL_DISTRICTS, prev, districtsFromTeams, districtsFromBookings);
-        });
-    }, [teams, bookings]);
 
     useEffect(() => {
         bookings.forEach((booking) => {
@@ -323,7 +263,7 @@ const ServiceManagement = () => {
     const getRegisteredOptionsForBooking = (booking) => {
         const bookingId = booking.id;
         const raw = constructorsByBooking[bookingId] || [];
-        const bookingDistrict = normalizeText(booking?.land_district);
+        const bookingDistrict = normalizeDistrict(booking?.land_district);
         const bookingServiceType = (booking?.service_type || '').toLowerCase();
         const availabilityByUserId = Object.fromEntries(
             raw.map((opt) => [String(opt.id || opt._id), opt])
@@ -340,7 +280,7 @@ const ServiceManagement = () => {
                     || (specializationLower === 'land development' && bookingServiceType === 'land development');
                 const districtMatchFromAPI = availability.district_match;
                 const districtMatchFromTeam = bookingDistrict
-                    ? normalizeText(team.district) === bookingDistrict
+                    ? normalizeDistrict(team.district) === bookingDistrict
                     : true;
                 const districtMatch = typeof districtMatchFromAPI === 'boolean'
                     ? districtMatchFromAPI
@@ -371,52 +311,7 @@ const ServiceManagement = () => {
         });
     };
 
-    const renderRegisteredTeamsModal = () => {
-        if (!showTeamsModal) return null;
-        return (
-            <div style={styles.overlay}>
-                <div style={styles.modal}>
-                    <div style={styles.modalHead}>
-                        <h3 style={styles.modalTitle}>Registered Constructor Teams</h3>
-                        <button style={styles.closeBtn} onClick={() => setShowTeamsModal(false)}>Close</button>
-                    </div>
-
-                    {teamLoading ? (
-                        <div style={styles.metaText}>Loading teams...</div>
-                    ) : teams.length === 0 ? (
-                        <div style={styles.metaText}>No constructor teams created yet.</div>
-                    ) : (
-                        <div style={styles.modalTableWrap}>
-                            <table style={styles.table}>
-                                <thead>
-                                    <tr style={styles.thRow}>
-                                        <th style={styles.th}>Team Name</th>
-                                        <th style={styles.th}>Manager</th>
-                                        <th style={styles.th}>District</th>
-                                        <th style={styles.th}>Specialization</th>
-                                        <th style={styles.th}>Email</th>
-                                        <th style={styles.th}>Phone</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {teams.map((team) => (
-                                        <tr key={team.id} style={styles.tr}>
-                                            <td style={styles.td}>{team.team_name}</td>
-                                            <td style={styles.td}>{team.manager_name}</td>
-                                            <td style={styles.td}>{team.district}</td>
-                                            <td style={styles.td}>{team.specialization || 'Both'}</td>
-                                            <td style={styles.td}>{team.email}</td>
-                                            <td style={styles.td}>{team.phone || '-'}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    };
+    // Modal removed
 
     return (
         <div style={styles.container}>
@@ -427,49 +322,7 @@ const ServiceManagement = () => {
                 </p>
             </header>
 
-            <div style={styles.card}>
-                <h3 style={styles.sectionTitle}>Register Constructor Team</h3>
-                <form style={styles.formGrid} onSubmit={handleCreateTeam}>
-                    <input style={styles.input} placeholder="Team name" value={teamForm.team_name} onChange={(e) => setTeamForm((p) => ({ ...p, team_name: e.target.value }))} required />
-                    <input style={styles.input} placeholder="Manager name" value={teamForm.manager_name} onChange={(e) => setTeamForm((p) => ({ ...p, manager_name: e.target.value }))} required />
-                    <select
-                        style={styles.input}
-                        value={teamForm.district}
-                        onChange={(e) => setTeamForm((p) => ({ ...p, district: e.target.value }))}
-                        required
-                    >
-                        <option value="">Select District</option>
-                        {districtOptions.map((district) => (
-                            <option key={district} value={district}>{district}</option>
-                        ))}
-                    </select>
-                    <select
-                        style={styles.input}
-                        value={teamForm.specialization}
-                        onChange={(e) => setTeamForm((p) => ({ ...p, specialization: e.target.value }))}
-                        required
-                    >
-                        <option value="">Service Specialization</option>
-                        <option value="Full Construction">Full Construction</option>
-                        <option value="Land Development">Land Development</option>
-                        <option value="Both">Both</option>
-                    </select>
-                    <input style={styles.input} placeholder="Phone" value={teamForm.phone} onChange={(e) => setTeamForm((p) => ({ ...p, phone: e.target.value }))} />
-                    <input style={styles.input} type="email" placeholder="Login email" value={teamForm.email} onChange={(e) => setTeamForm((p) => ({ ...p, email: e.target.value }))} required />
-                    <input style={styles.input} type="password" placeholder="Login password" value={teamForm.password} onChange={(e) => setTeamForm((p) => ({ ...p, password: e.target.value }))} required />
-                    <button style={styles.primaryBtn} disabled={creatingTeam} type="submit">
-                        {creatingTeam ? 'Creating team...' : 'Create Team Login'}
-                    </button>
-                </form>
-
-                <div style={styles.teamListWrap}>
-                    <div style={styles.teamListHeaderRow}>
-                        <div style={styles.teamListHead}>Registered Teams</div>
-                        <button style={styles.viewBtn} onClick={() => setShowTeamsModal(true)} type="button">View Registered Teams</button>
-                    </div>
-                    <div style={styles.metaText}>Use the button to view team details in a popup.</div>
-                </div>
-            </div>
+    {/* Card removed */}
 
             <div style={styles.card}>
                 <div style={styles.toolbar}>
@@ -584,7 +437,7 @@ const ServiceManagement = () => {
                     </div>
                 )}
             </div>
-            {renderRegisteredTeamsModal()}
+        {/* Modal removed */}
         </div>
     );
 };

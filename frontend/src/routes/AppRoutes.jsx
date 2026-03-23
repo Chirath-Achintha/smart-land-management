@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Layouts
 import MainLayout from '../layouts/MainLayout';
@@ -52,9 +52,101 @@ import AgentClientsPage from '../pages/dashboard/agent/AgentClientsPage';
 
 import { useAuth } from '../context/AuthContext';
 
+const SavedPropertiesPage = () => (
+    <div style={savedPropertiesStyles.root}>
+        <div style={savedPropertiesStyles.header}>
+            <div>
+                <h1 style={savedPropertiesStyles.title}>Saved Properties</h1>
+                <p style={savedPropertiesStyles.subtitle}>Your bookmarked lands will appear here for quick access.</p>
+            </div>
+            <div style={savedPropertiesStyles.countBadge}>0 saved</div>
+        </div>
+
+        <div className="ui-card" style={savedPropertiesStyles.emptyCard}>
+            <h3 style={savedPropertiesStyles.emptyTitle}>No saved properties yet</h3>
+            <p style={savedPropertiesStyles.emptyText}>
+                Browse listings and save properties to compare and revisit them later.
+            </p>
+            <a href="/lands" style={savedPropertiesStyles.browseLink}>Browse Listings</a>
+        </div>
+    </div>
+);
+
+const savedPropertiesStyles = {
+    root: {
+        background: 'var(--color-bg)',
+        minHeight: '100%',
+        padding: '40px',
+        fontFamily: "'DM Sans', sans-serif",
+    },
+    header: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: '16px',
+        marginBottom: '28px',
+        flexWrap: 'wrap',
+    },
+    title: {
+        fontSize: '2rem',
+        fontWeight: '800',
+        color: 'var(--color-dark)',
+        marginBottom: '6px',
+        letterSpacing: '-0.02em',
+    },
+    subtitle: {
+        color: 'var(--color-muted)',
+        fontSize: '0.95rem',
+        margin: 0,
+    },
+    countBadge: {
+        background: 'var(--color-dark)',
+        color: '#fff',
+        borderRadius: '20px',
+        padding: '6px 16px',
+        fontWeight: '700',
+        fontSize: '0.85rem',
+    },
+    emptyCard: {
+        background: '#fff',
+        border: '1px solid rgba(38, 50, 56, 0.1)',
+        borderRadius: '20px',
+        padding: '42px',
+        textAlign: 'left',
+        boxShadow: 'none',
+        maxWidth: '780px',
+    },
+    emptyTitle: {
+        margin: 0,
+        marginBottom: '8px',
+        fontSize: '1.25rem',
+        color: 'var(--color-dark)',
+        fontWeight: '800',
+    },
+    emptyText: {
+        margin: 0,
+        marginBottom: '18px',
+        color: 'var(--color-muted)',
+        lineHeight: 1.6,
+    },
+    browseLink: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '10px 16px',
+        borderRadius: '10px',
+        background: 'var(--color-primary)',
+        color: '#fff',
+        textDecoration: 'none',
+        fontWeight: '700',
+        fontSize: '0.9rem',
+    },
+};
+
 const AppRoutes = () => {
     const { user } = useAuth();
     const role = user?.role;
+    const location = useLocation();
 
     const getDashboardByRole = () => {
         if (!user) return <Navigate to="/login" replace />;
@@ -70,6 +162,7 @@ const AppRoutes = () => {
     };
 
     return (
+        <div key={location.pathname} className="ui-page">
         <Routes>
             <Route element={<MainLayout />}>
                 {/* Landing Page */}
@@ -117,7 +210,7 @@ const AppRoutes = () => {
                 {/* Dashboard Routes */}
                 <Route element={<DashboardLayout role={role} />}>
                     <Route path="/dashboard" element={getDashboardByRole()} />
-                    <Route path="/dashboard/properties" element={<div><h2 style={{ color: '#333' }}>Saved Properties</h2><p>Saved properties content goes here.</p></div>} />
+                    <Route path="/dashboard/properties" element={<SavedPropertiesPage />} />
                     <Route path="/dashboard/projects" element={<ConstructorProjectsPage />} />
                     <Route path="/dashboard/service-requests" element={<ConstructorServiceBookingsPage />} />
                     <Route path="/dashboard/listings" element={<div><h2 style={{ color: '#333' }}>My Listings</h2><p>Listings management goes here.</p></div>} />
@@ -148,6 +241,7 @@ const AppRoutes = () => {
                 <Route path="*" element={<Navigate to="/login" replace />} />
             </Route>
         </Routes>
+        </div>
     );
 };
 

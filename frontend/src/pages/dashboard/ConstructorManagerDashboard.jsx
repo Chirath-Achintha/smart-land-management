@@ -7,9 +7,9 @@ const API = API_BASE_URL;
 const STATUS_STYLE = {
     Approved: { color: '#1D4ED8', background: '#DBEAFE' },
     Scheduled: { color: '#1565c0', background: '#E3F2FD' },
-    'In Progress': { color: '#9a3412', background: '#FFEDD5' },
-    Completed: { color: '#166534', background: '#DCFCE7' },
-    Cancelled: { color: '#991B1B', background: '#FEE2E2' },
+    'In Progress': { color: '#2f6a1f', background: 'rgba(139, 195, 74, 0.24)' },
+    Completed: { color: '#1f7a3a', background: 'rgba(76, 175, 80, 0.2)' },
+    Cancelled: { color: '#8d4f3e', background: 'rgba(161, 136, 127, 0.26)' },
 };
 
 const isAcceptedWork = (status) => status === 'In Progress' || status === 'Completed' || status === 'Cancelled';
@@ -68,9 +68,9 @@ const ConstructorManagerDashboard = () => {
         const completed = bookings.filter((b) => b.status === 'Completed').length;
         const cancelled = bookings.filter((b) => b.status === 'Cancelled').length;
         return [
-            { label: 'Active Work', value: active, color: '#1A1A1A' },
-            { label: 'Completed Jobs', value: completed, color: '#166534' },
-            { label: 'Rejected Jobs', value: cancelled, color: '#991B1B' },
+            { label: 'Active Work', value: active, color: 'var(--color-dark)' },
+            { label: 'Completed Jobs', value: completed, color: 'var(--color-primary)' },
+            { label: 'Rejected Jobs', value: cancelled, color: 'var(--color-accent)' },
         ];
     }, [bookings]);
 
@@ -83,7 +83,7 @@ const ConstructorManagerDashboard = () => {
 
             <div style={S.statsGrid}>
                 {stats.map((s) => (
-                    <div key={s.label} style={S.statCard}>
+                    <div key={s.label} className="ui-card ui-lift" style={S.statCard}>
                         <span style={S.statLabel}>{s.label}</span>
                         <span style={{ ...S.statValue, color: s.color }}>{s.value}</span>
                     </div>
@@ -91,8 +91,8 @@ const ConstructorManagerDashboard = () => {
             </div>
 
             <div style={S.actionRow}>
-                <button style={S.primaryBtn} onClick={() => navigate('/dashboard/service-requests')}>Open Service Requests</button>
-                <button style={S.secondaryBtn} onClick={fetchAssignedBookings}>Refresh</button>
+                <button className="btn-primary" style={S.primaryBtn} onClick={() => navigate('/dashboard/service-requests')}>Open Service Requests</button>
+                <button className="btn-secondary" style={S.secondaryBtn} onClick={fetchAssignedBookings}>Refresh</button>
             </div>
 
             <div style={S.section}>
@@ -104,7 +104,7 @@ const ConstructorManagerDashboard = () => {
                 ) : bookings.length === 0 ? (
                     <div style={S.empty}>No assigned construction requests yet.</div>
                 ) : (
-                    <div style={S.tableCard}>
+                    <div className="ui-card" style={S.tableCard}>
                         <table style={S.table}>
                             <thead>
                                 <tr style={S.tableHeaderTr}>
@@ -140,31 +140,31 @@ const ConstructorManagerDashboard = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '26px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#777', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '1rem' },
 
     statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '24px' },
-    statCard: { background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
-    statLabel: { display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase', marginBottom: '8px' },
+    statCard: { background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.08)' },
+    statLabel: { display: 'block', fontSize: '0.75rem', fontWeight: '800', color: 'var(--color-muted)', textTransform: 'uppercase', marginBottom: '8px' },
     statValue: { fontSize: '2rem', fontWeight: '800' },
 
     actionRow: { display: 'flex', gap: '10px', marginBottom: '24px' },
-    primaryBtn: { border: 'none', background: '#111827', color: '#fff', borderRadius: '10px', padding: '10px 14px', fontWeight: 700, cursor: 'pointer' },
-    secondaryBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '10px', padding: '10px 14px', fontWeight: 700, cursor: 'pointer' },
+    primaryBtn: { border: 'none', borderRadius: '10px', padding: '10px 14px', fontWeight: 700, cursor: 'pointer' },
+    secondaryBtn: { border: 'none', borderRadius: '10px', padding: '10px 14px', fontWeight: 700, cursor: 'pointer' },
 
     section: { marginTop: '10px' },
-    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '14px' },
-    tableCard: { background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
+    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '14px' },
+    tableCard: { background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.08)' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    tableHeaderTr: { background: '#F9F9F9' },
-    th: { textAlign: 'left', padding: '14px 18px', fontSize: '0.76rem', fontWeight: '800', color: '#777', textTransform: 'uppercase' },
-    tr: { borderBottom: '1px solid #F3F4F6' },
-    td: { padding: '14px 18px', fontSize: '0.9rem', color: '#1A1A1A' },
+    tableHeaderTr: { background: 'rgba(139, 195, 74, 0.12)' },
+    th: { textAlign: 'left', padding: '14px 18px', fontSize: '0.76rem', fontWeight: '800', color: 'var(--color-muted)', textTransform: 'uppercase' },
+    tr: { borderBottom: '1px solid rgba(38, 50, 56, 0.08)' },
+    td: { padding: '14px 18px', fontSize: '0.9rem', color: 'var(--color-dark)' },
     statusBadge: { padding: '5px 10px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' },
 
-    empty: { textAlign: 'center', color: '#8a8a8a', padding: '30px', background: '#fff', borderRadius: '12px', border: '1px solid #f1f1f1' },
+    empty: { textAlign: 'center', color: 'var(--color-muted)', padding: '30px', background: '#fff', borderRadius: '12px', border: '1px solid rgba(38, 50, 56, 0.08)' },
     error: { border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', padding: '12px 14px', borderRadius: '10px' },
 };
 

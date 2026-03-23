@@ -14,6 +14,7 @@ const AgentClientsPage = () => {
     const [viewMode, setViewMode] = useState('calendar');
     const [currentDate, setCurrentDate] = useState(new Date()); // Auto-detect current month/year
     const [highlightedClient, setHighlightedClient] = useState(null);
+    const [animatedClients, setAnimatedClients] = useState({});
 
     useEffect(() => {
         const fetchClients = async () => {
@@ -50,6 +51,16 @@ const AgentClientsPage = () => {
         };
         fetchClients();
     }, []);
+
+    useEffect(() => {
+        const timers = clients.map((client, idx) =>
+            setTimeout(() => {
+                setAnimatedClients((prev) => ({ ...prev, [client.name]: true }));
+            }, idx * 60)
+        );
+
+        return () => timers.forEach(clearTimeout);
+    }, [clients]);
 
     const handleSaveNotes = async (client) => {
         try {
@@ -162,7 +173,7 @@ const AgentClientsPage = () => {
     };
 
     return (
-        <div style={S.root}>
+        <div style={S.root} className="ui-page">
             <div style={S.header}>
                 <h1 style={S.title}>My Clients</h1>
                 <p style={S.subtitle}>Directory of buyers you are currently assisting.</p>
@@ -170,18 +181,20 @@ const AgentClientsPage = () => {
 
             <div style={S.clientGrid}>
                 {clients.length === 0 ? (
-                    <div style={S.emptyBox}>No active clients found in your assignments.</div>
+                    <div style={S.emptyBox} className="ui-card">No active clients found in your assignments.</div>
                 ) : (
                     clients.map((c, i) => (
                         <div 
                             key={i} 
                             id={`client-${c.name.replace(/\s+/g, '-').toLowerCase()}`}
+                            className="ui-card ui-lift"
                             style={{
                                 ...S.clientCard,
-                                border: highlightedClient === c.name ? '2px solid #3498db' : '1px solid #F0F0F0',
-                                boxShadow: highlightedClient === c.name ? '0 12px 32px rgba(52, 152, 219, 0.2)' : '0 4px 20px rgba(0,0,0,0.03)',
+                                border: highlightedClient === c.name ? '2px solid var(--color-blue)' : '1px solid var(--color-accent)',
+                                boxShadow: highlightedClient === c.name ? '0 14px 34px rgba(33, 150, 243, 0.24)' : '0 10px 24px rgba(38, 50, 56, 0.08)',
                                 transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                                transform: highlightedClient === c.name ? 'scale(1.02)' : 'scale(1)'
+                                transform: highlightedClient === c.name ? 'scale(1.02)' : (animatedClients[c.name] ? 'translateY(0)' : 'translateY(12px)'),
+                                opacity: animatedClients[c.name] ? 1 : 0
                             }}
                         >
                             <div style={S.cardTop}>
@@ -192,7 +205,7 @@ const AgentClientsPage = () => {
                                 </div>
                             </div>
 
-                            <div style={{...S.infoGrid, borderTop: '1px solid #F0F0F0', paddingTop: '16px'}}>
+                            <div style={{...S.infoGrid, borderTop: '1px solid #E6EAE7', paddingTop: '16px'}}>
                                 <div style={S.infoItem}>
                                     <span style={S.labelSmall}>Property & Location</span>
                                     <span style={S.propertyValue}>{c.lastInterest}</span>
@@ -204,7 +217,7 @@ const AgentClientsPage = () => {
                                 </div>
                             </div>
 
-                            <div style={{...S.infoGrid, background: '#f8f9fa', padding: '12px', borderRadius: '12px'}}>
+                            <div style={{...S.infoGrid, background: '#F5FBF5', padding: '12px', borderRadius: '12px', border: '1px solid #DDE9DE'}}>
                                 <div style={S.infoItem}>
                                     <span style={S.labelSmall}>Property Professional (Seller)</span>
                                     <span style={S.sellerValue}>NAME: {c.seller_name}</span>
@@ -237,7 +250,7 @@ const AgentClientsPage = () => {
                     ))
                 )}
             </div>
-            <div style={S.scheduleSection}>
+            <div style={S.scheduleSection} className="ui-card">
                 <div style={S.scheduleHeader}>
                     <div>
                         <h2 style={S.sectionTitle}>Confirmed Visit Schedule</h2>
@@ -252,46 +265,46 @@ const AgentClientsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'linear-gradient(180deg, #FAF6F1 0%, #F3ECE4 100%)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '36px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#777', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '1rem' },
 
     clientGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' },
-    clientCard: { background: '#fff', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0', display: 'flex', flexDirection: 'column', gap: '20px' },
+    clientCard: { borderRadius: '20px', padding: '24px', border: '1px solid var(--color-accent)', display: 'flex', flexDirection: 'column', gap: '20px', background: 'linear-gradient(180deg, #FFFFFF 0%, #FDFCF9 100%)' },
 
     cardTop: { display: 'flex', gap: '16px', alignItems: 'center' },
-    avatar: { width: '56px', height: '56px', borderRadius: '16px', background: '#1A1A1A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: '800' },
+    avatar: { width: '56px', height: '56px', borderRadius: '16px', background: 'linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: '800' },
     mainInfo: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    clientName: { margin: 0, fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A' },
-    clientPhone: { fontSize: '0.9rem', color: '#555', fontWeight: '700' },
+    clientName: { margin: 0, fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)' },
+    clientPhone: { fontSize: '0.9rem', color: 'var(--color-muted)', fontWeight: '700' },
 
     infoGrid: { display: 'flex', flexDirection: 'column', gap: '16px' },
     infoItem: { display: 'flex', flexDirection: 'column', gap: '4px' },
     labelSmall: { fontSize: '0.75rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em' },
     labelExtraSmall: { fontSize: '0.65rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase', letterSpacing: '0.05em' },
     
-    propertyValue: { fontSize: '1rem', color: '#3498db', fontWeight: '700' },
-    addressValue: { fontSize: '0.85rem', color: '#666', fontWeight: '500' },
-    timeValue: { fontSize: '1rem', color: '#e67e22', fontWeight: '800' },
+    propertyValue: { fontSize: '1rem', color: 'var(--color-blue)', fontWeight: '700' },
+    addressValue: { fontSize: '0.85rem', color: 'var(--color-muted)', fontWeight: '500' },
+    timeValue: { fontSize: '1rem', color: '#2F6D2F', fontWeight: '800' },
     
-    sellerValue: { fontSize: '0.9rem', color: '#27ae60', fontWeight: '700' },
-    sellerPhone: { fontSize: '0.85rem', color: '#555', fontWeight: '600' },
+    sellerValue: { fontSize: '0.9rem', color: '#2F6D2F', fontWeight: '700' },
+    sellerPhone: { fontSize: '0.85rem', color: 'var(--color-muted)', fontWeight: '600' },
 
-    notesSection: { background: '#fff', borderRadius: '12px', padding: '12px', border: '1px dashed #DDD' },
+    notesSection: { background: '#fff', borderRadius: '12px', padding: '12px', border: '1px dashed #D2DDD2' },
     notesHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
-    editNoteBtn: { background: 'none', border: 'none', color: '#3498db', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: 0 },
-    saveNoteBtn: { background: '#1A1A1A', border: 'none', color: '#fff', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', padding: '4px 10px', borderRadius: '6px' },
-    notesContent: { margin: 0, fontSize: '0.8rem', color: '#888', lineHeight: '1.5', fontStyle: 'italic' },
+    editNoteBtn: { background: '#ECFDF5', border: '1px solid #86EFAC', color: '#166534', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: '4px 10px', borderRadius: '7px' },
+    saveNoteBtn: { background: 'var(--color-primary)', border: 'none', color: '#fff', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', padding: '6px 12px', borderRadius: '7px' },
+    notesContent: { margin: 0, fontSize: '0.8rem', color: '#7B8A8F', lineHeight: '1.5', fontStyle: 'italic' },
     notesInput: { width: '100%', minHeight: '60px', padding: '8px', border: '1px solid #DDD', borderRadius: '8px', fontSize: '0.85rem', fontFamily: 'inherit', resize: 'vertical' },
 
-    emptyBox: { gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#AAA', fontWeight: '600' },
+    emptyBox: { gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#7B8A8F', fontWeight: '600', borderRadius: '16px', border: '1px solid var(--color-accent)', background: '#fff' },
 
     // Schedule Styling
-    scheduleSection: { marginTop: '80px', background: '#fff', padding: '48px', borderRadius: '32px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
+    scheduleSection: { marginTop: '80px', background: 'linear-gradient(180deg, #FFFFFF 0%, #FCFAF7 100%)', padding: '48px', borderRadius: '32px', boxShadow: '0 14px 36px rgba(38,50,56,0.08)', border: '1px solid var(--color-accent)' },
     scheduleHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' },
-    sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px', margin: 0 },
-    sectionSubtitle: { fontSize: '1rem', color: '#777', margin: 0 },
+    sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px', margin: 0 },
+    sectionSubtitle: { fontSize: '1rem', color: 'var(--color-muted)', margin: 0 },
     viewToggle: { display: 'flex', background: '#F0F0F0', padding: '4px', borderRadius: '12px', gap: '4px' },
     toggleBtn: { padding: '8px 16px', border: 'none', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', background: 'transparent', color: '#666', transition: 'all 0.2s' },
     toggleBtnActive: { background: '#fff', color: '#1A1A1A', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
@@ -304,19 +317,19 @@ const S = {
     td: { padding: '20px', fontSize: '0.95rem', color: '#333', fontWeight: '600' },
 
     // Calendar Specific Styles
-    calendarRoot: { border: '1px solid #F0EBE4', borderRadius: '32px', overflow: 'hidden', background: '#fff' },
-    calHeader: { padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F0F0F0' },
-    calTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    calendarRoot: { border: '1px solid var(--color-accent)', borderRadius: '32px', overflow: 'hidden', background: '#fff' },
+    calHeader: { padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E8ECE8' },
+    calTitle: { fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
     calNav: { display: 'flex', gap: '8px' },
-    calNavBtn: { padding: '8px 16px', border: '1px solid #E5E0DA', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#1A1A1A' },
-    todayBtn: { padding: '8px 20px', background: '#1A1A1A', color: '#fff', border: 'none' },
+    calNavBtn: { padding: '8px 16px', border: '1px solid #86EFAC', background: '#ECFDF5', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#166534' },
+    todayBtn: { padding: '8px 20px', background: 'var(--color-primary)', color: '#fff', border: 'none' },
     calGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(140px, auto)' },
-    weekDayHead: { padding: '16px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', borderBottom: '1px solid #F0F0F0', background: '#FAF9F7' },
-    dayCell: { borderRight: '1px solid #F0F0F0', borderBottom: '1px solid #F0F0F0', padding: '12px', minHeight: '140px' },
-    dayNum: { textAlign: 'right', fontSize: '0.85rem', fontWeight: '800', color: '#666', marginBottom: '8px' },
-    todayCircle: { background: '#00B4D8', color: '#fff', padding: '4px 8px', borderRadius: '50%', fontSize: '0.75rem' },
+    weekDayHead: { padding: '16px', fontSize: '0.75rem', fontWeight: '800', color: '#839399', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', borderBottom: '1px solid #E8ECE8', background: '#FAF9F7' },
+    dayCell: { borderRight: '1px solid #E8ECE8', borderBottom: '1px solid #E8ECE8', padding: '12px', minHeight: '140px' },
+    dayNum: { textAlign: 'right', fontSize: '0.85rem', fontWeight: '800', color: '#66787E', marginBottom: '8px' },
+    todayCircle: { background: 'var(--color-primary)', color: '#fff', padding: '4px 8px', borderRadius: '50%', fontSize: '0.75rem' },
     eventList: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    eventTag: { padding: '6px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', background: '#F3E5F5', color: '#7B1FA2', borderLeft: '3px solid #7B1FA2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '6px' },
+    eventTag: { padding: '6px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', background: '#ECFDF5', color: '#166534', borderLeft: '3px solid #4CAF50', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '6px' },
     eventDot: { width: '4px', height: '4px', borderRadius: '50%', background: 'currentColor' }
 };
 

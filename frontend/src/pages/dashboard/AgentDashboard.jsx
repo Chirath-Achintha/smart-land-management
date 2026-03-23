@@ -163,7 +163,7 @@ const AgentDashboard = () => {
                                     </thead>
                                     <tbody>
                                         {filteredBookings.map((b, i) => (
-                                            <tr key={b.id} style={{ ...S.tr, background: i % 2 === 0 ? '#fff' : '#fdfaf7' }}>
+                                            <tr key={b.id} style={{ ...S.tr, background: i % 2 === 0 ? '#fff' : 'rgba(139, 195, 74, 0.08)' }}>
                                                 <td style={S.td}>
                                                     <div style={S.landCell}>
                                                         <span style={S.landName}>{b.land_name || b.land_id}</span>
@@ -342,89 +342,89 @@ const AgentDashboard = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#777', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '1rem' },
 
-    notifBadge: { background: '#1A1A1A', color: '#fff', padding: '12px 20px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' },
-    notifPulse: { width: '10px', height: '10px', background: '#3498db', borderRadius: '50%', display: 'inline-block', animation: 'blink 1.5s infinite' },
+    notifBadge: { background: 'var(--color-dark)', color: '#fff', padding: '12px 20px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 8px 20px rgba(38, 50, 56, 0.2)' },
+    notifPulse: { width: '10px', height: '10px', background: 'var(--color-blue)', borderRadius: '50%', display: 'inline-block', animation: 'blink 1.5s infinite' },
 
 
     tabBar: { display: 'flex', gap: '12px', marginBottom: '24px' },
-    tab: { padding: '10px 24px', borderRadius: '10px', background: 'transparent', border: '1px solid #DDD', color: '#666', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' },
-    activeTab: { background: '#1A1A1A', color: '#fff', border: '1px solid #1A1A1A' },
-    count: { background: '#3498db', color: '#fff', padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem' },
+    tab: { padding: '10px 24px', borderRadius: '10px', background: 'transparent', border: '1px solid rgba(38, 50, 56, 0.18)', color: 'var(--color-muted)', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' },
+    activeTab: { background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)' },
+    count: { background: 'var(--color-blue)', color: '#fff', padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem' },
 
     profilePicWrapper: { cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    profileInitials: { width: '48px', height: '48px', background: '#3498db', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: '800', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' },
+    profileInitials: { width: '48px', height: '48px', background: 'var(--color-blue)', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: '800', boxShadow: '0 4px 10px rgba(33, 150, 243, 0.24)' },
 
     dashboardContent: { display: 'flex', flexDirection: 'column', gap: '32px' },
     mainColumn: { display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' },
 
-    sectionCard: { background: '#fff', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #F0F0F0', paddingBottom: '16px' },
-    sectionTitle: { fontSize: '1.1rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    sectionCard: { background: '#fff', borderRadius: '24px', padding: '24px', boxShadow: '0 8px 24px rgba(38, 50, 56, 0.08)', border: '1px solid rgba(38, 50, 56, 0.08)' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(38, 50, 56, 0.1)', paddingBottom: '16px' },
+    sectionTitle: { fontSize: '1.1rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
 
     tableWrap: { overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    th: { textAlign: 'left', padding: '16px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#AAA', borderBottom: '2px solid #F9F9F9' },
-    td: { padding: '16px', fontSize: '0.9rem', color: '#333', borderBottom: '1px solid #F9F9F9' },
+    th: { textAlign: 'left', padding: '16px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--color-muted)', borderBottom: '2px solid rgba(38, 50, 56, 0.08)' },
+    td: { padding: '16px', fontSize: '0.9rem', color: 'var(--color-dark)', borderBottom: '1px solid rgba(38, 50, 56, 0.08)' },
 
     landCell: { display: 'flex', flexDirection: 'column', gap: '2px' },
-    landId: { fontSize: '0.75rem', fontWeight: '800', color: '#3498db' },
-    landName: { fontWeight: '700', color: '#1A1A1A' },
-    location: { fontSize: '0.8rem', color: '#777' },
+    landId: { fontSize: '0.75rem', fontWeight: '800', color: 'var(--color-blue)' },
+    landName: { fontWeight: '700', color: 'var(--color-dark)' },
+    location: { fontSize: '0.8rem', color: 'var(--color-muted)' },
 
     partiesCell: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    partyLabel: { fontSize: '0.8rem', color: '#888' },
-    partyValue: { fontWeight: '700', color: '#1A1A1A' },
+    partyLabel: { fontSize: '0.8rem', color: 'var(--color-muted)' },
+    partyValue: { fontWeight: '700', color: 'var(--color-dark)' },
 
     dateTime: { display: 'flex', flexDirection: 'column', gap: '2px' },
-    date: { fontWeight: '700', color: '#1A1A1A' },
-    time: { fontSize: '0.75rem', color: '#999' },
+    date: { fontWeight: '700', color: 'var(--color-dark)' },
+    time: { fontSize: '0.75rem', color: 'var(--color-muted)' },
 
     actionGroup: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-    confirmBtn: { padding: '6px 14px', background: '#2ecc71', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
-    reportBtn: { padding: '6px 14px', background: '#3498db', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
-    outlineMiniBtn: { padding: '6px 12px', background: 'transparent', border: '1px solid #DDD', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#666' },
-    cancelBtnSmall: { padding: '6px 14px', background: '#fdedec', color: '#e74c3c', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
-    reportBadge: { color: '#2ecc71', fontWeight: '700', fontSize: '0.85rem' },
+    confirmBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
+    reportBtn: { padding: '6px 14px', background: 'var(--color-blue)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
+    outlineMiniBtn: { padding: '6px 12px', background: 'transparent', border: '1px solid rgba(38, 50, 56, 0.18)', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--color-muted)' },
+    cancelBtnSmall: { padding: '6px 14px', background: 'rgba(161, 136, 127, 0.2)', color: '#8d4f3e', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
+    reportBadge: { color: 'var(--color-primary)', fontWeight: '700', fontSize: '0.85rem' },
 
     emptyState: { textAlign: 'center', padding: '40px 0' },
     emptyIcon: { fontSize: '3rem', marginBottom: '16px' },
-    emptyMsg: { color: '#AAA', fontWeight: '600' },
+    emptyMsg: { color: 'var(--color-muted)', fontWeight: '600' },
 
     profileList: { display: 'flex', flexDirection: 'column', gap: '20px' },
     profileItem: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    label: { fontSize: '0.7rem', fontWeight: '800', color: '#BBB', textTransform: 'uppercase' },
-    value: { fontSize: '0.95rem', fontWeight: '700', color: '#1A1A1A' },
-    input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid #EEE', background: '#F9F9F9', fontSize: '0.9rem', outline: 'none' },
+    label: { fontSize: '0.7rem', fontWeight: '800', color: 'var(--color-muted)', textTransform: 'uppercase' },
+    value: { fontSize: '0.95rem', fontWeight: '700', color: 'var(--color-dark)' },
+    input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(38, 50, 56, 0.12)', background: '#fff', fontSize: '0.9rem', outline: 'none' },
 
     editActions: { display: 'flex', gap: '8px' },
-    editBtn: { padding: '6px 14px', background: '#F5F5F5', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#1A1A1A' },
-    saveBtn: { padding: '6px 14px', background: '#1A1A1A', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#fff' },
-    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid #DDD', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#666' },
+    editBtn: { padding: '6px 14px', background: 'rgba(76, 175, 80, 0.12)', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--color-primary)' },
+    saveBtn: { padding: '6px 14px', background: 'var(--color-primary)', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#fff' },
+    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid rgba(38, 50, 56, 0.2)', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--color-muted)' },
 
-    dangerZone: { marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #EEE' },
+    dangerZone: { marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed rgba(38, 50, 56, 0.2)' },
     deleteLink: { background: 'none', border: 'none', color: '#F44336', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', padding: 0, textDecoration: 'underline', opacity: 0.7 },
 
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modal: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '400px', textAlign: 'center' },
-    modalLarge: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '500px' },
-    modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    modalSubtitle: { fontSize: '0.9rem', color: '#777', marginBottom: '24px' },
-    modalText: { color: '#666', marginBottom: '24px', fontSize: '0.9rem' },
+    modal: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '400px', textAlign: 'center', border: '1px solid rgba(38, 50, 56, 0.12)' },
+    modalLarge: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '500px', border: '1px solid rgba(38, 50, 56, 0.12)' },
+    modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    modalSubtitle: { fontSize: '0.9rem', color: 'var(--color-muted)', marginBottom: '24px' },
+    modalText: { color: 'var(--color-muted)', marginBottom: '24px', fontSize: '0.9rem' },
 
     formGroup: { marginBottom: '20px' },
-    formLabel: { display: 'block', fontSize: '0.85rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    textarea: { width: '100%', minHeight: '100px', padding: '14px', borderRadius: '12px', border: '1px solid #EEE', background: '#F9F9F9', fontSize: '0.9rem', outline: 'none', resize: 'vertical' },
+    formLabel: { display: 'block', fontSize: '0.85rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    textarea: { width: '100%', minHeight: '100px', padding: '14px', borderRadius: '12px', border: '1px solid rgba(38, 50, 56, 0.12)', background: '#fff', fontSize: '0.9rem', outline: 'none', resize: 'vertical' },
 
     modalActionsRow: { display: 'flex', gap: '12px', marginTop: '32px' },
-    submitBtn: { flex: 2, padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' },
+    submitBtn: { flex: 2, padding: '14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' },
 
     confirmDeleteBtn: { padding: '16px', background: '#F44336', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', cursor: 'pointer' },
-    cancelDeleteBtn: { padding: '12px', background: 'transparent', color: '#666', border: 'none', fontWeight: '600', cursor: 'pointer' }
+    cancelDeleteBtn: { padding: '12px', background: 'transparent', color: 'var(--color-muted)', border: 'none', fontWeight: '600', cursor: 'pointer' }
 };
 
 export default AgentDashboard;

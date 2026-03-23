@@ -17,3 +17,5 @@ uvicorn app.main:app --reload
        Construction teams
        sanuvi@gmail.com = 123321
        Shan@gmail.com = shan123 
+
+       agent = kavindu@gmai.com = 890

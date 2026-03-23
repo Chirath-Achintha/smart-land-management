@@ -4,12 +4,12 @@ import API_BASE_URL from '../../../apiConfig';
 const API = API_BASE_URL;
 
 const STATUS_STYLE = {
-    Requested: { color: '#92400e', background: '#FEF3C7' },
-    Approved: { color: '#1D4ED8', background: '#DBEAFE' },
-    Scheduled: { color: '#1565c0', background: '#E3F2FD' },
-    'In Progress': { color: '#e65100', background: '#FFF3E0' },
-    Completed: { color: '#2e7d32', background: '#E8F5E9' },
-    Cancelled: { color: '#c62828', background: '#FFEBEE' },
+    Requested: { color: '#145b97', background: 'rgba(33, 150, 243, 0.12)' },
+    Approved: { color: '#2e7d32', background: 'rgba(76, 175, 80, 0.14)' },
+    Scheduled: { color: '#0d47a1', background: 'rgba(33, 150, 243, 0.18)' },
+    'In Progress': { color: '#3f6e10', background: 'rgba(139, 195, 74, 0.22)' },
+    Completed: { color: '#1b5e20', background: 'rgba(76, 175, 80, 0.2)' },
+    Cancelled: { color: '#7a4f41', background: 'rgba(161, 136, 127, 0.24)' },
 };
 
 const isPendingRequest = (status) => status === 'Approved' || status === 'Scheduled';
@@ -44,6 +44,7 @@ const ConstructorServiceBookingsPage = () => {
     const [filter, setFilter] = useState('All');
     const [active, setActive] = useState(null);
     const [updating, setUpdating] = useState(null);
+    const [animatedRows, setAnimatedRows] = useState({});
 
     const fetchBookings = () => {
         fetch(`${API}/service-bookings/assigned`, { headers: authH })
@@ -102,6 +103,16 @@ const ConstructorServiceBookingsPage = () => {
             ? bookings.filter((b) => isPendingRequest(b.status))
             : bookings.filter((b) => b.status === filter);
 
+    useEffect(() => {
+        const timers = filtered.map((booking, idx) =>
+            setTimeout(() => {
+                setAnimatedRows((prev) => ({ ...prev, [booking.id]: true }));
+            }, idx * 50)
+        );
+
+        return () => timers.forEach(clearTimeout);
+    }, [filtered]);
+
     return (
         <div style={S.root}>
             <div style={S.header}>
@@ -118,9 +129,9 @@ const ConstructorServiceBookingsPage = () => {
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
-                            background: filter === f ? '#1A1A1A' : '#fff',
+                            background: filter === f ? 'var(--color-primary)' : '#fff',
                             color: filter === f ? '#fff' : '#555',
-                            border: filter === f ? 'none' : '1px solid #e5e0da',
+                            border: filter === f ? 'none' : '1px solid rgba(38, 50, 56, 0.16)',
                         }}>
                         {f}
                         {f !== 'All' && (
@@ -137,7 +148,7 @@ const ConstructorServiceBookingsPage = () => {
             {loading ? (
                 <div style={S.empty}>Loading service requests…</div>
             ) : (
-                <div style={S.tableCard}>
+                <div className="ui-card" style={S.tableCard}>
                     <table style={S.table}>
                         <thead>
                             <tr style={S.theadRow}>
@@ -155,7 +166,15 @@ const ConstructorServiceBookingsPage = () => {
                             ) : filtered.map(b => {
                                 const sc = STATUS_STYLE[b.status] || STATUS_STYLE.Scheduled;
                                 return (
-                                    <tr key={b.id} style={S.tr}>
+                                    <tr
+                                        key={b.id}
+                                        style={{
+                                            ...S.tr,
+                                            opacity: animatedRows[b.id] ? 1 : 0,
+                                            transform: animatedRows[b.id] ? 'translateY(0)' : 'translateY(10px)',
+                                            transition: 'opacity 0.3s ease, transform 0.3s ease'
+                                        }}
+                                    >
                                         <td style={S.td}><span style={S.idSpan}>#{b.id}</span></td>
                                         <td style={S.td}><strong>{b.service_type}</strong></td>
                                         <td style={S.td}>
@@ -243,46 +262,46 @@ const ConstructorServiceBookingsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
-    subtitle: { color: '#777', fontSize: '0.95rem' },
-    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '0.9rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '0.95rem' },
+    countBadge: { background: 'var(--color-primary)', color: '#fff', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '0.9rem' },
     filterRow: { display: 'flex', gap: '10px', marginBottom: '28px', flexWrap: 'wrap' },
-    filterBtn: { padding: '8px 18px', borderRadius: '20px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '8px' },
+    filterBtn: { padding: '8px 18px', borderRadius: '20px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease' },
     filterCount: { background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '1px 8px', fontSize: '0.72rem' },
-    empty: { textAlign: 'center', color: '#aaa', padding: '60px', background: '#fff', borderRadius: '16px' },
-    tableCard: { background: '#fff', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' },
+    empty: { textAlign: 'center', color: 'var(--color-muted)', padding: '60px', background: '#fff', borderRadius: '16px', border: '1px solid rgba(38, 50, 56, 0.1)' },
+    tableCard: { background: '#fff', borderRadius: '20px', overflow: 'hidden', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.1)' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    theadRow: { background: '#FAF6F1' },
-    th: { textAlign: 'left', padding: '14px 20px', fontSize: '0.78rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase' },
-    tr: { borderBottom: '1px solid #FAF6F1' },
-    td: { padding: '18px 20px', fontSize: '0.9rem', color: '#1A1A1A' },
-    emptyTd: { padding: '40px', textAlign: 'center', color: '#AAA', fontStyle: 'italic' },
-    idSpan: { fontWeight: '800', color: '#3498db', fontSize: '0.82rem' },
+    theadRow: { background: 'rgba(139, 195, 74, 0.12)' },
+    th: { textAlign: 'left', padding: '14px 20px', fontSize: '0.78rem', fontWeight: '800', color: 'var(--color-muted)', textTransform: 'uppercase' },
+    tr: { borderBottom: '1px solid rgba(38, 50, 56, 0.08)' },
+    td: { padding: '18px 20px', fontSize: '0.9rem', color: 'var(--color-dark)' },
+    emptyTd: { padding: '40px', textAlign: 'center', color: 'var(--color-muted)', fontStyle: 'italic' },
+    idSpan: { fontWeight: '800', color: 'var(--color-blue)', fontSize: '0.82rem' },
     buyerName: { fontWeight: '700' },
-    landTag: { fontSize: '0.75rem', color: '#888', marginTop: '2px' },
+    landTag: { fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '2px' },
     badge: { padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800' },
     actRow: { display: 'flex', gap: '8px' },
-    viewBtn: { padding: '6px 14px', background: '#F5F5F5', color: '#1A1A1A', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
-    acceptBtn: { padding: '6px 14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
-    rejectBtn: { padding: '6px 14px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
-    completeBtn: { padding: '6px 14px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
-    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-    modal: { background: '#fff', borderRadius: '28px', padding: '36px', width: '100%', maxWidth: '520px', boxShadow: '0 24px 60px rgba(0,0,0,0.15)' },
+    viewBtn: { padding: '6px 14px', background: '#ECFDF5', color: '#166534', border: '1px solid #86EFAC', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
+    acceptBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
+    rejectBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
+    completeBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', fontFamily: "'DM Sans', sans-serif" },
+    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(38, 50, 56, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, animation: 'overlayFadeIn 0.24s ease' },
+    modal: { background: '#fff', borderRadius: '28px', padding: '36px', width: '100%', maxWidth: '520px', boxShadow: '0 24px 60px rgba(38, 50, 56, 0.2)', border: '1px solid rgba(38, 50, 56, 0.12)', animation: 'modalPopIn 0.24s ease' },
     modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
-    modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
-    closeX: { background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#AAA' },
+    modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
+    closeX: { background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--color-muted)' },
     modalBody: { marginBottom: '24px' },
     mGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' },
-    mLabel: { fontSize: '0.72rem', color: '#AAA', fontWeight: '700', textTransform: 'uppercase' },
-    mVal: { fontWeight: '700', color: '#1A1A1A', margin: '4px 0 0', fontSize: '0.95rem' },
-    notesBox: { background: '#FAF6F1', borderRadius: '10px', padding: '12px 16px', fontSize: '0.88rem', color: '#555', fontStyle: 'italic' },
+    mLabel: { fontSize: '0.72rem', color: 'var(--color-muted)', fontWeight: '700', textTransform: 'uppercase' },
+    mVal: { fontWeight: '700', color: 'var(--color-dark)', margin: '4px 0 0', fontSize: '0.95rem' },
+    notesBox: { background: 'rgba(161, 136, 127, 0.12)', borderRadius: '10px', padding: '12px 16px', fontSize: '0.88rem', color: 'var(--color-muted)', fontStyle: 'italic' },
     modalFoot: { display: 'flex', gap: '12px' },
-    mAcceptBtn: { flex: 2, padding: '13px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
-    mRejectBtn: { flex: 2, padding: '13px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
-    mCompleteBtn: { flex: 2, padding: '13px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
-    mCloseBtn: { flex: 1, padding: '13px', background: '#F5F5F5', color: '#333', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
+    mAcceptBtn: { flex: 2, padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
+    mRejectBtn: { flex: 2, padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
+    mCompleteBtn: { flex: 2, padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
+    mCloseBtn: { flex: 1, padding: '13px', background: '#ECFDF5', color: '#166534', border: '1px solid #86EFAC', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" },
 };
 
 export default ConstructorServiceBookingsPage;

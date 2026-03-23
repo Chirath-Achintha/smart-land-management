@@ -188,6 +188,7 @@ const AdminDashboard = () => {
                 {stats.map((c, i) => (
                     <div
                         key={i}
+                        className="ui-card ui-lift"
                         style={{ ...S.card, borderTop: `4px solid ${c.color}` }}
                         onClick={() => navigate(c.route)}
                     >
@@ -200,20 +201,20 @@ const AdminDashboard = () => {
             <div style={S.dashboardContent}>
                 <div style={S.mainColumn}>
                     {/* Quick Actions */}
-                    <div style={S.sectionCard}>
+                    <div className="ui-card ui-lift" style={S.sectionCard}>
                         <h2 style={S.sectionTitle}>System Management</h2>
                         <div style={S.btnRow}>
                             <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/users')}>
                                 User Directory
                             </button>
-                            <button className="btn-dark" style={{ ...S.actionBtn, background: '#e74c3c' }} onClick={() => navigate('/dashboard/admin/complaints')}>
+                            <button className="btn-dark" style={{ ...S.actionBtn, background: 'var(--color-accent)' }} onClick={() => navigate('/dashboard/admin/complaints')}>
                                 Inquiry Inbox 📩
                             </button>
                         </div>
                     </div>
 
                     {/* Land Verification */}
-                    <div style={S.sectionCard}>
+                    <div className="ui-card ui-lift" style={S.sectionCard}>
                         <div style={S.cardHeader}>
                             <h2 style={S.sectionTitle}>Land Verification Queue</h2>
                             <button style={S.editBtn} onClick={fetchSellerLandGroups}>Refresh</button>
@@ -309,7 +310,7 @@ const AdminDashboard = () => {
 
                 <div style={S.sideColumn}>
                     {/* System Status Activity */}
-                    <div style={S.sectionCard}>
+                    <div className="ui-card ui-lift" style={S.sectionCard}>
                         <h2 style={S.sectionTitle}>System Logs</h2>
                         <div style={S.activityList}>
                             {[
@@ -361,27 +362,27 @@ const AdminDashboard = () => {
 };
 
 const S = {
-    root: { background: 'var(--sage-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '36px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--sage-text-dark)', marginBottom: '8px' },
-    subtitle: { color: 'var(--sage-text-med)', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '1rem' },
     cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '40px' },
-    card: { background: 'var(--sage-card)', borderRadius: '16px', padding: '32px 28px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'all 0.2s', cursor: 'pointer' },
+    card: { background: '#fff', borderRadius: '16px', padding: '32px 28px', boxShadow: 'none', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid rgba(38, 50, 56, 0.1)' },
     statVal: { fontSize: '2.8rem', fontWeight: '800', lineHeight: 1 },
-    statLabel: { fontSize: '0.85rem', color: 'var(--sage-text-light)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    statLabel: { fontSize: '0.85rem', color: 'var(--color-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
 
     dashboardContent: { display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '32px' },
     mainColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
     sideColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
 
-    sectionCard: { background: 'var(--sage-card)', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', border: '1px solid rgba(85, 107, 47, 0.05)' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(85, 107, 47, 0.05)', paddingBottom: '16px' },
-    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--sage-text-dark)', margin: 0 },
+    sectionCard: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.1)' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(38, 50, 56, 0.1)', paddingBottom: '16px' },
+    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
 
     editActions: { display: 'flex', gap: '8px' },
-    editBtn: { padding: '8px 16px', background: 'rgba(85, 107, 47, 0.05)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--sage-primary)' },
-    saveBtn: { padding: '8px 16px', background: 'var(--sage-primary)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#fff' },
-    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid #DDD', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--sage-text-med)' },
+    editBtn: { padding: '8px 16px', background: 'rgba(33, 150, 243, 0.12)', border: '1px solid rgba(33, 150, 243, 0.28)', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#145b97' },
+    saveBtn: { padding: '8px 16px', background: 'var(--color-primary)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#fff' },
+    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid rgba(38, 50, 56, 0.2)', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--color-muted)' },
 
     profileGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' },
     profileItem: { display: 'flex', flexDirection: 'column', gap: '6px' },
@@ -390,38 +391,38 @@ const S = {
     input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(85, 107, 47, 0.1)', background: 'var(--sage-bg)', fontSize: '0.9rem', outline: 'none', color: 'var(--sage-text-dark)' },
 
     btnRow: { display: 'flex', gap: '16px', flexWrap: 'wrap' },
-    actionBtn: { padding: '14px 28px', borderRadius: '10px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer', border: 'none', fontFamily: "'DM Sans', sans-serif" },
+    actionBtn: { padding: '14px 28px', borderRadius: '10px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer', border: 'none', fontFamily: "'DM Sans', sans-serif", background: 'var(--color-primary)', color: '#fff' },
     outlineBtn: { background: 'var(--sage-card)', color: 'var(--sage-primary)', border: '2px solid var(--sage-primary)' },
 
     activityList: { display: 'flex', flexDirection: 'column' },
-    activityItem: { display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 0', borderBottom: '1px solid rgba(85, 107, 47, 0.05)' },
-    actText: { flex: 1, fontSize: '0.9rem', color: 'var(--sage-text-dark)', fontWeight: '500' },
-    actTime: { fontSize: '0.75rem', color: 'var(--sage-text-light)', whiteSpace: 'nowrap' },
+    activityItem: { display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 0', borderBottom: '1px solid rgba(38, 50, 56, 0.08)' },
+    actText: { flex: 1, fontSize: '0.9rem', color: 'var(--color-dark)', fontWeight: '500' },
+    actTime: { fontSize: '0.75rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' },
 
     verifyWrap: { display: 'flex', flexDirection: 'column', gap: '16px' },
-    sellerBlock: { border: '1px solid rgba(85, 107, 47, 0.12)', borderRadius: '14px', overflow: 'hidden' },
+    sellerBlock: { border: '1px solid rgba(38, 50, 56, 0.12)', borderRadius: '14px', overflow: 'hidden' },
     sellerHeader: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         gap: '12px',
         padding: '14px 16px',
-        background: '#f8fbf3',
-        borderBottom: '1px solid rgba(85, 107, 47, 0.08)'
+        background: 'rgba(139, 195, 74, 0.12)',
+        borderBottom: '1px solid rgba(38, 50, 56, 0.08)'
     },
-    sellerName: { margin: 0, fontSize: '1rem', fontWeight: '800', color: 'var(--sage-text-dark)' },
-    sellerMeta: { fontSize: '0.8rem', color: 'var(--sage-text-light)', marginTop: '2px' },
+    sellerName: { margin: 0, fontSize: '1rem', fontWeight: '800', color: 'var(--color-dark)' },
+    sellerMeta: { fontSize: '0.8rem', color: 'var(--color-muted)', marginTop: '2px' },
     countRow: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
     countBadge: {
         fontSize: '0.73rem',
         fontWeight: '700',
         padding: '4px 10px',
         borderRadius: '999px',
-        background: '#eef1e7',
-        color: '#4d5f2e'
+        background: 'rgba(38, 50, 56, 0.1)',
+        color: 'var(--color-dark)'
     },
-    verifiedBadge: { background: '#e8f8ef', color: '#1f8f4e' },
-    pendingBadge: { background: '#fff3e8', color: '#b7641e' },
+    verifiedBadge: { background: 'rgba(76, 175, 80, 0.18)', color: '#2e7d32' },
+    pendingBadge: { background: 'rgba(33, 150, 243, 0.14)', color: '#145b97' },
     landList: { display: 'flex', flexDirection: 'column' },
     landRow: {
         display: 'flex',
@@ -429,29 +430,29 @@ const S = {
         alignItems: 'center',
         gap: '16px',
         padding: '14px 16px',
-        borderBottom: '1px solid rgba(85, 107, 47, 0.06)'
+        borderBottom: '1px solid rgba(38, 50, 56, 0.08)'
     },
     landMain: { display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 },
-    landImage: { width: '74px', height: '56px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e6e6e6' },
+    landImage: { width: '74px', height: '56px', objectFit: 'cover', borderRadius: '10px', border: '1px solid rgba(38, 50, 56, 0.12)' },
     landImagePlaceholder: {
         width: '74px',
         height: '56px',
         borderRadius: '10px',
-        border: '1px dashed #d4d9c8',
-        background: '#fafcf7',
+        border: '1px dashed rgba(38, 50, 56, 0.18)',
+        background: 'rgba(139, 195, 74, 0.1)',
         display: 'grid',
         placeItems: 'center',
         fontSize: '0.72rem',
-        color: '#97a184'
+        color: 'var(--color-muted)'
     },
-    landTitle: { fontSize: '0.95rem', fontWeight: '700', color: '#233018', marginBottom: '2px' },
-    landMeta: { fontSize: '0.78rem', color: '#667258', lineHeight: 1.4 },
-    noteText: { marginTop: '4px', fontSize: '0.76rem', color: '#4d5f2e', fontStyle: 'italic' },
+    landTitle: { fontSize: '0.95rem', fontWeight: '700', color: 'var(--color-dark)', marginBottom: '2px' },
+    landMeta: { fontSize: '0.78rem', color: 'var(--color-muted)', lineHeight: 1.4 },
+    noteText: { marginTop: '4px', fontSize: '0.76rem', color: '#7a4f41', fontStyle: 'italic' },
     verifyActions: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
     approveBtn: {
         border: 'none',
         borderRadius: '8px',
-        background: '#2f8f58',
+        background: 'var(--color-primary)',
         color: '#fff',
         fontWeight: '700',
         fontSize: '0.8rem',
@@ -459,26 +460,26 @@ const S = {
         cursor: 'pointer'
     },
     rejectBtn: {
-        border: '1px solid #d5a493',
+        border: '1px solid rgba(161, 136, 127, 0.45)',
         borderRadius: '8px',
-        background: '#fff7f4',
-        color: '#9a4a33',
+        background: 'rgba(161, 136, 127, 0.12)',
+        color: '#7a4f41',
         fontWeight: '700',
         fontSize: '0.8rem',
         padding: '8px 12px',
         cursor: 'pointer'
     },
     emptyState: {
-        border: '1px dashed rgba(85, 107, 47, 0.2)',
+        border: '1px dashed rgba(38, 50, 56, 0.2)',
         borderRadius: '10px',
         padding: '24px',
         textAlign: 'center',
-        color: 'var(--sage-text-light)',
-        background: '#fbfdf8'
+        color: 'var(--color-muted)',
+        background: 'rgba(139, 195, 74, 0.08)'
     },
     emptyStateSmall: {
         padding: '12px 16px',
-        color: 'var(--sage-text-light)',
+        color: 'var(--color-muted)',
         fontSize: '0.85rem'
     },
     errorBox: {
@@ -492,7 +493,7 @@ const S = {
     modalOverlay: {
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.38)',
+        background: 'rgba(38, 50, 56, 0.42)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -505,13 +506,14 @@ const S = {
         background: '#fff',
         borderRadius: '16px',
         padding: '22px',
-        boxShadow: '0 20px 48px rgba(0,0,0,0.18)'
+        boxShadow: '0 20px 48px rgba(38, 50, 56, 0.2)',
+        border: '1px solid rgba(38, 50, 56, 0.12)'
     },
-    modalTitle: { margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#263319' },
-    modalText: { marginTop: '8px', marginBottom: '12px', fontSize: '0.9rem', color: '#5a6650' },
+    modalTitle: { margin: 0, fontSize: '1.1rem', fontWeight: '800', color: 'var(--color-dark)' },
+    modalText: { marginTop: '8px', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--color-muted)' },
     modalTextArea: {
         width: '100%',
-        border: '1px solid #ced9c1',
+        border: '1px solid rgba(38, 50, 56, 0.18)',
         borderRadius: '10px',
         padding: '10px 12px',
         fontFamily: "'DM Sans', sans-serif",
@@ -537,9 +539,9 @@ const S = {
     modalCancelBtn: {
         padding: '9px 14px',
         borderRadius: '8px',
-        border: '1px solid #d3d3d3',
+        border: '1px solid rgba(38, 50, 56, 0.2)',
         background: '#fff',
-        color: '#5c5c5c',
+        color: 'var(--color-dark)',
         cursor: 'pointer',
         fontWeight: '700'
     },
@@ -547,7 +549,7 @@ const S = {
         padding: '9px 14px',
         borderRadius: '8px',
         border: 'none',
-        background: '#9a4a33',
+        background: 'var(--color-accent)',
         color: '#fff',
         cursor: 'pointer',
         fontWeight: '700'

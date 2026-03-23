@@ -129,7 +129,7 @@ const LandDetailPage = () => {
     };
 
     return (
-        <div style={{ background: '#FAF6F1', minHeight: '100vh', paddingBottom: '80px' }}>
+        <div className="ui-page" style={{ background: 'linear-gradient(180deg, #FAF6F1 0%, #F3ECE4 100%)', minHeight: '100vh', paddingBottom: '80px' }}>
             <div style={S.container}>
                 <button onClick={() => navigate('/lands')} style={S.backBtn}>← Back to Listings</button>
 
@@ -289,7 +289,7 @@ const LandDetailPage = () => {
                                     Place a Bid
                                 </button>
                                 <button
-                                    style={{ flex: 1, padding: '14px', background: '#fff', border: '1.5px solid #1A1A1A', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' }}
+                                    style={{ flex: 1, padding: '14px', background: '#ECFDF5', border: '1.5px solid #86EFAC', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem', color: '#166534' }}
                                     onClick={() => navigate(`/schedule-visit/${id}`)}>
                                     Schedule a Visit
                                 </button>
@@ -480,38 +480,38 @@ const LandDetailPage = () => {
 
 // ── Page Styles ───────────────────────────────────────────────────────────────
 const S = {
-    container: { maxWidth: '1200px', margin: '0 auto', padding: '40px 24px' },
-    backBtn: { background: 'none', border: 'none', color: '#555', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', marginBottom: '24px', padding: 0 },
-    layout: { display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', marginBottom: '40px' },
+    container: { maxWidth: '1120px', margin: '0 auto', padding: '36px 20px' },
+    backBtn: { background: '#ECFDF5', border: '1px solid #86EFAC', color: '#166534', fontSize: '0.92rem', fontWeight: '700', cursor: 'pointer', marginBottom: '20px', padding: '8px 14px', borderRadius: '999px' },
+    layout: { display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, #FFFFFF 0%, #FCFAF7 100%)', borderRadius: '26px', overflow: 'hidden', boxShadow: '0 18px 36px rgba(38,50,56,0.1)', border: '1px solid var(--color-accent)', margin: '0 auto 40px', maxWidth: '1020px' },
     imageSection: { width: '100%', background: '#fff' },
-    heroWrap: { position: 'relative', width: '100%', height: '450px' },
-    heroImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-    priceBadge: { position: 'absolute', bottom: '24px', right: '24px', background: '#1A1A1A', color: '#fff', padding: '12px 24px', borderRadius: '12px', fontSize: '1.25rem', fontWeight: '800', boxShadow: '0 8px 16px rgba(0,0,0,0.2)' },
-    thumbStrip: { display: 'flex', gap: '10px', padding: '12px 16px', overflowX: 'auto', background: '#F7F7F7', borderTop: '1px solid #ececec' },
-    thumbBtn: { border: '2px solid transparent', borderRadius: '10px', background: '#fff', padding: 0, cursor: 'pointer', flex: '0 0 auto', width: '90px', height: '68px', overflow: 'hidden' },
-    thumbBtnActive: { borderColor: '#1A1A1A' },
+    heroWrap: { position: 'relative', width: '100%', height: '420px' },
+    heroImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.35s ease' },
+    priceBadge: { position: 'absolute', bottom: '24px', right: '24px', background: 'rgba(21, 32, 43, 0.92)', color: '#fff', padding: '12px 24px', borderRadius: '14px', fontSize: '1.3rem', fontWeight: '800', boxShadow: '0 10px 22px rgba(0,0,0,0.28)' },
+    thumbStrip: { display: 'flex', gap: '12px', padding: '14px 18px', overflowX: 'auto', background: '#F7F9F7', borderTop: '1px solid #e5ece5' },
+    thumbBtn: { border: '2px solid transparent', borderRadius: '12px', background: '#fff', padding: 0, cursor: 'pointer', flex: '0 0 auto', width: '98px', height: '72px', overflow: 'hidden', boxShadow: '0 6px 12px rgba(38,50,56,0.1)' },
+    thumbBtnActive: { borderColor: 'var(--color-primary)' },
     thumbImage: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-    contentSection: { padding: '40px 60px', display: 'flex', flexDirection: 'column', gap: '32px' },
-    tag: { display: 'inline-block', background: '#FAF6F1', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#1A1A1A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' },
-    title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '10px', lineHeight: 1.1 },
-    location: { display: 'flex', alignItems: 'center', gap: '8px', color: '#555', fontWeight: '500' },
+    contentSection: { padding: '34px 44px', display: 'flex', flexDirection: 'column', gap: '26px' },
+    tag: { display: 'inline-block', background: 'rgba(76,175,80,0.14)', border: '1px solid rgba(76,175,80,0.26)', padding: '6px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '700', color: '#2f6d2f', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' },
+    title: { fontSize: '2.25rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '10px', lineHeight: 1.1, letterSpacing: '-0.02em' },
+    location: { display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-muted)', fontWeight: '600' },
     // ── Tab ──
-    tabRow: { display: 'flex', background: '#F5F5F5', borderRadius: '12px', padding: '4px', gap: '4px' },
-    tabBtn: { flex: 1, padding: '10px 14px', border: 'none', borderRadius: '9px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', background: 'transparent', color: '#888', transition: 'all 0.15s' },
-    tabActive: { background: '#fff', color: '#1A1A1A', fontWeight: '700', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
+    tabRow: { display: 'flex', background: '#EEF2EE', borderRadius: '12px', padding: '4px', gap: '4px', border: '1px solid #d9e4d9' },
+    tabBtn: { flex: 1, padding: '10px 14px', border: 'none', borderRadius: '9px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', background: 'transparent', color: '#6a7a70', transition: 'all 0.18s ease' },
+    tabActive: { background: '#fff', color: '#1f4d2e', fontWeight: '700', boxShadow: '0 4px 10px rgba(38,50,56,0.1)' },
     // ── Service rows ──
-    svcRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: '1px solid #EEE', gap: '12px' },
-    svcBookBtn: { padding: '10px 20px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
-    svcBanner: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#EEF2FF', borderRadius: '12px', padding: '16px 20px', cursor: 'pointer', gap: '12px' },
+    svcRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: '1px solid #e7ece7', gap: '12px' },
+    svcBookBtn: { padding: '10px 20px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
+    svcBanner: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ECF3FF', border: '1px solid #d6e4ff', borderRadius: '12px', padding: '16px 20px', cursor: 'pointer', gap: '12px' },
     // ── Property ──
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' },
-    infoCard: { background: '#F9F9F9', padding: '24px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '6px' },
-    infoLabel: { fontSize: '0.72rem', color: '#777', fontWeight: '700', textTransform: 'uppercase' },
-    infoValue: { fontSize: '1.05rem', fontWeight: '700', color: '#1A1A1A' },
-    subTitle: { fontSize: '1rem', fontWeight: '800', marginBottom: '14px', color: '#1A1A1A' },
-    amenityRow: { display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #EEE', marginBottom: '10px' },
-    actionBox: { background: '#FAF6F1', padding: '28px', borderRadius: '18px' },
-    bidsSection: { background: '#fff', borderRadius: '24px', padding: '40px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' },
+    infoCard: { background: '#F8FAF8', padding: '22px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '6px', border: '1px solid #e0e8e0' },
+    infoLabel: { fontSize: '0.72rem', color: '#75847b', fontWeight: '700', textTransform: 'uppercase' },
+    infoValue: { fontSize: '1.05rem', fontWeight: '700', color: 'var(--color-dark)' },
+    subTitle: { fontSize: '1rem', fontWeight: '800', marginBottom: '14px', color: 'var(--color-dark)' },
+    amenityRow: { display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #e7ece7', marginBottom: '10px' },
+    actionBox: { background: 'linear-gradient(180deg, #F7FBF7 0%, #F2F7F2 100%)', padding: '28px', borderRadius: '18px', border: '1px solid #dce8dc' },
+    bidsSection: { background: '#fff', borderRadius: '24px', padding: '40px', boxShadow: '0 12px 28px rgba(38,50,56,0.08)', border: '1px solid var(--color-accent)' },
 };
 
 // ── Bid Modal Styles ──────────────────────────────────────────────────────────

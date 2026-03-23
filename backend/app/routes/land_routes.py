@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 import os
 import uuid
 import shutil
-from typing import List
+import re
+from typing import List, Optional
 from datetime import datetime
 from urllib.parse import urlparse
 from beanie import PydanticObjectId
@@ -100,16 +101,33 @@ def ensure_admin(user: User):
     if user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
+
+def normalize_land_folder_name(land_name: Optional[str]) -> str:
+    raw = (land_name or "").strip().lower()
+    if not raw:
+        return "untitled-land"
+
+    raw = re.sub(r"\s+", "-", raw)
+    safe = re.sub(r"[^a-z0-9_-]", "", raw)
+    safe = re.sub(r"-+", "-", safe).strip("-_")
+    return safe or "untitled-land"
+
 @router.post("/upload")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(
+    file: UploadFile = File(...),
+    land_name: Optional[str] = Form(default=None)
+):
+
+    folder_name = normalize_land_folder_name(land_name)
+    upload_dir = os.path.join("static", "uploads", folder_name)
 
     # Create static directory if not exists
-    os.makedirs("static/uploads", exist_ok=True)
+    os.makedirs(upload_dir, exist_ok=True)
     
     # Generate unique filename
     file_extension = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4()}{file_extension}"
-    file_path = os.path.join("static/uploads", filename)
+    file_path = os.path.join(upload_dir, filename)
     
     # Save file
     with open(file_path, "wb") as buffer:
@@ -117,7 +135,7 @@ async def upload_image(file: UploadFile = File(...)):
         
     # Return absolute URL (assuming backend runs on localhost:8000)
     # In production, this should be the actual server URL
-    url = f"http://localhost:8000/static/uploads/{filename}"
+    url = f"http://localhost:8000/static/uploads/{folder_name}/{filename}"
     return {"url": url}
 
 

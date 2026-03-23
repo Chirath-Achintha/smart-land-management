@@ -81,7 +81,7 @@ const BuyerBidsPage = () => {
             ) : (
                 <div style={S.grid}>
                     {myBids.map(bid => (
-                        <div key={bid.id} style={{ ...S.card, border: bid.is_winner ? '2px solid #FFD700' : '1px solid #F0EBE4' }}>
+                        <div key={bid.id} className="ui-card ui-lift" style={{ ...S.card, border: bid.is_winner ? '2px solid var(--color-secondary)' : '1px solid rgba(38, 50, 56, 0.1)' }}>
                             {bid.is_winner && <div style={S.winnerMedal}>🏆 WINNER</div>}
                             <div style={S.cardHeader}>
                                 <h3 style={S.landName}>{bid.land_name || `Land #${bid.land_id}`}</h3>
@@ -99,14 +99,15 @@ const BuyerBidsPage = () => {
                             </div>
                             <div style={S.statusRow}>
                                 {bid.is_winner ? (
-                                    <span style={{ ...S.activeBadge, background: '#FFF9C4', color: '#FBC02D' }}>WIN CONFIRMED</span>
+                                    <span style={{ ...S.activeBadge, background: 'rgba(139, 195, 74, 0.22)', color: '#3f6e10' }}>WIN CONFIRMED</span>
                                 ) : (
                                     <span style={S.activeBadge}>Active Bid</span>
                                 )}
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     {bid.is_winner && (
                                         <button
-                                            style={{ ...S.viewBtn, background: '#1A1A1A', color: '#FFF' }}
+                                            className="btn-primary"
+                                            style={{ ...S.viewBtn, background: 'var(--color-primary)', color: '#FFF', border: 'none' }}
                                             onClick={() => { setSelectedBid(bid); setShowContactModal(true); }}
                                         >
                                             Contact Seller
@@ -135,7 +136,8 @@ const BuyerBidsPage = () => {
                         <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                             <button style={{ ...S.viewBtn, flex: 1 }} onClick={() => setShowContactModal(false)}>Cancel</button>
                             <button
-                                style={{ ...S.viewBtn, flex: 1, background: '#1A1A1A', color: '#FFF' }}
+                                className="btn-primary"
+                                style={{ ...S.viewBtn, flex: 1, background: 'var(--color-primary)', color: '#FFF', border: 'none' }}
                                 disabled={sending}
                                 onClick={handleContactSeller}
                             >
@@ -150,36 +152,36 @@ const BuyerBidsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
 
 
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px', letterSpacing: '-0.02em' },
-    subtitle: { color: '#777', fontSize: '1rem', fontWeight: '500' },
-    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
-    empty: { textAlign: 'center', color: '#aaa', padding: '100px 20px', fontSize: '1.1rem', fontWeight: '500' },
-    browseLink: { color: '#1A1A1A', fontWeight: '800', textDecoration: 'none', marginLeft: '8px' },
+    title: { fontSize: '2.2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px', letterSpacing: '-0.02em' },
+    subtitle: { color: 'var(--color-muted)', fontSize: '1rem', fontWeight: '500' },
+    countBadge: { background: 'var(--color-dark)', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
+    empty: { textAlign: 'center', color: 'var(--color-muted)', padding: '100px 20px', fontSize: '1.1rem', fontWeight: '500' },
+    browseLink: { color: 'var(--color-primary)', fontWeight: '800', textDecoration: 'none', marginLeft: '8px' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' },
 
-    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 8px 32px rgba(26, 26, 26, 0.04)', border: '1px solid #F0EBE4', position: 'relative' },
-    winnerMedal: { position: 'absolute', top: '-12px', left: '20px', background: '#FFD700', color: '#1A1A1A', padding: '4px 12px', borderRadius: '10px', fontWeight: '900', fontSize: '0.7rem', border: '2px solid #FFF' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #F0EBE4', paddingBottom: '16px' },
-    landName: { fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A' },
-    bidId: { fontSize: '0.75rem', fontWeight: '700', color: '#AAA', textTransform: 'uppercase' },
+    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: 'none', border: '1px solid rgba(38, 50, 56, 0.1)', position: 'relative' },
+    winnerMedal: { position: 'absolute', top: '-12px', left: '20px', background: 'var(--color-secondary)', color: 'var(--color-dark)', padding: '4px 12px', borderRadius: '10px', fontWeight: '900', fontSize: '0.7rem', border: '2px solid #FFF' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(38, 50, 56, 0.1)', paddingBottom: '16px' },
+    landName: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)' },
+    bidId: { fontSize: '0.75rem', fontWeight: '700', color: 'var(--color-muted)', textTransform: 'uppercase' },
 
     details: { display: 'flex', flexDirection: 'column', gap: '16px' },
     detailRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    detailLabel: { fontSize: '0.85rem', color: '#888', fontWeight: '500' },
-    amount: { fontSize: '1.1rem', fontWeight: '800', color: '#1A1A1A' },
-    date: { fontSize: '0.95rem', fontWeight: '600', color: '#555' },
+    detailLabel: { fontSize: '0.85rem', color: 'var(--color-muted)', fontWeight: '500' },
+    amount: { fontSize: '1.1rem', fontWeight: '800', color: 'var(--color-dark)' },
+    date: { fontSize: '0.95rem', fontWeight: '600', color: 'var(--color-muted)' },
 
     statusRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px' },
-    activeBadge: { background: '#E8F5E9', color: '#4CAF50', padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase' },
-    viewBtn: { background: 'none', border: '1px solid #1A1A1A', color: '#1A1A1A', padding: '8px 16px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
+    activeBadge: { background: 'rgba(76, 175, 80, 0.16)', color: 'var(--color-primary)', padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase' },
+    viewBtn: { background: 'none', border: '1px solid var(--color-dark)', color: 'var(--color-dark)', padding: '8px 16px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
 
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-    modal: { background: '#FFF', padding: '32px', borderRadius: '24px', maxWidth: '450px', width: '90%' },
-    textArea: { width: '100%', height: '120px', borderRadius: '16px', border: '1px solid #EEE', padding: '16px', fontFamily: 'inherit', fontSize: '0.9rem', resize: 'none', marginTop: '12px' }
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(38, 50, 56, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+    modal: { background: '#FFF', padding: '32px', borderRadius: '24px', maxWidth: '450px', width: '90%', border: '1px solid rgba(38, 50, 56, 0.12)' },
+    textArea: { width: '100%', height: '120px', borderRadius: '16px', border: '1px solid rgba(38, 50, 56, 0.14)', padding: '16px', fontFamily: 'inherit', fontSize: '0.9rem', resize: 'none', marginTop: '12px' }
 };
 
 export default BuyerBidsPage;

@@ -1,0 +1,23 @@
+--- USERS (WITH TYPES) ---
+ID: 69a40a6acd0ca1fadb41bdba | Type: buyer | Role: None | Email: uvindu@gmail.com
+ID: 69a40aa2cd0ca1fadb41bdbb | Type: seller | Role: None | Email: ayeshan@gmail.com
+ID: 69a830a107aadf404994029b | Type: admin | Role: None | Email: admin@smartland.com
+ID: 69ab3ececa12b2ecddcc7c1f | Type: buyer | Role: None | Email: chirath@gmail.com
+ID: 69ac5780c51fdac7672b3da6 | Type: agent | Role: None | Email: kavindu@gmai.com
+ID: 69ac60e987fb77fcfefcb60e | Type: agent | Role: None | Email: prageeth@gmail.com
+ID: 69b9a4ab6ef9f59849acf443 | Type: seller | Role: None | Email: seller1@gmail.com
+
+--- RECENT NOTIFICATIONS ---
+To: 69a40aa2cd0ca1fadb41bdbb | Title: New Visit Request | Created: 2026-03-19 16:19:05.358000
+To: 69a40aa2cd0ca1fadb41bdbb | Title: New Visit Request | Created: 2026-03-19 16:18:53.036000
+To: 69a40aa2cd0ca1fadb41bdbb | Title: Visit Cancelled | Created: 2026-03-19 14:57:37.671000
+To: 69a40aa2cd0ca1fadb41bdbb | Title: New Visit Request | Created: 2026-03-19 14:53:04.865000
+To: 69a40a6acd0ca1fadb41bdba | Title: Official Winner Notification | Created: 2026-03-18 16:08:26.102000
+To: 69a40a6acd0ca1fadb41bdba | Title: Official Winner Notification | Created: 2026-03-18 16:06:42.477000
+To: 69a40a6acd0ca1fadb41bdba | Title: Congratulations! You Won a Bid | Created: 2026-03-18 15:57:26.418000
+To: 69b9a4ab6ef9f59849acf443 | Title: Land Verification Rejected | Created: 2026-03-17 19:45:57.186000
+To: 69b9a4ab6ef9f59849acf443 | Title: Land Verification Rejected | Created: 2026-03-17 19:35:23.664000
+To: 69b9a4ab6ef9f59849acf443 | Title: Land Verification Rejected | Created: 2026-03-17 19:28:16.184000
+To: 69b9a4ab6ef9f59849acf443 | Title: Land Verification Rejected | Created: 2026-03-17 19:19:53.422000
+To: 69a40aa2cd0ca1fadb41bdbb | Title: Winner Contacted You | Created: 2026-03-06 20:56:55.385000
+To: 69ab3ececa12b2ecddcc7c1f | Title: Congratulations! You Won a Bid | Created: 2026-03-06 20:56:26.844000

@@ -1,0 +1,176 @@
+:root {
+    --primary: #4A5D23;
+    --primary-hover: #3A4D13;
+    --accent: #E67E22;
+    --text-dark: #1A1A1A;
+    --text-medium: #555555;
+    --text-light: #888888;
+    --card-bg: #FFFFFF;
+    --root-bg: #FAF6F1;
+    --border: #EDE8E1;
+}
+
+.btn-dark {
+    background: var(--text-dark);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.btn-dark:hover {
+    background: #333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-dark:active {
+    transform: translateY(0);
+}
+
+.btn-dark:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.lands-root {
+    font-family: 'DM Sans', 'Outfit', sans-serif;
+    background-color: var(--root-bg);
+    color: var(--text-dark);
+    min-height: 100vh;
+    padding: 40px 48px;
+}
+
+.lands-header {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.lands-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.lands-subtitle {
+    color: var(--text-medium);
+    font-size: 1rem;
+}
+
+.filters-bar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 40px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.filter-input {
+    padding: 12px 16px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    background: white;
+    font-family: inherit;
+    min-width: 200px;
+}
+
+.lands-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.land-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s;
+}
+
+.land-card:hover {
+    transform: translateY(-8px);
+}
+
+.land-img-wrap {
+    height: 200px;
+    overflow: hidden;
+}
+
+.land-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.land-body {
+    padding: 24px;
+}
+
+.land-tag {
+    background: var(--card-beige);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: inline-block;
+}
+
+.land-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.land-loc {
+    font-size: 0.875rem;
+    color: var(--text-medium);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.land-specs {
+    display: flex;
+    gap: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 16px;
+    margin-bottom: 16px;
+}
+
+.land-spec-item {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.land-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.land-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+@media (max-width: 768px) {
+    .lands-root {
+        padding: 40px 24px;
+    }
+
+    .filter-input {
+        width: 100%;
+    }
+}

@@ -158,6 +158,7 @@ const ConstructorProjectsPage = () => {
             <div style={S.projectGrid}>
                 {filtered.map((p) => {
                     const displayStatus = deriveDisplayStatus(p.status);
+                    const progress = deriveProgress(p.status);
 
                     return (
                     <div

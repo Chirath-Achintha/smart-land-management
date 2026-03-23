@@ -133,6 +133,7 @@ const ServiceManagement = () => {
     const [error, setError] = useState('');
     const [teams, setTeams] = useState([]);
     const [teamLoading, setTeamLoading] = useState(true);
+    const [animatedRows, setAnimatedRows] = useState({});
 
     const fetchBookings = async () => {
         if (!token) {

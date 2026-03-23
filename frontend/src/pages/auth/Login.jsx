@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../apiConfig';
+import { getDefaultDashboardPath } from '../../routePaths';
 
 const Login = () => {
     const { login } = useAuth();
@@ -86,7 +87,7 @@ const Login = () => {
             if (from) {
                 navigate(from);
             } else {
-                navigate('/dashboard');
+                navigate(getDefaultDashboardPath(data.user?.role));
             }
         } catch (err) {
             setErrors({ submit: 'Server error. Make sure the backend is running.' });

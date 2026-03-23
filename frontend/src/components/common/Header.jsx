@@ -3,10 +3,13 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { SearchIcon, UserIcon, BrandLogo, LockIcon } from '../../pages/landing/LandingIcons';
 import { NAV } from '../../pages/landing/landingData.jsx';
 import { useAuth } from '../../context/AuthContext';
+import { getDefaultDashboardPath } from '../../routePaths';
 import '../../pages/landing/LandingPage.css';
 
 const Header = () => {
     const { user, logout } = useAuth();
+    const dashboardPath = getDefaultDashboardPath(user?.role);
+
     const [activeNav, setActiveNav] = useState("Home");
     const navigate = useNavigate();
     const location = useLocation();
@@ -100,7 +103,7 @@ const Header = () => {
                 
                 {user ? (
                     <>
-                        <button className="nav-icon" onClick={() => navigate('/dashboard')} title="Dashboard">
+                        <button className="nav-icon" onClick={() => navigate(dashboardPath)} title="Dashboard">
                             <UserIcon />
                         </button>
                         <div style={{ width: '1px', height: '24px', backgroundColor: '#E5E7EB', margin: '0 4px' }}></div>

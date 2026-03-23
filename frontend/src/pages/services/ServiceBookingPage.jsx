@@ -124,7 +124,7 @@ const ServiceBookingPage = () => {
                         <div style={S.bookingList}>
                             {bookings.map(b => {
                                 const sc = STATUS_STYLE[b.status] || STATUS_STYLE.Scheduled;
-                                const canEdit = b.status === 'Requested' || b.status === 'Scheduled';
+                                const canEdit = b.status === 'Pending';
                                 return (
                                     <div key={b.id} style={S.bookingCard}>
                                         <div style={S.bCardTop}>

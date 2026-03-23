@@ -110,7 +110,7 @@ const AgentVisitsPage = () => {
     const filtered = filter === 'All' 
         ? visits 
         : filter === 'To Assign' 
-            ? visits.filter(v => v.status === 'SellerAccepted' || v.status === 'AgentDeclined')
+            ? visits.filter(v => v.status === 'Pending' || v.status === 'SellerAccepted' || v.status === 'AgentDeclined')
             : visits.filter(v => v.status === filter);
 
     return (
@@ -120,7 +120,7 @@ const AgentVisitsPage = () => {
                     <h1 style={S.title}>Agent Site Requests</h1>
                     <p style={S.subtitle}>Manage site visit requests assigned for agent assistance.</p>
                 </div>
-                <div style={S.countBadge}>{visits.filter(v => v.status === 'SellerAccepted' || v.status === 'AgentDeclined').length} To Assign</div>
+                <div style={S.countBadge}>{visits.filter(v => v.status === 'Pending' || v.status === 'SellerAccepted' || v.status === 'AgentDeclined').length} To Assign</div>
             </div>
 
             {error && <div style={S.errBox}>{error}</div>}
@@ -138,7 +138,7 @@ const AgentVisitsPage = () => {
                         {f !== 'All' && (
                             <span style={S.filterCount}>
                                 {visits.filter(v => 
-                                    f === 'To Assign' ? (v.status === 'SellerAccepted' || v.status === 'AgentDeclined') : v.status === f
+                                    f === 'To Assign' ? (v.status === 'Pending' || v.status === 'SellerAccepted' || v.status === 'AgentDeclined') : v.status === f
                                 ).length}
                             </span>
                         )}
@@ -246,7 +246,7 @@ const AgentVisitsPage = () => {
                                                                 })}
                                                         </div>
                                                     ) : (
-                                                        <div style={S.freeNote}>Full Availability: No other assignments on this date.</div>
+                                                        <div style={S.freeNote}>No other schedules</div>
                                                     )}
                                                 </div>
                                             )}

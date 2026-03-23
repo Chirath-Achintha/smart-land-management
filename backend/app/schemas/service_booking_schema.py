@@ -66,7 +66,7 @@ class ConstructorOptionResponse(BaseModel):
 
 
 class ServiceBookingResponse(BaseModel):
-    id:             str = Field(alias="_id")
+    id:             str = Field(validation_alias="_id")
     buyer_id:       str
     land_id:        Optional[str]
     constructor_id: Optional[str]

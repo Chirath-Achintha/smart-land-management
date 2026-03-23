@@ -32,7 +32,10 @@ const ServiceBookingPage = () => {
         if (!token) { setLoading(false); return; }
         fetch(`${API}/service-bookings/my`, { headers: authH })
             .then(r => r.json())
-            .then(d => setBookings(Array.isArray(d) ? d : []))
+            .then(d => {
+                const arr = Array.isArray(d) ? d : [];
+                setBookings(arr.map(b => ({ ...b, id: b.id || b._id })));
+            })
             .catch(() => setBookings([]))
             .finally(() => setLoading(false));
     };
@@ -68,9 +71,11 @@ const ServiceBookingPage = () => {
             });
             if (!res.ok) throw new Error('Failed to approve quote');
             const updated = await res.json();
-            setBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
+            const normalized = { ...updated, id: updated.id || updated._id };
+            setBookings(prev => prev.map(b => b.id === normalized.id ? normalized : b));
         } catch (e) {
-            alert(e.message);
+            console.error('Approve failed:', e);
+            alert(`Approve failed: ${e.message}`);
         } finally {
             setSubmitting(false);
         }

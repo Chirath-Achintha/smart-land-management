@@ -95,7 +95,7 @@ class LandVerificationUpdate(BaseModel):
 # ── Response Schema ───────────────────────────────────────────────────────────
 
 class LandResponse(BaseModel):
-    id: str = Field(alias="_id")
+    id: str = Field(validation_alias="_id")
     seller_id: str
     name: str
     district: str

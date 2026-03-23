@@ -27,10 +27,25 @@ const LandDetailPage = () => {
     const [bkgErr, setBkgErr] = useState('');
     const [bkgLoading, setBkgLoading] = useState(false);
 
-    const SERVICES = [
-        { type: 'Full Construction', icon: '🏗️', desc: 'Architectural design & complete building services.', estimate: 'Rs. 25,000,000+' },
-        { type: 'Land Development', icon: '🚜', desc: 'Clearance, leveling, and utility infrastructure.', estimate: 'Rs. 5,000,000+' },
-    ];
+    const getServices = () => {
+        if (!land) return [];
+        const p = land.perches || 0;
+        return [
+            { 
+                type: 'Full Construction', 
+                icon: '🏗️', 
+                desc: 'Architectural design & complete building services.', 
+                estimate: `Rs. ${(5000000 + (p * 500000)).toLocaleString()}+` 
+            },
+            { 
+                type: 'Land Development', 
+                icon: '🚜', 
+                desc: 'Clearance, leveling, and utility infrastructure.', 
+                estimate: `Rs. ${(500000 + (p * 100000)).toLocaleString()}+` 
+            },
+        ];
+    };
+    const SERVICES = getServices();
 
     const openBookingModal = (svc) => {
         setBookingService(svc);

@@ -44,6 +44,7 @@ const Sidebar = ({ role }) => {
     const API = API_BASE_URL;
     const location = useLocation();
     const navigate = useNavigate();
+    const [hoveredPath, setHoveredPath] = useState('');
     const { logout } = useAuth();
     const links = NAV[role?.toLowerCase()] || [{ to: '/dashboard', label: 'Dashboard' }];
 
@@ -59,15 +60,18 @@ const Sidebar = ({ role }) => {
             <ul style={styles.list}>
                 {links.map((link, idx) => {
                     const isActive = location.pathname === link.to;
+                    const isHovered = hoveredPath === link.to;
                     return (
                         <li key={idx} style={styles.listItem}>
                             <Link
                                 to={link.to}
+                                onMouseEnter={() => setHoveredPath(link.to)}
+                                onMouseLeave={() => setHoveredPath('')}
                                 style={{
                                     ...styles.link,
-                                    background: isActive ? '#1A1A1A' : 'transparent',
-                                    color: isActive ? '#fff' : '#444',
-                                    borderColor: isActive ? '#1A1A1A' : 'transparent',
+                                    background: isActive ? 'var(--color-primary)' : isHovered ? 'rgba(255,255,255,0.12)' : 'transparent',
+                                    color: '#fff',
+                                    borderColor: isActive ? 'var(--color-primary)' : isHovered ? 'rgba(255,255,255,0.24)' : 'transparent',
                                     fontWeight: isActive ? '700' : '500',
                                 }}
                             >
@@ -87,14 +91,14 @@ const Sidebar = ({ role }) => {
 };
 
 const styles = {
-    sidebar: { width: '240px', backgroundColor: 'var(--sage-bg)', padding: '24px 16px', minHeight: '100vh', borderRight: '1px solid rgba(85, 107, 47, 0.1)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' },
-    brand: { fontSize: '1.1rem', fontWeight: '800', color: 'var(--sage-primary)', marginBottom: '6px', paddingLeft: '4px', letterSpacing: '-0.02em' },
-    roleTag: { fontSize: '0.65rem', fontWeight: '700', letterSpacing: '0.1em', color: 'var(--sage-text-light)', marginBottom: '28px', paddingLeft: '4px', textTransform: 'uppercase' },
+    sidebar: { width: '252px', backgroundColor: 'var(--color-dark)', padding: '24px 16px', minHeight: '100vh', borderRight: '1px solid rgba(255, 255, 255, 0.12)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' },
+    brand: { fontSize: '1.1rem', fontWeight: '800', color: '#fff', marginBottom: '6px', paddingLeft: '4px', letterSpacing: '-0.02em' },
+    roleTag: { fontSize: '0.65rem', fontWeight: '700', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', marginBottom: '28px', paddingLeft: '4px', textTransform: 'uppercase' },
     list: { listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 },
     listItem: {},
-    link: { textDecoration: 'none', display: 'block', padding: '10px 14px', borderRadius: '8px', border: '1px solid transparent', fontSize: '0.875rem', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.18s' },
-    bottomSection: { borderTop: '1px solid rgba(85, 107, 47, 0.1)', paddingTop: '20px', marginTop: '16px' },
-    logoutBtn: { width: '100%', padding: '11px 14px', background: 'var(--sage-card)', color: '#e74c3c', border: '1px solid rgba(85, 107, 47, 0.1)', borderRadius: '8px', fontSize: '0.875rem', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left', transition: 'background 0.15s' },
+    link: { textDecoration: 'none', display: 'block', padding: '10px 14px', borderRadius: '8px', border: '1px solid transparent', fontSize: '0.875rem', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.3s ease' },
+    bottomSection: { borderTop: '1px solid rgba(255, 255, 255, 0.18)', paddingTop: '20px', marginTop: '16px' },
+    logoutBtn: { width: '100%', padding: '11px 14px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '8px', fontSize: '0.875rem', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left', transition: 'all 0.3s ease' },
 };
 
 export default Sidebar;

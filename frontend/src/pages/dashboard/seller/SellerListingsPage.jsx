@@ -13,12 +13,6 @@ const ALL_DISTRICTS = [
     'Trincomalee', 'Vavuniya',
 ];
 
-const STATUS_COLORS = {
-    Available: { bg: '#eafaf1', color: '#2ecc71', border: '#2ecc71' },
-    Reserved: { bg: '#fef5e7', color: '#e67e22', border: '#e67e22' },
-    Sold: { bg: '#f0f0f0', color: '#888', border: '#ccc' },
-};
-
 const REVIEW_COLORS = {
     approved: { bg: '#eafaf1', color: '#2ecc71', border: '#2ecc71', label: 'Approved' },
     pending: { bg: '#fff8e6', color: '#b7791f', border: '#f2c86b', label: 'Pending Review' },
@@ -27,6 +21,11 @@ const REVIEW_COLORS = {
 
 const SIZE_ERROR = 'Size (Perches) must be greater than zero.';
 const PRICE_ERROR = 'Price Per Perch must be greater than zero.';
+const STARTING_BID_ERROR = 'Starting Bid must be greater than zero.';
+const STARTING_BID_MIN_CURRENT_PRICE_ERROR = (currentPrice) =>
+    `Starting Bid cannot be lower than Current Price (Rs. ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}).`;
+const BIDDING_END_REQUIRED_ERROR = 'Bidding End Date is required when bidding is open.';
+const BIDDING_END_FUTURE_ERROR = 'Bidding End Date must be today or a future date.';
 
 const EMPTY_FORM = {
     name: '', district: '', village: '', perches: '', price_per_perch: '',
@@ -45,6 +44,14 @@ function getImageUrls(imageUrlValue) {
     return imageUrlValue.split(',').map(url => url.trim()).filter(Boolean);
 }
 
+function getTodayLocalDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 const SellerListingsPage = () => {
     const navigate = useNavigate();
     const [listings, setListings] = useState([]);
@@ -56,7 +63,9 @@ const SellerListingsPage = () => {
     const [editingId, setEditingId] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [error, setError] = useState('');
-    const [fieldErrors, setFieldErrors] = useState({ perches: '', price_per_perch: '' });
+    const [fieldErrors, setFieldErrors] = useState({ perches: '', price_per_perch: '', starting_bid: '', bidding_end: '' });
+    const totalPrice = calcTotal(form.perches, form.price_per_perch);
+    const minBiddingDate = getTodayLocalDate();
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
@@ -125,6 +134,7 @@ const SellerListingsPage = () => {
 
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target;
+        const nextValue = type === 'checkbox' ? checked : value;
 
         if (name === 'perches' || name === 'price_per_perch') {
             if (value !== '' && Number(value) <= 0) {
@@ -135,14 +145,44 @@ const SellerListingsPage = () => {
             }
         }
 
-        setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
+        if (name === 'starting_bid') {
+            const startingBidValue = Number(value);
+            if (value !== '' && startingBidValue <= 0) {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: STARTING_BID_ERROR }));
+            } else if (value !== '' && totalPrice > 0 && startingBidValue < totalPrice) {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: STARTING_BID_MIN_CURRENT_PRICE_ERROR(totalPrice) }));
+            } else {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: '' }));
+            }
+        }
+
+        if (name === 'bidding_end') {
+            if (!value) {
+                setFieldErrors((prev) => ({ ...prev, bidding_end: BIDDING_END_REQUIRED_ERROR }));
+            } else {
+                const endDate = new Date(`${value}T23:59:59`);
+                if (Number.isNaN(endDate.getTime()) || endDate < new Date()) {
+                    setFieldErrors((prev) => ({ ...prev, bidding_end: BIDDING_END_FUTURE_ERROR }));
+                } else {
+                    setFieldErrors((prev) => ({ ...prev, bidding_end: '' }));
+                }
+            }
+        }
+
+        if (name === 'open_for_bidding' && !checked) {
+            setFieldErrors((prev) => ({ ...prev, starting_bid: '', bidding_end: '' }));
+        }
+
+        setForm(f => ({ ...f, [name]: nextValue }));
     };
 
     const [isDragging, setIsDragging] = useState(false);
 
     const uploadSingleImage = async (file) => {
+        const landNameForFolder = (form.name || '').trim() || 'untitled-land';
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('land_name', landNameForFolder);
 
         const res = await fetch(`${API}/lands/upload`, {
             method: 'POST',
@@ -212,7 +252,7 @@ const SellerListingsPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        setFieldErrors({ perches: '', price_per_perch: '' });
+        setFieldErrors({ perches: '', price_per_perch: '', starting_bid: '', bidding_end: '' });
         setSubmitting(true);
 
         const payload = {
@@ -232,6 +272,34 @@ const SellerListingsPage = () => {
             setFieldErrors((prev) => ({ ...prev, price_per_perch: PRICE_ERROR }));
             setSubmitting(false);
             return;
+        }
+
+        if (form.open_for_bidding) {
+            const startingBidValue = Number(form.starting_bid);
+            if (!Number.isFinite(startingBidValue) || startingBidValue <= 0) {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: STARTING_BID_ERROR }));
+                setSubmitting(false);
+                return;
+            }
+
+            if (totalPrice > 0 && startingBidValue < totalPrice) {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: STARTING_BID_MIN_CURRENT_PRICE_ERROR(totalPrice) }));
+                setSubmitting(false);
+                return;
+            }
+
+            if (!form.bidding_end) {
+                setFieldErrors((prev) => ({ ...prev, bidding_end: BIDDING_END_REQUIRED_ERROR }));
+                setSubmitting(false);
+                return;
+            }
+
+            const biddingEndDate = new Date(`${form.bidding_end}T23:59:59`);
+            if (Number.isNaN(biddingEndDate.getTime()) || biddingEndDate < new Date()) {
+                setFieldErrors((prev) => ({ ...prev, bidding_end: BIDDING_END_FUTURE_ERROR }));
+                setSubmitting(false);
+                return;
+            }
         }
 
         try {
@@ -324,14 +392,13 @@ const SellerListingsPage = () => {
                     <table style={S.table}>
                         <thead>
                             <tr>
-                                {['Property', 'Location', 'Size', 'Price / Perch', 'Total Price', 'Bidding', 'Status', 'Review', 'Actions'].map(h => (
+                                {['Property', 'Location', 'Size', 'Price / Perch', 'Total Price', 'Bidding', 'Review', 'Actions'].map(h => (
                                     <th key={h} style={S.th}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {listings.map((l, i) => {
-                                const sc = STATUS_COLORS[l.status] || STATUS_COLORS['Available'];
                                 const rc = REVIEW_COLORS[l.review_status || 'pending'] || REVIEW_COLORS.pending;
                                 const lid = l.id || l._id;
                                 return (
@@ -341,7 +408,13 @@ const SellerListingsPage = () => {
                                                 {l.image_url && (
                                                     <img src={l.image_url.split(',')[0]} alt={l.name} style={S.thumbnail} />
                                                 )}
-                                                <span style={{ fontWeight: '700', color: '#1A1A1A' }}>{l.name}</span>
+                                                <button
+                                                    type="button"
+                                                    style={S.propertyLinkBtn}
+                                                    onClick={() => navigate(`/dashboard/seller/listings/${lid}`)}
+                                                >
+                                                    {l.name}
+                                                </button>
                                             </div>
                                         </td>
                                         <td style={S.td}>{l.village}, {l.district}</td>
@@ -354,11 +427,6 @@ const SellerListingsPage = () => {
                                         <td style={S.td}>
                                             <span style={{ ...S.badge, ...(l.open_for_bidding ? S.badgeOpen : S.badgeClosed) }}>
                                                 {l.open_for_bidding ? 'Open' : 'Closed'}
-                                            </span>
-                                        </td>
-                                        <td style={S.td}>
-                                            <span style={{ ...S.statusBadge, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                                                {l.status}
                                             </span>
                                         </td>
                                         <td style={S.td}>
@@ -469,6 +537,12 @@ const SellerListingsPage = () => {
                                     />
                                     {fieldErrors.price_per_perch && <span style={S.fieldError}>{fieldErrors.price_per_perch}</span>}
                                 </div>
+                                <div style={{ ...S.formGroup, gridColumn: '1 / -1' }}>
+                                    <label style={S.label}>Final Price (Rs.)</label>
+                                    <div style={S.totalPriceBox}>
+                                        Rs. {totalPrice > 0 ? totalPrice.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
+                                    </div>
+                                </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Land Type</label>
                                     <select name="land_type" value={form.land_type} onChange={handleFormChange} style={S.input}>
@@ -539,13 +613,29 @@ const SellerListingsPage = () => {
                                 </label>
                                 {form.open_for_bidding && (
                                     <div style={S.biddingFields}>
+                                        <div style={S.currentPriceCard}>
+                                            <span style={S.currentPriceLabel}>Current Price (Rs.)</span>
+                                            <span style={S.currentPriceValue}>
+                                                Rs. {totalPrice > 0 ? totalPrice.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
+                                            </span>
+                                        </div>
                                         <div style={S.formGroup}>
                                             <label style={S.label}>Starting Bid (Rs.)</label>
-                                            <input name="starting_bid" type="number" value={form.starting_bid} onChange={handleFormChange} style={S.input} />
+                                            <input
+                                                name="starting_bid"
+                                                type="number"
+                                                min={totalPrice > 0 ? totalPrice.toFixed(2) : '0.01'}
+                                                step="0.01"
+                                                value={form.starting_bid}
+                                                onChange={handleFormChange}
+                                                style={S.input}
+                                            />
+                                            {fieldErrors.starting_bid && <span style={S.fieldError}>{fieldErrors.starting_bid}</span>}
                                         </div>
                                         <div style={S.formGroup}>
                                             <label style={S.label}>Bidding End Date</label>
-                                            <input name="bidding_end" type="date" value={form.bidding_end} onChange={handleFormChange} style={S.input} />
+                                            <input name="bidding_end" type="date" min={minBiddingDate} value={form.bidding_end} onChange={handleFormChange} style={S.input} />
+                                            {fieldErrors.bidding_end && <span style={S.fieldError}>{fieldErrors.bidding_end}</span>}
                                         </div>
                                     </div>
                                 )}
@@ -589,6 +679,17 @@ const S = {
     tr: { transition: 'background 0.15s' },
     td: { padding: '16px 20px', fontSize: '0.875rem', borderBottom: '1px solid #f5f0ea' },
     nameCell: { display: 'flex', alignItems: 'center', gap: '12px' },
+    propertyLinkBtn: {
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        margin: 0,
+        fontWeight: '700',
+        color: '#1A1A1A',
+        cursor: 'pointer',
+        textAlign: 'left',
+        textDecoration: 'underline'
+    },
     thumbnail: { width: '48px', height: '36px', borderRadius: '6px', objectFit: 'cover' },
     badge: { padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '700' },
     badgeOpen: { background: '#eafaf1', color: '#2ecc71' },
@@ -610,11 +711,31 @@ const S = {
     formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
     label: { fontSize: '0.78rem', fontWeight: '700', color: '#666' },
     input: { padding: '12px', border: '1px solid #e5e0da', borderRadius: '8px', outline: 'none', fontFamily: 'inherit' },
+    totalPriceBox: {
+        padding: '12px',
+        border: '1px solid #d8d1c8',
+        borderRadius: '8px',
+        background: '#fdfaf7',
+        fontWeight: '800',
+        color: '#1A1A1A'
+    },
     fieldError: { fontSize: '0.76rem', color: '#d32f2f', marginTop: '2px', fontWeight: '600' },
     checkRow: { display: 'flex', gap: '24px', marginBottom: '8px' },
     checkLabel: { display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' },
     biddingSection: { background: '#fdfaf7', padding: '20px', borderRadius: '12px', marginBottom: '16px' },
     biddingFields: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' },
+    currentPriceCard: {
+        gridColumn: '1 / -1',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px 12px',
+        borderRadius: '8px',
+        border: '1px solid #d8d1c8',
+        background: '#fff'
+    },
+    currentPriceLabel: { fontSize: '0.78rem', fontWeight: '700', color: '#666' },
+    currentPriceValue: { fontSize: '1rem', fontWeight: '800', color: '#1A1A1A' },
     formFooter: { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' },
     cancelBtn: { padding: '12px 24px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontWeight: '700' },
     saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700' },

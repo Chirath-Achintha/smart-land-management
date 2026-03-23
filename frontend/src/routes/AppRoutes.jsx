@@ -137,6 +137,10 @@ const AppRoutes = () => {
                     />
                     <Route path="/dashboard/users" element={<UserManagement />} />
                     <Route path="/dashboard/seller/listings" element={<SellerListingsPage />} />
+                    <Route
+                        path="/dashboard/seller/listings/:id"
+                        element={role === 'seller' ? <LandDetailPage /> : <Navigate to={dashboardPath} replace />}
+                    />
                     <Route path="/dashboard/seller/bids" element={<SellerBidsPage />} />
                     <Route path="/dashboard/seller/bidding" element={<SellerBiddingPage />} />
                     <Route path="/dashboard/seller/availability" element={<SellerAvailabilityPage />} />

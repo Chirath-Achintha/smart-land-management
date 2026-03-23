@@ -7,15 +7,30 @@ import API_BASE_URL from '../../apiConfig';
 
 const API = API_BASE_URL;
 
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80';
+
+function getImageUrls(imageUrlValue) {
+    if (!imageUrlValue) return [];
+    return imageUrlValue
+        .split(',')
+        .map(url => url.trim())
+        .filter(Boolean);
+}
+
 
 // ── Land Detail Page ──────────────────────────────────────────────────────────
 const LandDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const backPath = currentUser?.role === 'seller' ? '/dashboard/seller/listings' : '/lands';
 
     const [land, setLand] = useState(null);
     const [bids, setBids] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedImage, setSelectedImage] = useState(FALLBACK_IMAGE);
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
 
     // ── Tab state ──────────────────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState('property'); // 'property' | 'services'
@@ -93,11 +108,57 @@ const LandDetailPage = () => {
         fetchBids();
     }, [id]);
 
+    useEffect(() => {
+        const imageUrls = getImageUrls(land?.image_url);
+        setSelectedImage(imageUrls[0] || FALLBACK_IMAGE);
+        setActiveImageIndex(0);
+    }, [land]);
+
+    const imageUrls = getImageUrls(land?.image_url);
+
+    const openImageViewer = (index = 0) => {
+        const nextIndex = Math.max(0, Math.min(index, imageUrls.length - 1));
+        setActiveImageIndex(nextIndex);
+        setSelectedImage(imageUrls[nextIndex] || FALLBACK_IMAGE);
+        setIsImageViewerOpen(true);
+    };
+
+    const closeImageViewer = () => {
+        setIsImageViewerOpen(false);
+    };
+
+    const showPrevImage = () => {
+        if (!imageUrls.length) return;
+        const prevIndex = (activeImageIndex - 1 + imageUrls.length) % imageUrls.length;
+        setActiveImageIndex(prevIndex);
+        setSelectedImage(imageUrls[prevIndex]);
+    };
+
+    const showNextImage = () => {
+        if (!imageUrls.length) return;
+        const nextIndex = (activeImageIndex + 1) % imageUrls.length;
+        setActiveImageIndex(nextIndex);
+        setSelectedImage(imageUrls[nextIndex]);
+    };
+
+    useEffect(() => {
+        if (!isImageViewerOpen) return;
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') closeImageViewer();
+            if (e.key === 'ArrowLeft') showPrevImage();
+            if (e.key === 'ArrowRight') showNextImage();
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isImageViewerOpen, activeImageIndex, imageUrls.length]);
+
     if (loading) return <div className="lands-root" style={{ textAlign: 'center', padding: '100px', color: '#999' }}>Loading…</div>;
     if (!land) return (
         <div className="lands-root" style={{ textAlign: 'center', padding: '100px 20px' }}>
             <h2>Land not found</h2>
-            <button className="btn-dark" onClick={() => navigate('/lands')}>Back to Listings</button>
+            <button className="btn-dark" onClick={() => navigate(backPath)}>Back to Listings</button>
         </div>
     );
 
@@ -106,18 +167,51 @@ const LandDetailPage = () => {
     return (
         <div style={{ background: '#FAF6F1', minHeight: '100vh', paddingBottom: '80px' }}>
             <div style={S.container}>
-                <button onClick={() => navigate('/lands')} style={S.backBtn}>← Back to Listings</button>
+                <button onClick={() => navigate(backPath)} style={S.backBtn}>← Back to Listings</button>
 
                 <div style={S.layout}>
                     {/* Image */}
                     <div style={S.imageSection}>
                         <img
-                            src={land.image_url
-                                ? land.image_url.split(',')[0]
-                                : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80'}
+                            src={selectedImage || FALLBACK_IMAGE}
                             alt={land.name} style={S.heroImg}
+                            onClick={() => {
+                                if (imageUrls.length <= 1) {
+                                    openImageViewer(0);
+                                    return;
+                                }
+                                const idx = imageUrls.indexOf(selectedImage);
+                                openImageViewer(idx >= 0 ? idx : 0);
+                            }}
                         />
+                        <button style={S.zoomHintBtn} type="button" onClick={() => {
+                            const idx = imageUrls.indexOf(selectedImage);
+                            openImageViewer(idx >= 0 ? idx : 0);
+                        }}>
+                            Click to enlarge
+                        </button>
                         <div style={S.priceBadge}>Rs. {Number(land.total_price).toLocaleString()}</div>
+                        {imageUrls.length > 1 && (
+                            <div style={S.thumbTray}>
+                                {imageUrls.map((url, idx) => (
+                                    <button
+                                        key={`${url}-${idx}`}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedImage(url);
+                                            setActiveImageIndex(idx);
+                                        }}
+                                        style={{
+                                            ...S.thumbBtn,
+                                            border: selectedImage === url ? '2px solid #1A1A1A' : '2px solid transparent',
+                                        }}
+                                        aria-label={`View image ${idx + 1}`}
+                                    >
+                                        <img src={url} alt={`${land.name} ${idx + 1}`} style={S.thumbImg} />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Content */}
@@ -307,6 +401,47 @@ const LandDetailPage = () => {
                 )}
             </div>
 
+            {isImageViewerOpen && (
+                <div style={IV.overlay} onClick={closeImageViewer}>
+                    <div style={IV.modal} onClick={(e) => e.stopPropagation()}>
+                        <button style={IV.closeBtn} onClick={closeImageViewer} aria-label="Close image viewer">✕</button>
+
+                        <img
+                            src={selectedImage || FALLBACK_IMAGE}
+                            alt={`${land.name} full view`}
+                            style={IV.mainImage}
+                        />
+
+                        {imageUrls.length > 1 && (
+                            <>
+                                <button style={{ ...IV.navBtn, left: '18px' }} onClick={showPrevImage} aria-label="Previous image">‹</button>
+                                <button style={{ ...IV.navBtn, right: '18px' }} onClick={showNextImage} aria-label="Next image">›</button>
+
+                                <div style={IV.counter}>{activeImageIndex + 1} / {imageUrls.length}</div>
+                                <div style={IV.thumbStrip}>
+                                    {imageUrls.map((url, idx) => (
+                                        <button
+                                            key={`viewer-${url}-${idx}`}
+                                            type="button"
+                                            onClick={() => {
+                                                setActiveImageIndex(idx);
+                                                setSelectedImage(url);
+                                            }}
+                                            style={{
+                                                ...IV.thumbBtn,
+                                                border: activeImageIndex === idx ? '2px solid #fff' : '2px solid transparent'
+                                            }}
+                                        >
+                                            <img src={url} alt={`${land.name} thumb ${idx + 1}`} style={IV.thumbImg} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
 
             {/* ── Service Booking Modal (Redesigned) ────────────────────────── */}
             {bookingService && (
@@ -421,7 +556,44 @@ const S = {
     backBtn: { background: 'none', border: 'none', color: '#555', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', marginBottom: '24px', padding: 0 },
     layout: { display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', marginBottom: '40px' },
     imageSection: { position: 'relative', width: '100%', height: '450px' },
-    heroImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+    heroImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' },
+    zoomHintBtn: {
+        position: 'absolute',
+        top: '16px',
+        right: '16px',
+        background: 'rgba(26,26,26,0.82)',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '999px',
+        padding: '8px 12px',
+        fontSize: '0.74rem',
+        fontWeight: '700',
+        cursor: 'pointer',
+    },
+    thumbTray: {
+        position: 'absolute',
+        left: '16px',
+        right: '200px',
+        bottom: '16px',
+        display: 'flex',
+        gap: '8px',
+        overflowX: 'auto',
+        paddingBottom: '2px',
+        scrollbarWidth: 'thin',
+    },
+    thumbBtn: {
+        border: '2px solid transparent',
+        borderRadius: '8px',
+        padding: 0,
+        background: '#fff',
+        width: '68px',
+        height: '52px',
+        overflow: 'hidden',
+        cursor: 'pointer',
+        flex: '0 0 auto',
+        boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+    },
+    thumbImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
     priceBadge: { position: 'absolute', bottom: '24px', right: '24px', background: '#1A1A1A', color: '#fff', padding: '12px 24px', borderRadius: '12px', fontSize: '1.25rem', fontWeight: '800', boxShadow: '0 8px 16px rgba(0,0,0,0.2)' },
     contentSection: { padding: '40px 60px', display: 'flex', flexDirection: 'column', gap: '32px' },
     tag: { display: 'inline-block', background: '#FAF6F1', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#1A1A1A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' },
@@ -448,6 +620,103 @@ const S = {
 
 // ── Bid Modal Styles ──────────────────────────────────────────────────────────
 const MO = {};
+
+const IV = {
+    overlay: {
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.88)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10000,
+        padding: '20px',
+    },
+    modal: {
+        position: 'relative',
+        width: 'min(1200px, 96vw)',
+        height: 'min(84vh, 900px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    closeBtn: {
+        position: 'absolute',
+        top: '-6px',
+        right: '0',
+        border: 'none',
+        width: '38px',
+        height: '38px',
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.18)',
+        color: '#fff',
+        fontSize: '1.2rem',
+        cursor: 'pointer',
+    },
+    mainImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain',
+        borderRadius: '14px',
+        background: 'rgba(255,255,255,0.05)',
+    },
+    navBtn: {
+        position: 'absolute',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        border: 'none',
+        width: '44px',
+        height: '44px',
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.18)',
+        color: '#fff',
+        fontSize: '1.6rem',
+        cursor: 'pointer',
+        display: 'grid',
+        placeItems: 'center',
+    },
+    counter: {
+        position: 'absolute',
+        top: '10px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: '0.9rem',
+        background: 'rgba(0,0,0,0.45)',
+        padding: '6px 12px',
+        borderRadius: '999px',
+    },
+    thumbStrip: {
+        position: 'absolute',
+        bottom: '10px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: '8px',
+        padding: '8px 10px',
+        borderRadius: '12px',
+        background: 'rgba(0,0,0,0.38)',
+        maxWidth: '94%',
+        overflowX: 'auto',
+    },
+    thumbBtn: {
+        width: '64px',
+        height: '48px',
+        padding: 0,
+        borderRadius: '8px',
+        overflow: 'hidden',
+        background: '#111',
+        cursor: 'pointer',
+        flex: '0 0 auto',
+    },
+    thumbImg: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        display: 'block',
+    },
+};
 
 
 const BK = {

@@ -1,17 +1,7 @@
-:root {
-    --primary: #4A5D23;
-    --primary-hover: #3A4D13;
-    --accent: #E67E22;
-    --text-dark: #1A1A1A;
-    --text-medium: #555555;
-    --text-light: #888888;
-    --card-bg: #FFFFFF;
-    --root-bg: #FAF6F1;
-    --border: #EDE8E1;
-}
+/* Palette comes from src/index.css variables. */
 
 .btn-dark {
-    background: var(--text-dark);
+    background: var(--color-primary);
     color: white;
     border: none;
     border-radius: 10px;
@@ -24,9 +14,9 @@
 }
 
 .btn-dark:hover {
-    background: #333;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: #43A047;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 18px rgba(38, 50, 56, 0.14);
 }
 
 .btn-dark:active {
@@ -42,7 +32,7 @@
 
 .lands-root {
     font-family: 'DM Sans', 'Outfit', sans-serif;
-    background-color: var(--root-bg);
+    background-color: var(--color-bg);
     color: var(--text-dark);
     min-height: 100vh;
     padding: 40px 48px;
@@ -93,12 +83,14 @@
     background: white;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s;
+    box-shadow: 0 12px 28px rgba(38, 50, 56, 0.1);
+    border: 1px solid var(--color-border);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .land-card:hover {
     transform: translateY(-8px);
+    box-shadow: 0 20px 36px rgba(38, 50, 56, 0.16);
 }
 
 .land-img-wrap {
@@ -117,7 +109,8 @@
 }
 
 .land-tag {
-    background: var(--card-beige);
+    background: rgba(139, 195, 74, 0.2);
+    color: var(--color-dark);
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 0.75rem;

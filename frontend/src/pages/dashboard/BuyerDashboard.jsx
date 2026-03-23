@@ -117,26 +117,26 @@ const BuyerDashboard = () => {
 };
 
 const S = {
-    container: { padding: '32px' },
+    container: { padding: '32px', background: 'var(--color-bg)', minHeight: '100%' },
     header: { marginBottom: '28px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#666', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' },
-    card: { background: '#fff', borderRadius: '20px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
+    card: { background: '#fff', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', transition: 'transform 0.3s ease, box-shadow 0.3s ease' },
     cardTitle: { fontSize: '1.1rem', fontWeight: '800', margin: '0 0 8px' },
-    cardText: { fontSize: '0.92rem', color: '#666', marginBottom: '16px', lineHeight: 1.45 },
+    cardText: { fontSize: '0.92rem', color: 'var(--color-text-soft)', marginBottom: '16px', lineHeight: 1.45 },
     actionBtn: { borderRadius: '10px', padding: '10px 16px', fontWeight: '700' },
     section: { marginTop: '28px' },
     sectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
-    sectionTitle: { fontSize: '1.2rem', margin: 0, color: '#1A1A1A' },
+    sectionTitle: { fontSize: '1.2rem', margin: 0, color: 'var(--color-dark)' },
     smallBtn: { borderRadius: '10px', padding: '8px 14px', fontWeight: '700', fontSize: '0.85rem' },
-    emptyBox: { background: '#fff', borderRadius: '12px', border: '1px solid #F0F0F0', padding: '16px', color: '#666' },
+    emptyBox: { background: '#fff', borderRadius: '12px', border: '1px solid var(--color-border)', padding: '16px', color: 'var(--color-text-soft)' },
     list: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '14px' },
-    listCard: { background: '#fff', borderRadius: '12px', border: '1px solid #F0F0F0', padding: '14px' },
+    listCard: { background: '#fff', borderRadius: '12px', border: '1px solid var(--color-border)', padding: '14px', boxShadow: '0 8px 18px rgba(38, 50, 56, 0.06)' },
     listTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
     listText: { color: '#4b5563', fontSize: '0.9rem', marginBottom: '4px' },
-    contactText: { color: '#1d4ed8', fontSize: '0.82rem', marginTop: '6px' },
-    statusPill: { background: '#eef2ff', color: '#4338ca', padding: '4px 8px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '700' }
+    contactText: { color: 'var(--color-blue)', fontSize: '0.82rem', marginTop: '6px' },
+    statusPill: { background: 'rgba(76, 175, 80, 0.14)', color: 'var(--color-primary)', padding: '4px 8px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '700' }
 };
 
 export default BuyerDashboard;

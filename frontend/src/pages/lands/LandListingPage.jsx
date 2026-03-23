@@ -6,6 +6,16 @@ import { PinIcon } from '../landing/LandingIcons';
 
 const API = API_BASE_URL;
 
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80';
+
+function getImageUrls(imageUrlValue) {
+    if (!imageUrlValue) return [];
+    return imageUrlValue
+        .split(',')
+        .map(url => url.trim())
+        .filter(Boolean);
+}
+
 const LandListingPage = () => {
     const navigate = useNavigate();
     const [lands, setLands] = useState([]);
@@ -62,17 +72,30 @@ const LandListingPage = () => {
                 </div>
             ) : (
                 <div className="lands-grid">
-                    {filtered.map(land => (
+                    {filtered.map(land => {
+                        const imageUrls = getImageUrls(land.image_url);
+                        const primaryImage = imageUrls[0] || FALLBACK_IMAGE;
+
+                        return (
                         <div key={land._id || land.id} className="land-card">
                             {/* Image */}
                             <div className="land-img-wrap" style={{ position: 'relative' }}>
                                 <img
-                                    src={land.image_url
-                                        ? land.image_url.split(',')[0]
-                                        : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80'}
+                                    src={primaryImage}
                                     alt={land.name}
                                     className="land-img"
                                 />
+                                {imageUrls.length > 1 && (
+                                    <span style={{
+                                        position: 'absolute', bottom: '10px', left: '10px',
+                                        background: 'rgba(26,26,26,0.85)', color: '#fff',
+                                        fontSize: '0.68rem', fontWeight: '800',
+                                        padding: '5px 10px', borderRadius: '20px',
+                                        zIndex: 2
+                                    }}>
+                                        {imageUrls.length} Photos
+                                    </span>
+                                )}
                                 {land.open_for_bidding && (
                                     <span style={{
                                         position: 'absolute', top: '10px', left: '10px',
@@ -126,7 +149,8 @@ const LandListingPage = () => {
                                 )}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

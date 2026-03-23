@@ -6,17 +6,17 @@ import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } 
 const API = API_BASE_URL;
 
 const STATUS_STYLE = {
-    Pending: { color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a' },
-    Accepted: { color: '#0f766e', background: '#ccfbf1', border: '1px solid #99f6e4' },
-    Completed: { color: '#15803d', background: '#dcfce7', border: '1px solid #bbf7d0' },
-    Cancelled: { color: '#b91c1c', background: '#fee2e2', border: '1px solid #fecaca' },
+    Pending: { color: '#8A5A25', background: '#FFF3E4', border: '1px solid #F5D9B2' },
+    Accepted: { color: '#136F8A', background: '#E5F5FD', border: '1px solid #B6E3FA' },
+    Completed: { color: '#2F7D32', background: '#E8F5E9', border: '1px solid #C8E6C9' },
+    Cancelled: { color: '#A84343', background: '#FDECEC', border: '1px solid #F5C2C2' },
 };
 
 const CHART_COLORS = {
-    Pending: '#fbbf24',
-    Accepted: '#0d9488',
-    Completed: '#22c55e',
-    Cancelled: '#ef4444'
+    Pending: '#A1887F',
+    Accepted: '#2196F3',
+    Completed: '#4CAF50',
+    Cancelled: '#D66A6A'
 };
 
 const ConstructorManagerDashboard = () => {
@@ -214,22 +214,22 @@ const SafeConstructorManagerDashboard = (props) => (
 );
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '26px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#777', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem' },
 
     topSection: { marginBottom: '32px' },
     statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' },
-    statCard: { background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
-    statLabel: { fontSize: '0.7rem', fontWeight: '800', color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' },
+    statCard: { background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+    statLabel: { fontSize: '0.7rem', fontWeight: '800', color: '#7C8B91', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' },
     statValue: { fontSize: '2.4rem', fontWeight: '800' },
 
-    actionBtnOutline: { border: '1px solid #111827', background: 'transparent', color: '#111827', borderRadius: '10px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' },
+    actionBtnOutline: { border: '1px solid var(--color-secondary)', background: '#fff', color: 'var(--color-primary)', borderRadius: '10px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' },
 
     section: { marginTop: '10px' },
-    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
-    tableCard: { background: '#fff', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #E5E7EB' },
+    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
+    tableCard: { background: '#fff', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
     table: { width: '100%', borderCollapse: 'collapse' },
     tableHeaderTr: { background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' },
     th: { textAlign: 'left', padding: '16px 20px', fontSize: '0.75rem', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' },

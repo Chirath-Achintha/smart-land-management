@@ -300,7 +300,6 @@ const styles = {
     userEmail: { fontSize: '0.8rem', color: '#666' },
     roleTag: { padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' },
     statusTag: { padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
-    statusTag: { padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     actionGroup: { display: 'flex', gap: '8px' },
     iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#666', transition: 'color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '6px' },
     noResults: { padding: '40px', textAlign: 'center', color: '#666', borderTop: '1px solid #f9fafb' }

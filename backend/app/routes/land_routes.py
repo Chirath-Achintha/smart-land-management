@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 import os
 import uuid
 import shutil
+import re
 from typing import List
 from datetime import datetime
 from urllib.parse import urlparse
@@ -18,6 +19,15 @@ from app.routes.auth_routes import get_current_user
 
 router = APIRouter(prefix="/lands", tags=["Lands"])
 UPLOAD_ROOT = os.path.abspath(os.path.join("static", "uploads"))
+
+
+def sanitize_land_folder_name(land_name: str) -> str:
+    raw_name = (land_name or "").strip().lower()
+    if not raw_name:
+        return "untitled-land"
+
+    safe_name = re.sub(r"[^a-z0-9]+", "-", raw_name).strip("-")
+    return (safe_name[:80] or "untitled-land")
 
 
 def get_local_uploaded_image_paths(image_url_value: str) -> List[str]:
@@ -99,14 +109,19 @@ def ensure_admin(user: User):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
 @router.post("/upload")
-async def upload_image(file: UploadFile = File(...)):
-    # Create static directory if not exists
-    os.makedirs("static/uploads", exist_ok=True)
-    
-    # Generate unique filename
-    file_extension = os.path.splitext(file.filename)[1]
+async def upload_image(
+    file: UploadFile = File(...),
+    land_name: str = Form("untitled-land")
+):
+    # Create /static/uploads/{land-name} and keep each land's files grouped.
+    land_folder = sanitize_land_folder_name(land_name)
+    land_upload_root = os.path.join(UPLOAD_ROOT, land_folder)
+    os.makedirs(land_upload_root, exist_ok=True)
+
+    # Generate unique filename inside that land folder
+    file_extension = os.path.splitext(file.filename or "")[1]
     filename = f"{uuid.uuid4()}{file_extension}"
-    file_path = os.path.join("static/uploads", filename)
+    file_path = os.path.join(land_upload_root, filename)
     
     # Save file
     with open(file_path, "wb") as buffer:
@@ -114,7 +129,7 @@ async def upload_image(file: UploadFile = File(...)):
         
     # Return absolute URL (assuming backend runs on localhost:8000)
     # In production, this should be the actual server URL
-    url = f"http://localhost:8000/static/uploads/{filename}"
+    url = f"http://localhost:8000/static/uploads/{land_folder}/{filename}"
     return {"url": url}
 
 

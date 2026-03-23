@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import API_BASE_URL from '../apiConfig';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,7 @@ import { BellIcon } from '../pages/landing/LandingIcons';
 
 const DashboardLayout = ({ role }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { logout } = useAuth();
     const [profileOpen, setProfileOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -316,7 +317,9 @@ const DashboardLayout = ({ role }) => {
                         </div>
                     </div>
                 </div>
-                <Outlet />
+                <div key={location.pathname} className="page-fade">
+                    <Outlet />
+                </div>
             </main>
 
             {profileOpen && (
@@ -339,7 +342,10 @@ const DashboardLayout = ({ role }) => {
 
                         {error && <div style={styles.errorBox}>{error}</div>}
                         {loading ? (
-                            <div style={styles.loadingText}>Loading profile...</div>
+                            <div style={styles.loadingText}>
+                                <span className="ui-spinner"></span>
+                                <span>Loading profile...</span>
+                            </div>
                         ) : (
                             <div style={styles.profileGrid}>
                                 <div style={styles.fieldItem}>
@@ -406,21 +412,21 @@ const DashboardLayout = ({ role }) => {
 const styles = {
     layout: { display: 'flex', minHeight: '100vh', width: '100%' },
     main: { flex: 1, backgroundColor: 'var(--sage-bg)', overflowY: 'auto' },
-    topbar: { position: 'sticky', top: 0, zIndex: 20, height: '68px', background: 'rgba(250, 246, 241, 0.92)', borderBottom: '1px solid rgba(85, 107, 47, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', backdropFilter: 'blur(8px)' },
+    topbar: { position: 'sticky', top: 0, zIndex: 20, height: '68px', background: 'rgba(245, 247, 246, 0.94)', borderBottom: '1px solid var(--color-border)', boxShadow: '0 8px 20px rgba(38, 50, 56, 0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', backdropFilter: 'blur(8px)' },
     topbarTitle: { fontSize: '1rem', fontWeight: '800', color: 'var(--sage-text-dark)' },
     topbarActions: { display: 'flex', alignItems: 'center', gap: '12px' },
-    navbarBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', backgroundColor: '#fff', border: '1.5px solid #EAECEF', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', color: '#344054', transition: 'all 0.2s ease', fontFamily: 'inherit' },
+    navbarBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', backgroundColor: '#fff', border: '1.5px solid var(--color-border)', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-dark)', transition: 'all 0.3s ease', fontFamily: 'inherit' },
     navbarLogoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', backgroundColor: '#FF3B30', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', color: '#fff', transition: 'all 0.2s ease', fontFamily: 'inherit' },
     btnIcon: { flexShrink: 0 },
-    divider: { width: '1px', height: '24px', backgroundColor: '#EAECEF', margin: '0 4px' },
+    divider: { width: '1px', height: '24px', backgroundColor: 'var(--color-border)', margin: '0 4px' },
     
     // Notifications styles
     notifWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
-    bellBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', backgroundColor: '#fff', border: '1.5px solid #EAECEF', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', outline: 'none' },
-    bellBadge: { position: 'absolute', top: '10px', right: '10px', width: '10px', height: '10px', background: '#FF3B30', borderRadius: '50%', border: '2px solid #fff' },
+    bellBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', backgroundColor: '#fff', border: '1.5px solid var(--color-border)', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.3s ease', position: 'relative', outline: 'none' },
+    bellBadge: { position: 'absolute', top: '10px', right: '10px', width: '10px', height: '10px', background: 'var(--color-primary)', borderRadius: '50%', border: '2px solid #fff' },
     notifDropdown: { position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '320px', background: '#fff', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.12)', border: '1px solid rgba(85, 107, 47, 0.1)', overflow: 'hidden', zIndex: 100 },
     notifHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid rgba(85, 107, 47, 0.08)', background: '#FAFAF8', color: '#1d2a12', fontSize: '0.9rem' },
-    notifMarkBtn: { background: 'none', border: 'none', color: '#556B2F', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline' },
+    notifMarkBtn: { background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline' },
     notifBody: { maxHeight: '320px', overflowY: 'auto', padding: '10px' },
     notifItem: { display: 'flex', gap: '12px', padding: '12px', borderRadius: '10px', marginBottom: '8px', background: '#fff', border: '1px solid rgba(85, 107, 47, 0.05)', transition: 'all 0.2s', cursor: 'pointer' },
     notifDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#e74c3c', marginTop: '6px', flexShrink: 0, transition: 'opacity 0.2s' },
@@ -440,7 +446,7 @@ const styles = {
     cancelBtn: { padding: '9px 14px', border: '1px solid #d9ded2', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', background: '#fff', color: '#4a5740' },
     closeBtn: { padding: '9px 14px', border: '1px solid #d9ded2', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', background: '#f6f7f4', color: '#4a5740' },
     errorBox: { marginBottom: '12px', background: '#fff0ee', border: '1px solid #f2c2bc', color: '#b7382a', padding: '10px 12px', borderRadius: '8px', fontSize: '0.9rem' },
-    loadingText: { color: '#66735d', padding: '16px 0' },
+    loadingText: { color: '#66735d', padding: '16px 0', display: 'inline-flex', alignItems: 'center', gap: '10px' },
     profileGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' },
     fieldItem: { display: 'flex', flexDirection: 'column', gap: '6px' },
     label: { fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7a8570', fontWeight: '700' },

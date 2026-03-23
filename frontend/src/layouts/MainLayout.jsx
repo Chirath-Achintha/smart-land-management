@@ -15,7 +15,9 @@ const MainLayout = () => {
         <div style={styles.container}>
             {!hideHeaderFooter && <Header />}
             <div style={styles.mainContent}>
-                <Outlet />
+                <div key={location.pathname} className="page-fade">
+                    <Outlet />
+                </div>
             </div>
             {!hideHeaderFooter && <GlobalFooter />}
         </div>
@@ -23,7 +25,7 @@ const MainLayout = () => {
 };
 
 const styles = {
-    container: { display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', margin: 0, padding: 0 },
+    container: { display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', margin: 0, padding: 0, background: 'var(--color-bg)' },
     mainContent: { flex: 1, display: 'flex', flexDirection: 'column' }
 };
 

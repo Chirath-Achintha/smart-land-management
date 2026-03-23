@@ -342,19 +342,19 @@ const AgentDashboard = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#777', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem' },
 
-    notifBadge: { background: '#1A1A1A', color: '#fff', padding: '12px 20px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' },
-    notifPulse: { width: '10px', height: '10px', background: '#3498db', borderRadius: '50%', display: 'inline-block', animation: 'blink 1.5s infinite' },
+    notifBadge: { background: 'var(--color-dark)', color: '#fff', padding: '12px 20px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 8px 18px rgba(38, 50, 56, 0.2)' },
+    notifPulse: { width: '10px', height: '10px', background: 'var(--color-blue)', borderRadius: '50%', display: 'inline-block', animation: 'blink 1.5s infinite' },
 
 
     tabBar: { display: 'flex', gap: '12px', marginBottom: '24px' },
-    tab: { padding: '10px 24px', borderRadius: '10px', background: 'transparent', border: '1px solid #DDD', color: '#666', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' },
-    activeTab: { background: '#1A1A1A', color: '#fff', border: '1px solid #1A1A1A' },
-    count: { background: '#3498db', color: '#fff', padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem' },
+    tab: { padding: '10px 24px', borderRadius: '10px', background: '#fff', border: '1px solid var(--color-border)', color: 'var(--color-text-soft)', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.3s ease' },
+    activeTab: { background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)' },
+    count: { background: 'var(--color-blue)', color: '#fff', padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem' },
 
     profilePicWrapper: { cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     profileInitials: { width: '48px', height: '48px', background: '#3498db', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: '800', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' },
@@ -362,14 +362,14 @@ const S = {
     dashboardContent: { display: 'flex', flexDirection: 'column', gap: '32px' },
     mainColumn: { display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' },
 
-    sectionCard: { background: '#fff', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
+    sectionCard: { background: '#fff', borderRadius: '24px', padding: '24px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #F0F0F0', paddingBottom: '16px' },
-    sectionTitle: { fontSize: '1.1rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    sectionTitle: { fontSize: '1.1rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
 
     tableWrap: { overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    th: { textAlign: 'left', padding: '16px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#AAA', borderBottom: '2px solid #F9F9F9' },
-    td: { padding: '16px', fontSize: '0.9rem', color: '#333', borderBottom: '1px solid #F9F9F9' },
+    th: { textAlign: 'left', padding: '16px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#6C7A80', borderBottom: '2px solid #F1F4F3' },
+    td: { padding: '16px', fontSize: '0.9rem', color: 'var(--color-text)', borderBottom: '1px solid #F1F4F3' },
 
     landCell: { display: 'flex', flexDirection: 'column', gap: '2px' },
     landId: { fontSize: '0.75rem', fontWeight: '800', color: '#3498db' },
@@ -385,11 +385,11 @@ const S = {
     time: { fontSize: '0.75rem', color: '#999' },
 
     actionGroup: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-    confirmBtn: { padding: '6px 14px', background: '#2ecc71', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
-    reportBtn: { padding: '6px 14px', background: '#3498db', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
+    confirmBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
+    reportBtn: { padding: '6px 14px', background: 'var(--color-blue)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
     outlineMiniBtn: { padding: '6px 12px', background: 'transparent', border: '1px solid #DDD', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#666' },
     cancelBtnSmall: { padding: '6px 14px', background: '#fdedec', color: '#e74c3c', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
-    reportBadge: { color: '#2ecc71', fontWeight: '700', fontSize: '0.85rem' },
+    reportBadge: { color: 'var(--color-primary)', fontWeight: '700', fontSize: '0.85rem' },
 
     emptyState: { textAlign: 'center', padding: '40px 0' },
     emptyIcon: { fontSize: '3rem', marginBottom: '16px' },

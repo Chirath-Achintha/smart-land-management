@@ -6,6 +6,7 @@ from typing import List
 from datetime import datetime
 from urllib.parse import urlparse
 from beanie import PydanticObjectId
+from beanie.operators import In
 
 from app.models.land_model import Land
 
@@ -156,11 +157,10 @@ async def create_land(
 # ── Get all Available lands (public, for buyers) ──────────────────────────────
 @router.get("/", response_model=List[LandResponse])
 async def get_all_lands():
-    # Public view: Show only Available lands that have been VERIFIED by an admin.
-    # Unverified/Pending lands should only be seen by the seller in their Dashboard.
+    # Public view: Fetch all lands from DB with status Available or Reserved.
+    # Only real DB records are returned — no hardcoded or fake data.
     lands = await Land.find(
-        Land.status == "Available",
-        Land.is_verified == True
+        In(Land.status, ["Available", "Reserved"])
     ).sort("-created_at").to_list()
     # Attach bidding setup to each land for the response
     for land in lands:
@@ -274,10 +274,10 @@ async def admin_verify_land(
 # ── Get a single land by ID ───────────────────────────────────────────────────
 @router.get("/{land_id}", response_model=LandResponse)
 async def get_land(land_id: PydanticObjectId):
+    # Fetch any land from DB by ID — no verification filter so all real DB lands are accessible.
     land = await Land.find_one(
         Land.id == land_id,
-        Land.status == "Available",
-        Land.is_verified == True
+        In(Land.status, ["Available", "Reserved"])
     )
     if not land:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found")

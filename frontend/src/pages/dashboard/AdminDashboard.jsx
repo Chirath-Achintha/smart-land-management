@@ -18,10 +18,29 @@ const AdminDashboard = () => {
     const [sellerLandGroups, setSellerLandGroups] = useState([]);
     const [landsLoading, setLandsLoading] = useState(true);
     const [landsError, setLandsError] = useState('');
+    const [allLands, setAllLands] = useState([]);
+    const [allLandsLoading, setAllLandsLoading] = useState(true);
+    const [allLandsError, setAllLandsError] = useState('');
+    const [landTab, setLandTab] = useState('pending');
     const [actionLoadingId, setActionLoadingId] = useState('');
     const [rejectLand, setRejectLand] = useState(null);
     const [rejectMessage, setRejectMessage] = useState('');
     const [rejectError, setRejectError] = useState('');
+    const [editLand, setEditLand] = useState(null);
+    const [editForm, setEditForm] = useState({
+        name: '',
+        district: '',
+        village: '',
+        perches: '',
+        price_per_perch: '',
+        land_type: 'Residential',
+        status: 'Available',
+        road_access: '',
+        image_url: '',
+        electricity: false,
+        water: false
+    });
+    const [editError, setEditError] = useState('');
 
     const getToken = () => localStorage.getItem('access_token');
 
@@ -59,6 +78,44 @@ const AdminDashboard = () => {
         }
     };
 
+    const fetchAllLands = async () => {
+        const token = getToken();
+        if (!token) {
+            setAllLandsLoading(false);
+            return;
+        }
+
+        setAllLandsLoading(true);
+        setAllLandsError('');
+
+        try {
+            const res = await fetch(`${API}/lands/admin/all`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to load all lands');
+            }
+
+            const data = await res.json();
+            setAllLands(Array.isArray(data) ? data : []);
+        } catch (e) {
+            if (e.message === 'Failed to fetch') {
+                setAllLandsError('Cannot connect to backend. Please make sure FastAPI server is running on http://localhost:8000.');
+            } else {
+                setAllLandsError(e.message || 'Failed to load all lands');
+            }
+            setAllLands([]);
+        } finally {
+            setAllLandsLoading(false);
+        }
+    };
+
+    const refreshLandData = async () => {
+        await Promise.all([fetchSellerLandGroups(), fetchAllLands()]);
+    };
+
     const handleVerifyLand = async (land, shouldVerify, note = null) => {
         const token = getToken();
         if (!token) return false;
@@ -81,13 +138,13 @@ const AdminDashboard = () => {
                 const err = await res.json().catch(() => ({}));
                 if (!shouldVerify && res.status === 404) {
                     // If already removed by a previous request, treat as success and refresh.
-                    await fetchSellerLandGroups();
+                    await refreshLandData();
                     return true;
                 }
                 throw new Error(err.detail || 'Failed to update verification status');
             }
 
-            await fetchSellerLandGroups();
+            await refreshLandData();
             return true;
         } catch (e) {
             alert(e.message || 'Failed to update verification status');
@@ -122,6 +179,202 @@ const AdminDashboard = () => {
         }
     };
 
+    const openEditModal = (land) => {
+        setEditLand(land);
+        setEditError('');
+        setEditForm({
+            name: land.name || '',
+            district: land.district || '',
+            village: land.village || '',
+            perches: String(land.perches ?? ''),
+            price_per_perch: String(land.price_per_perch ?? ''),
+            land_type: land.land_type || 'Residential',
+            status: land.status || 'Available',
+            road_access: land.road_access || '',
+            image_url: land.image_url || '',
+            electricity: Boolean(land.electricity),
+            water: Boolean(land.water)
+        });
+    };
+
+    const closeEditModal = () => {
+        setEditLand(null);
+        setEditError('');
+    };
+
+    const submitEditLand = async () => {
+        if (!editLand) return;
+        const token = getToken();
+        if (!token) return;
+
+        const landId = editLand.id || editLand._id;
+        const perchesValue = Number(editForm.perches);
+        const pricePerPerchValue = Number(editForm.price_per_perch);
+
+        if (!editForm.name.trim() || !editForm.district.trim() || !editForm.village.trim()) {
+            setEditError('Name, district, and village are required.');
+            return;
+        }
+
+        if (!Number.isFinite(perchesValue) || perchesValue <= 0) {
+            setEditError('Perches must be a positive number.');
+            return;
+        }
+
+        if (!Number.isFinite(pricePerPerchValue) || pricePerPerchValue <= 0) {
+            setEditError('Price per perch must be a positive number.');
+            return;
+        }
+
+        setActionLoadingId(landId);
+        setEditError('');
+
+        try {
+            const payload = {
+                name: editForm.name.trim(),
+                district: editForm.district.trim(),
+                village: editForm.village.trim(),
+                perches: perchesValue,
+                price_per_perch: pricePerPerchValue,
+                land_type: editForm.land_type,
+                status: editForm.status,
+                road_access: editForm.road_access.trim() || null,
+                image_url: editForm.image_url.trim() || null,
+                electricity: Boolean(editForm.electricity),
+                water: Boolean(editForm.water)
+            };
+
+            const res = await fetch(`${API}/lands/${landId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to update land');
+            }
+
+            await refreshLandData();
+            closeEditModal();
+        } catch (e) {
+            setEditError(e.message || 'Failed to update land');
+        } finally {
+            setActionLoadingId('');
+        }
+    };
+
+    const handleDeleteLand = async (land) => {
+        const token = getToken();
+        if (!token) return;
+        const landId = land.id || land._id;
+
+        if (!window.confirm(`Delete land listing "${land.name}"? This cannot be undone.`)) {
+            return;
+        }
+
+        setActionLoadingId(landId);
+        try {
+            const res = await fetch(`${API}/lands/${landId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to delete land');
+            }
+
+            await refreshLandData();
+        } catch (e) {
+            alert(e.message || 'Failed to delete land');
+        } finally {
+            setActionLoadingId('');
+        }
+    };
+
+    const renderLandRow = (land, extraMeta = null, mode = 'full') => {
+        const landId = land.id || land._id;
+        const isWorking = actionLoadingId === landId;
+
+        return (
+            <div key={landId} style={S.landRow}>
+                <div style={S.landMain}>
+                    {land.image_url ? (
+                        <img src={land.image_url.split(',')[0]} alt={land.name} style={S.landImage} />
+                    ) : (
+                        <div style={S.landImagePlaceholder}>No Image</div>
+                    )}
+                    <div>
+                        <div style={S.landTitle}>{land.name}</div>
+                        <div style={S.landMeta}>
+                            {land.village}, {land.district} | {land.perches} perches | Rs. {Number(land.total_price || 0).toLocaleString()}
+                        </div>
+                        <div style={S.landMeta}>
+                            Status: {land.status} | Verification: {land.is_verified ? 'Verified' : 'Pending'}
+                        </div>
+                        {extraMeta && <div style={S.landMeta}>{extraMeta}</div>}
+                        {land.verification_note && (
+                            <div style={S.noteText}>Note: {land.verification_note}</div>
+                        )}
+                    </div>
+                </div>
+
+                {mode === 'full' ? (
+                    <div style={S.verifyActions}>
+                        <button
+                            style={S.editActionBtn}
+                            disabled={isWorking}
+                            onClick={() => openEditModal(land)}
+                        >
+                            Edit
+                        </button>
+                        <button
+                            style={S.approveBtn}
+                            disabled={isWorking || land.is_verified}
+                            onClick={() => handleVerifyLand(land, true, null)}
+                        >
+                            {isWorking ? 'Saving...' : 'Approve'}
+                        </button>
+                        <button
+                            style={S.rejectBtn}
+                            disabled={isWorking}
+                            onClick={() => openRejectModal(land)}
+                        >
+                            {isWorking ? 'Saving...' : 'Reject'}
+                        </button>
+                        <button
+                            style={S.deleteActionBtn}
+                            disabled={isWorking}
+                            onClick={() => handleDeleteLand(land)}
+                        >
+                            {isWorking ? 'Saving...' : 'Delete'}
+                        </button>
+                    </div>
+                ) : (
+                    <div style={S.verifyActions}>
+                        <button
+                            style={S.viewActionBtn}
+                            onClick={() => navigate(`/lands/${landId}`)}
+                        >
+                            View
+                        </button>
+                        <button
+                            style={S.deleteActionBtn}
+                            disabled={isWorking}
+                            onClick={() => handleDeleteLand(land)}
+                        >
+                            {isWorking ? 'Deleting...' : 'Delete'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     // Fetch user from DB using JWT
     useEffect(() => {
         const token = localStorage.getItem('access_token');
@@ -153,7 +406,7 @@ const AdminDashboard = () => {
             .then(setStats)
             .catch(console.error);
 
-        fetchSellerLandGroups();
+        refreshLandData();
     }, []);
 
     return (
@@ -197,84 +450,72 @@ const AdminDashboard = () => {
                     {/* Land Verification */}
                     <div style={S.sectionCard}>
                         <div style={S.cardHeader}>
-                            <h2 style={S.sectionTitle}>Land Verification Queue</h2>
-                            <button style={S.editBtn} onClick={fetchSellerLandGroups}>Refresh</button>
+                            <h2 style={S.sectionTitle}>Land Management</h2>
+                            <div style={S.tabActions}>
+                                <button
+                                    style={{ ...S.tabBtn, ...(landTab === 'pending' ? S.tabBtnActive : {}) }}
+                                    onClick={() => setLandTab('pending')}
+                                >
+                                    Pending Queue
+                                </button>
+                                <button
+                                    style={{ ...S.tabBtn, ...(landTab === 'all' ? S.tabBtnActive : {}) }}
+                                    onClick={() => setLandTab('all')}
+                                >
+                                    All Lands
+                                </button>
+                                <button style={S.editBtn} onClick={refreshLandData}>Refresh</button>
+                            </div>
                         </div>
 
-                        {landsLoading ? (
-                            <div style={S.emptyState}>Loading lands...</div>
-                        ) : landsError ? (
-                            <div style={S.errorBox}>{landsError}</div>
-                        ) : sellerLandGroups.length === 0 ? (
-                            <div style={S.emptyState}>No seller listings found.</div>
-                        ) : (
-                            <div style={S.verifyWrap}>
-                                {sellerLandGroups.map((group) => (
-                                    <div key={group.seller_id} style={S.sellerBlock}>
-                                        <div style={S.sellerHeader}>
-                                            <div>
-                                                <h3 style={S.sellerName}>{group.seller_name}</h3>
-                                                <div style={S.sellerMeta}>{group.seller_email}</div>
+                        {landTab === 'pending' ? (
+                            landsLoading ? (
+                                <div style={S.emptyState}>Loading lands...</div>
+                            ) : landsError ? (
+                                <div style={S.errorBox}>{landsError}</div>
+                            ) : sellerLandGroups.length === 0 ? (
+                                <div style={S.emptyState}>No seller listings found.</div>
+                            ) : (
+                                <div style={S.verifyWrap}>
+                                    {sellerLandGroups.map((group) => (
+                                        <div key={group.seller_id} style={S.sellerBlock}>
+                                            <div style={S.sellerHeader}>
+                                                <div>
+                                                    <h3 style={S.sellerName}>{group.seller_name}</h3>
+                                                    <div style={S.sellerMeta}>{group.seller_email}</div>
+                                                </div>
+                                                <div style={S.countRow}>
+                                                    <span style={S.countBadge}>Total: {group.total_lands}</span>
+                                                    <span style={{ ...S.countBadge, ...S.verifiedBadge }}>Verified: {group.verified_lands}</span>
+                                                    <span style={{ ...S.countBadge, ...S.pendingBadge }}>Pending: {group.pending_lands}</span>
+                                                </div>
                                             </div>
-                                            <div style={S.countRow}>
-                                                <span style={S.countBadge}>Total: {group.total_lands}</span>
-                                                <span style={{ ...S.countBadge, ...S.verifiedBadge }}>Verified: {group.verified_lands}</span>
-                                                <span style={{ ...S.countBadge, ...S.pendingBadge }}>Pending: {group.pending_lands}</span>
-                                            </div>
+
+                                            {group.lands.length === 0 ? (
+                                                <div style={S.emptyStateSmall}>No lands from this seller yet.</div>
+                                            ) : (
+                                                <div style={S.landList}>
+                                                    {group.lands.map((land) => renderLandRow(land))}
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {group.lands.length === 0 ? (
-                                            <div style={S.emptyStateSmall}>No lands from this seller yet.</div>
-                                        ) : (
-                                            <div style={S.landList}>
-                                                {group.lands.map((land) => {
-                                                    const landId = land.id || land._id;
-                                                    const isWorking = actionLoadingId === landId;
-                                                    return (
-                                                        <div key={landId} style={S.landRow}>
-                                                            <div style={S.landMain}>
-                                                                {land.image_url ? (
-                                                                    <img src={land.image_url.split(',')[0]} alt={land.name} style={S.landImage} />
-                                                                ) : (
-                                                                    <div style={S.landImagePlaceholder}>No Image</div>
-                                                                )}
-                                                                <div>
-                                                                    <div style={S.landTitle}>{land.name}</div>
-                                                                    <div style={S.landMeta}>
-                                                                        {land.village}, {land.district} | {land.perches} perches | Rs. {Number(land.total_price || 0).toLocaleString()}
-                                                                    </div>
-                                                                    <div style={S.landMeta}>
-                                                                        Status: {land.status} | Verification: {land.is_verified ? 'Verified' : 'Pending'}
-                                                                    </div>
-                                                                    {land.verification_note && (
-                                                                        <div style={S.noteText}>Note: {land.verification_note}</div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-
-                                                            <div style={S.verifyActions}>
-                                                                <button
-                                                                    style={S.approveBtn}
-                                                                    disabled={isWorking || land.is_verified}
-                                                                    onClick={() => handleVerifyLand(land, true, null)}
-                                                                >
-                                                                    {isWorking ? 'Saving...' : 'Approve'}
-                                                                </button>
-                                                                <button
-                                                                    style={S.rejectBtn}
-                                                                    disabled={isWorking}
-                                                                    onClick={() => openRejectModal(land)}
-                                                                >
-                                                                    {isWorking ? 'Saving...' : 'Reject'}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+                            )
+                        ) : allLandsLoading ? (
+                            <div style={S.emptyState}>Loading all lands...</div>
+                        ) : allLandsError ? (
+                            <div style={S.errorBox}>{allLandsError}</div>
+                        ) : allLands.length === 0 ? (
+                            <div style={S.emptyState}>No lands found.</div>
+                        ) : (
+                            <div style={S.sellerBlock}>
+                                <div style={S.allLandsHeader}>
+                                    Total listings: <strong>{allLands.length}</strong>
+                                </div>
+                                <div style={S.landList}>
+                                    {allLands.map((land) => renderLandRow(land, `Seller ID: ${land.seller_id} | Review: ${land.review_status || 'pending'}`, 'view-delete'))}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -329,6 +570,74 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             )}
+
+            {editLand && (
+                <div style={S.modalOverlay}>
+                    <div style={S.modalCard}>
+                        <h3 style={S.modalTitle}>Edit Land Listing</h3>
+                        <p style={S.modalText}>Update details for <strong>{editLand.name}</strong>.</p>
+
+                        <div style={S.editFormGrid}>
+                            <input style={S.modalInput} value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Name" />
+                            <input style={S.modalInput} value={editForm.district} onChange={(e) => setEditForm((p) => ({ ...p, district: e.target.value }))} placeholder="District" />
+                            <input style={S.modalInput} value={editForm.village} onChange={(e) => setEditForm((p) => ({ ...p, village: e.target.value }))} placeholder="Village" />
+                            <input style={S.modalInput} type="number" min="0" step="0.01" value={editForm.perches} onChange={(e) => setEditForm((p) => ({ ...p, perches: e.target.value }))} placeholder="Perches" />
+                            <input style={S.modalInput} type="number" min="0" step="0.01" value={editForm.price_per_perch} onChange={(e) => setEditForm((p) => ({ ...p, price_per_perch: e.target.value }))} placeholder="Price Per Perch" />
+                            <select style={S.modalInput} value={editForm.land_type} onChange={(e) => setEditForm((p) => ({ ...p, land_type: e.target.value }))}>
+                                <option value="Residential">Residential</option>
+                                <option value="Agricultural">Agricultural</option>
+                                <option value="Mixed">Mixed</option>
+                                <option value="Commercial">Commercial</option>
+                            </select>
+                            <select style={S.modalInput} value={editForm.status} onChange={(e) => setEditForm((p) => ({ ...p, status: e.target.value }))}>
+                                <option value="Available">Available</option>
+                                <option value="Reserved">Reserved</option>
+                                <option value="Sold">Sold</option>
+                            </select>
+                            <input style={S.modalInput} value={editForm.road_access} onChange={(e) => setEditForm((p) => ({ ...p, road_access: e.target.value }))} placeholder="Road Access" />
+                        </div>
+
+                        <input
+                            style={{ ...S.modalInput, marginTop: '10px' }}
+                            value={editForm.image_url}
+                            onChange={(e) => setEditForm((p) => ({ ...p, image_url: e.target.value }))}
+                            placeholder="Image URL(s), comma-separated"
+                        />
+
+                        <div style={S.checkboxRow}>
+                            <label style={S.checkboxLabel}>
+                                <input
+                                    type="checkbox"
+                                    checked={editForm.electricity}
+                                    onChange={(e) => setEditForm((p) => ({ ...p, electricity: e.target.checked }))}
+                                />
+                                Electricity
+                            </label>
+                            <label style={S.checkboxLabel}>
+                                <input
+                                    type="checkbox"
+                                    checked={editForm.water}
+                                    onChange={(e) => setEditForm((p) => ({ ...p, water: e.target.checked }))}
+                                />
+                                Water
+                            </label>
+                        </div>
+
+                        {editError && <div style={S.modalError}>{editError}</div>}
+
+                        <div style={S.modalActions}>
+                            <button style={S.modalCancelBtn} onClick={closeEditModal}>Cancel</button>
+                            <button
+                                style={S.modalSaveBtn}
+                                onClick={submitEditLand}
+                                disabled={Boolean(editLand && actionLoadingId === (editLand.id || editLand._id))}
+                            >
+                                {Boolean(editLand && actionLoadingId === (editLand.id || editLand._id)) ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -350,6 +659,22 @@ const S = {
     sectionCard: { background: 'var(--sage-card)', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', border: '1px solid rgba(85, 107, 47, 0.05)' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(85, 107, 47, 0.05)', paddingBottom: '16px' },
     sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--sage-text-dark)', margin: 0 },
+    tabActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+    tabBtn: {
+        padding: '8px 12px',
+        borderRadius: '8px',
+        border: '1px solid #d6dccb',
+        background: '#fff',
+        fontWeight: '700',
+        fontSize: '0.82rem',
+        cursor: 'pointer',
+        color: '#536246'
+    },
+    tabBtnActive: {
+        background: '#eef5e6',
+        borderColor: '#b7c7a4',
+        color: '#324623'
+    },
 
     editActions: { display: 'flex', gap: '8px' },
     editBtn: { padding: '8px 16px', background: 'rgba(85, 107, 47, 0.05)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--sage-primary)' },
@@ -395,6 +720,13 @@ const S = {
     },
     verifiedBadge: { background: '#e8f8ef', color: '#1f8f4e' },
     pendingBadge: { background: '#fff3e8', color: '#b7641e' },
+    allLandsHeader: {
+        padding: '12px 16px',
+        background: '#f8fbf3',
+        borderBottom: '1px solid rgba(85, 107, 47, 0.08)',
+        fontSize: '0.86rem',
+        color: '#4b5b3d'
+    },
     landList: { display: 'flex', flexDirection: 'column' },
     landRow: {
         display: 'flex',
@@ -436,6 +768,36 @@ const S = {
         borderRadius: '8px',
         background: '#fff7f4',
         color: '#9a4a33',
+        fontWeight: '700',
+        fontSize: '0.8rem',
+        padding: '8px 12px',
+        cursor: 'pointer'
+    },
+    editActionBtn: {
+        border: '1px solid #cbd5c0',
+        borderRadius: '8px',
+        background: '#f8fbf3',
+        color: '#3f4d2f',
+        fontWeight: '700',
+        fontSize: '0.8rem',
+        padding: '8px 12px',
+        cursor: 'pointer'
+    },
+    viewActionBtn: {
+        border: '1px solid #cfd8e4',
+        borderRadius: '8px',
+        background: '#f4f8ff',
+        color: '#304a6b',
+        fontWeight: '700',
+        fontSize: '0.8rem',
+        padding: '8px 12px',
+        cursor: 'pointer'
+    },
+    deleteActionBtn: {
+        border: '1px solid #e6b1a4',
+        borderRadius: '8px',
+        background: '#fff0eb',
+        color: '#a33d2b',
         fontWeight: '700',
         fontSize: '0.8rem',
         padding: '8px 12px',
@@ -492,6 +854,33 @@ const S = {
         outline: 'none',
         resize: 'vertical'
     },
+    editFormGrid: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '10px'
+    },
+    modalInput: {
+        width: '100%',
+        border: '1px solid #ced9c1',
+        borderRadius: '10px',
+        padding: '10px 12px',
+        fontFamily: "'DM Sans', sans-serif",
+        fontSize: '0.9rem',
+        outline: 'none',
+        background: '#fff'
+    },
+    checkboxRow: {
+        marginTop: '12px',
+        display: 'flex',
+        gap: '16px'
+    },
+    checkboxLabel: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        fontSize: '0.88rem',
+        color: '#4f5d42'
+    },
     modalError: {
         marginTop: '10px',
         borderRadius: '8px',
@@ -521,6 +910,15 @@ const S = {
         borderRadius: '8px',
         border: 'none',
         background: '#9a4a33',
+        color: '#fff',
+        cursor: 'pointer',
+        fontWeight: '700'
+    },
+    modalSaveBtn: {
+        padding: '9px 14px',
+        borderRadius: '8px',
+        border: 'none',
+        background: '#2f8f58',
         color: '#fff',
         cursor: 'pointer',
         fontWeight: '700'

@@ -130,15 +130,34 @@ const ConstructorCalendarPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
-    header: { marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#777', fontSize: '1rem' },
-    calendarContainer: { background: '#fff', padding: '24px', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
-    loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#999' },
-    legend: { display: 'flex', gap: '20px', marginTop: '24px', flexWrap: 'wrap', background: '#fff', padding: '16px 24px', borderRadius: '16px', border: '1px solid #F0F0F0' },
-    legendItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: '700', color: '#4B5563' },
-    dot: { width: '12px', height: '12px', borderRadius: '50%' }
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    header: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '40px' },
+    title: { fontSize: '2.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0, letterSpacing: '-0.02em' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem', fontWeight: '500' },
+    
+    calendarContainer: { 
+        background: '#fff', 
+        padding: '32px', 
+        borderRadius: '32px', 
+        boxShadow: 'var(--shadow-soft)', 
+        border: '1px solid var(--color-border)',
+        overflow: 'hidden'
+    },
+    loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#BBB', fontWeight: '600' },
+    
+    legend: { 
+        display: 'flex', 
+        gap: '24px', 
+        marginTop: '32px', 
+        flexWrap: 'wrap', 
+        background: '#fff', 
+        padding: '20px 32px', 
+        borderRadius: '24px', 
+        border: '1px solid var(--color-border)',
+        boxShadow: '0 8px 32px rgba(26, 26, 26, 0.04)'
+    },
+    legendItem: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.78rem', fontWeight: '800', color: 'var(--color-text-soft)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    dot: { width: '10px', height: '10px', borderRadius: '50%' }
 };
 
 export default ConstructorCalendarPage;

@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
 const MAX_IMAGES = 5;
 
-const STATUS_COLORS = {
-    Available: { bg: '#eafaf1', color: '#2ecc71', border: '#2ecc71' },
-    Reserved: { bg: '#fef5e7', color: '#e67e22', border: '#e67e22' },
-    Sold: { bg: '#f0f0f0', color: '#888', border: '#ccc' },
-};
+const ALL_DISTRICTS = [
+    'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle',
+    'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle',
+    'Kilinochchi', 'Kurunegala', 'Mannar', 'Matale', 'Matara', 'Monaragala',
+    'Mullaitivu', 'Nuwara Eliya', 'Polonnaruwa', 'Puttalam', 'Ratnapura',
+    'Trincomalee', 'Vavuniya',
+];
 
 const REVIEW_COLORS = {
     approved: { bg: '#eafaf1', color: '#2ecc71', border: '#2ecc71', label: 'Approved' },
@@ -16,11 +19,20 @@ const REVIEW_COLORS = {
     rejected: { bg: '#fff1f0', color: '#c0392b', border: '#f1b0aa', label: 'Rejected' },
 };
 
+const SIZE_ERROR = 'Size (Perches) must be greater than zero.';
+const PRICE_ERROR = 'Price Per Perch must be greater than zero.';
+const STARTING_BID_ERROR = 'Starting Bid must be greater than zero.';
+const STARTING_BID_MIN_CURRENT_PRICE_ERROR = (currentPrice) =>
+    `Starting Bid cannot be lower than Current Price (Rs. ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}).`;
+const BIDDING_END_REQUIRED_ERROR = 'Bidding End Date is required when bidding is open.';
+const BIDDING_END_FUTURE_ERROR = 'Bidding End Date must be today or a future date.';
+
 const EMPTY_FORM = {
     name: '', district: '', village: '', perches: '', price_per_perch: '',
-    land_type: 'Residential', status: 'Available', road_access: '',
+    land_type: 'Residential', road_access: '',
     electricity: false, water: false,
     image_url: '',           // stored as URL string
+    self_visit_only: false,
     open_for_bidding: false, starting_bid: '', bidding_end: '',
 };
 
@@ -33,7 +45,16 @@ function getImageUrls(imageUrlValue) {
     return imageUrlValue.split(',').map(url => url.trim()).filter(Boolean);
 }
 
+function getTodayLocalDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 const SellerListingsPage = () => {
+    const navigate = useNavigate();
     const [listings, setListings] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -43,16 +64,44 @@ const SellerListingsPage = () => {
     const [editingId, setEditingId] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({ perches: '', price_per_perch: '', starting_bid: '', bidding_end: '' });
+    const totalPrice = calcTotal(form.perches, form.price_per_perch);
+    const minBiddingDate = getTodayLocalDate();
 
     const token = localStorage.getItem('access_token');
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
+    const handleSessionExpired = () => {
+        setError('Session expired. Please login again.');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+        setTimeout(() => {
+            navigate('/login', { state: { from: '/dashboard/seller/listings' } });
+        }, 700);
+    };
 
     // ── Fetch seller's own listings from DB ────────────────────────────────
     const fetchListings = () => {
         setLoading(true);
         Promise.all([
-            fetch(`${API}/lands/my`, { headers: authHeaders }).then(r => r.json()).catch(() => []),
-            fetch(`${API}/notifications/`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()).catch(() => [])
+            fetch(`${API}/lands/my`, { headers: authHeaders })
+                .then(async (r) => {
+                    if (r.status === 401) {
+                        handleSessionExpired();
+                        return [];
+                    }
+                    return r.json();
+                })
+                .catch(() => []),
+            fetch(`${API}/notifications/`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(async (r) => {
+                    if (r.status === 401) {
+                        handleSessionExpired();
+                        return [];
+                    }
+                    return r.json();
+                })
+                .catch(() => [])
         ])
             .then(([lands, notifs]) => {
                 setListings(Array.isArray(lands) ? lands : []);
@@ -86,14 +135,55 @@ const SellerListingsPage = () => {
 
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
+        const nextValue = type === 'checkbox' ? checked : value;
+
+        if (name === 'perches' || name === 'price_per_perch') {
+            if (value !== '' && Number(value) <= 0) {
+                const message = name === 'perches' ? SIZE_ERROR : PRICE_ERROR;
+                setFieldErrors((prev) => ({ ...prev, [name]: message }));
+            } else {
+                setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+            }
+        }
+
+        if (name === 'starting_bid') {
+            const startingBidValue = Number(value);
+            if (value !== '' && startingBidValue <= 0) {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: STARTING_BID_ERROR }));
+            } else if (value !== '' && totalPrice > 0 && startingBidValue < totalPrice) {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: STARTING_BID_MIN_CURRENT_PRICE_ERROR(totalPrice) }));
+            } else {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: '' }));
+            }
+        }
+
+        if (name === 'bidding_end') {
+            if (!value) {
+                setFieldErrors((prev) => ({ ...prev, bidding_end: BIDDING_END_REQUIRED_ERROR }));
+            } else {
+                const endDate = new Date(`${value}T23:59:59`);
+                if (Number.isNaN(endDate.getTime()) || endDate < new Date()) {
+                    setFieldErrors((prev) => ({ ...prev, bidding_end: BIDDING_END_FUTURE_ERROR }));
+                } else {
+                    setFieldErrors((prev) => ({ ...prev, bidding_end: '' }));
+                }
+            }
+        }
+
+        if (name === 'open_for_bidding' && !checked) {
+            setFieldErrors((prev) => ({ ...prev, starting_bid: '', bidding_end: '' }));
+        }
+
+        setForm(f => ({ ...f, [name]: nextValue }));
     };
 
     const [isDragging, setIsDragging] = useState(false);
 
     const uploadSingleImage = async (file) => {
+        const landNameForFolder = (form.name || '').trim() || 'untitled-land';
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('land_name', landNameForFolder);
 
         const res = await fetch(`${API}/lands/upload`, {
             method: 'POST',
@@ -163,6 +253,7 @@ const SellerListingsPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setFieldErrors({ perches: '', price_per_perch: '', starting_bid: '', bidding_end: '' });
         setSubmitting(true);
 
         const payload = {
@@ -171,6 +262,46 @@ const SellerListingsPage = () => {
             price_per_perch: parseFloat(form.price_per_perch),
             starting_bid: form.starting_bid ? parseFloat(form.starting_bid) : null,
         };
+
+        if (!Number.isFinite(payload.perches) || payload.perches <= 0) {
+            setFieldErrors((prev) => ({ ...prev, perches: SIZE_ERROR }));
+            setSubmitting(false);
+            return;
+        }
+
+        if (!Number.isFinite(payload.price_per_perch) || payload.price_per_perch <= 0) {
+            setFieldErrors((prev) => ({ ...prev, price_per_perch: PRICE_ERROR }));
+            setSubmitting(false);
+            return;
+        }
+
+        if (form.open_for_bidding) {
+            const startingBidValue = Number(form.starting_bid);
+            if (!Number.isFinite(startingBidValue) || startingBidValue <= 0) {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: STARTING_BID_ERROR }));
+                setSubmitting(false);
+                return;
+            }
+
+            if (totalPrice > 0 && startingBidValue < totalPrice) {
+                setFieldErrors((prev) => ({ ...prev, starting_bid: STARTING_BID_MIN_CURRENT_PRICE_ERROR(totalPrice) }));
+                setSubmitting(false);
+                return;
+            }
+
+            if (!form.bidding_end) {
+                setFieldErrors((prev) => ({ ...prev, bidding_end: BIDDING_END_REQUIRED_ERROR }));
+                setSubmitting(false);
+                return;
+            }
+
+            const biddingEndDate = new Date(`${form.bidding_end}T23:59:59`);
+            if (Number.isNaN(biddingEndDate.getTime()) || biddingEndDate < new Date()) {
+                setFieldErrors((prev) => ({ ...prev, bidding_end: BIDDING_END_FUTURE_ERROR }));
+                setSubmitting(false);
+                return;
+            }
+        }
 
         try {
             let res;
@@ -190,6 +321,10 @@ const SellerListingsPage = () => {
 
             if (!res.ok) {
                 const err = await res.json();
+                if (res.status === 401) {
+                    handleSessionExpired();
+                    return;
+                }
                 setError(err.detail || 'Failed to save listing');
                 return;
             }
@@ -206,7 +341,11 @@ const SellerListingsPage = () => {
 
     const handleDelete = async (id) => {
         try {
-            await fetch(`${API}/lands/${id}`, { method: 'DELETE', headers: authHeaders });
+            const res = await fetch(`${API}/lands/${id}`, { method: 'DELETE', headers: authHeaders });
+            if (res.status === 401) {
+                handleSessionExpired();
+                return;
+            }
             fetchListings();
         } catch { /* ignore */ }
         setDeleteConfirm(null);
@@ -254,14 +393,13 @@ const SellerListingsPage = () => {
                     <table style={S.table}>
                         <thead>
                             <tr>
-                                {['Property', 'Location', 'Size', 'Price / Perch', 'Total Price', 'Bidding', 'Status', 'Review', 'Actions'].map(h => (
+                                {['Property', 'Location', 'Size', 'Price / Perch', 'Total Price', 'Bidding', 'Review', 'Actions'].map(h => (
                                     <th key={h} style={S.th}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {listings.map((l, i) => {
-                                const sc = STATUS_COLORS[l.status] || STATUS_COLORS['Available'];
                                 const rc = REVIEW_COLORS[l.review_status || 'pending'] || REVIEW_COLORS.pending;
                                 const lid = l.id || l._id;
                                 return (
@@ -271,7 +409,13 @@ const SellerListingsPage = () => {
                                                 {l.image_url && (
                                                     <img src={l.image_url.split(',')[0]} alt={l.name} style={S.thumbnail} />
                                                 )}
-                                                <span style={{ fontWeight: '700', color: '#1A1A1A' }}>{l.name}</span>
+                                                <button
+                                                    type="button"
+                                                    style={S.propertyLinkBtn}
+                                                    onClick={() => navigate(`/dashboard/seller/listings/${lid}`)}
+                                                >
+                                                    {l.name}
+                                                </button>
                                             </div>
                                         </td>
                                         <td style={S.td}>{l.village}, {l.district}</td>
@@ -284,11 +428,6 @@ const SellerListingsPage = () => {
                                         <td style={S.td}>
                                             <span style={{ ...S.badge, ...(l.open_for_bidding ? S.badgeOpen : S.badgeClosed) }}>
                                                 {l.open_for_bidding ? 'Open' : 'Closed'}
-                                            </span>
-                                        </td>
-                                        <td style={S.td}>
-                                            <span style={{ ...S.statusBadge, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                                                {l.status}
                                             </span>
                                         </td>
                                         <td style={S.td}>
@@ -305,7 +444,7 @@ const SellerListingsPage = () => {
                                                     setForm({
                                                         name: l.name, district: l.district, village: l.village,
                                                         perches: l.perches, price_per_perch: l.price_per_perch,
-                                                        land_type: l.land_type, status: l.status,
+                                                        land_type: l.land_type,
                                                         road_access: l.road_access || '',
                                                         electricity: l.electricity, water: l.water,
                                                         image_url: l.image_url || '',
@@ -360,7 +499,12 @@ const SellerListingsPage = () => {
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>District *</label>
-                                    <input name="district" value={form.district} onChange={handleFormChange} required style={S.input} />
+                                    <select name="district" value={form.district} onChange={handleFormChange} required style={S.input}>
+                                        <option value="">Select District</option>
+                                        {ALL_DISTRICTS.map((district) => (
+                                            <option key={district} value={district}>{district}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Village / Area *</label>
@@ -368,22 +512,42 @@ const SellerListingsPage = () => {
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Size (Perches) *</label>
-                                    <input name="perches" type="number" value={form.perches} onChange={handleFormChange} required style={S.input} />
+                                    <input
+                                        name="perches"
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        value={form.perches}
+                                        onChange={handleFormChange}
+                                        required
+                                        style={S.input}
+                                    />
+                                    {fieldErrors.perches && <span style={S.fieldError}>{fieldErrors.perches}</span>}
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Price Per Perch (Rs.) *</label>
-                                    <input name="price_per_perch" type="number" value={form.price_per_perch} onChange={handleFormChange} required style={S.input} />
+                                    <input
+                                        name="price_per_perch"
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        value={form.price_per_perch}
+                                        onChange={handleFormChange}
+                                        required
+                                        style={S.input}
+                                    />
+                                    {fieldErrors.price_per_perch && <span style={S.fieldError}>{fieldErrors.price_per_perch}</span>}
+                                </div>
+                                <div style={{ ...S.formGroup, gridColumn: '1 / -1' }}>
+                                    <label style={S.label}>Final Price (Rs.)</label>
+                                    <div style={S.totalPriceBox}>
+                                        Rs. {totalPrice > 0 ? totalPrice.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
+                                    </div>
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Land Type</label>
                                     <select name="land_type" value={form.land_type} onChange={handleFormChange} style={S.input}>
                                         {['Residential', 'Agricultural', 'Commercial', 'Mixed'].map(t => <option key={t}>{t}</option>)}
-                                    </select>
-                                </div>
-                                <div style={S.formGroup}>
-                                    <label style={S.label}>Status</label>
-                                    <select name="status" value={form.status} onChange={handleFormChange} style={S.input}>
-                                        {Object.keys(STATUS_COLORS).map(s => <option key={s}>{s}</option>)}
                                     </select>
                                 </div>
                                 <div style={S.formGroup}>
@@ -395,6 +559,7 @@ const SellerListingsPage = () => {
                             <div style={S.checkRow}>
                                 <label style={S.checkLabel}><input type="checkbox" name="electricity" checked={form.electricity} onChange={handleFormChange} /> Electricity</label>
                                 <label style={S.checkLabel}><input type="checkbox" name="water" checked={form.water} onChange={handleFormChange} /> Water</label>
+                                <label style={S.checkLabel}><input type="checkbox" name="self_visit_only" checked={form.self_visit_only} onChange={handleFormChange} /> Self Visit Only</label>
                             </div>
 
                             <div style={S.sectionDivider}>Property Image</div>
@@ -450,13 +615,29 @@ const SellerListingsPage = () => {
                                 </label>
                                 {form.open_for_bidding && (
                                     <div style={S.biddingFields}>
+                                        <div style={S.currentPriceCard}>
+                                            <span style={S.currentPriceLabel}>Current Price (Rs.)</span>
+                                            <span style={S.currentPriceValue}>
+                                                Rs. {totalPrice > 0 ? totalPrice.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
+                                            </span>
+                                        </div>
                                         <div style={S.formGroup}>
                                             <label style={S.label}>Starting Bid (Rs.)</label>
-                                            <input name="starting_bid" type="number" value={form.starting_bid} onChange={handleFormChange} style={S.input} />
+                                            <input
+                                                name="starting_bid"
+                                                type="number"
+                                                min={totalPrice > 0 ? totalPrice.toFixed(2) : '0.01'}
+                                                step="0.01"
+                                                value={form.starting_bid}
+                                                onChange={handleFormChange}
+                                                style={S.input}
+                                            />
+                                            {fieldErrors.starting_bid && <span style={S.fieldError}>{fieldErrors.starting_bid}</span>}
                                         </div>
                                         <div style={S.formGroup}>
                                             <label style={S.label}>Bidding End Date</label>
-                                            <input name="bidding_end" type="date" value={form.bidding_end} onChange={handleFormChange} style={S.input} />
+                                            <input name="bidding_end" type="date" min={minBiddingDate} value={form.bidding_end} onChange={handleFormChange} style={S.input} />
+                                            {fieldErrors.bidding_end && <span style={S.fieldError}>{fieldErrors.bidding_end}</span>}
                                         </div>
                                     </div>
                                 )}
@@ -477,65 +658,97 @@ const SellerListingsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     notifPanel: { background: '#FFF5F5', border: '1px solid #FFE4E4', borderRadius: '20px', padding: '20px', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' },
     notifHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
     notifTitle: { fontSize: '1rem', fontWeight: '800', margin: 0 },
     unreadBadge: { fontSize: '0.7rem', background: '#FF4D4D', color: '#FFF', padding: '2px 8px', borderRadius: '10px', marginLeft: '8px' },
     readAllBtn: { background: 'none', border: 'none', color: '#666', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' },
     notifList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-    notifItem: { display: 'flex', gap: '12px', alignItems: 'center', background: '#FFF', padding: '12px', borderRadius: '12px', border: '1px solid #F0EBE4' },
+    notifItem: { display: 'flex', gap: '12px', alignItems: 'center', background: '#FFF', padding: '12px', borderRadius: '12px', border: '1px solid var(--color-border)' },
     notifDot: { width: '8px', height: '8px', background: '#FF4D4D', borderRadius: '50%' },
-    notifText: { fontSize: '0.9rem', color: '#1A1A1A' },
-    notifSub: { fontSize: '0.8rem', color: '#666' },
+    notifText: { fontSize: '0.9rem', color: 'var(--color-dark)' },
+    notifSub: { fontSize: '0.8rem', color: 'var(--color-text-soft)' },
     rejectReason: { marginTop: '6px', fontSize: '0.74rem', color: '#a23a2b', fontWeight: '600' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A' },
-    subtitle: { color: '#777', fontSize: '0.95rem' },
-    addBtn: { padding: '12px 24px', borderRadius: '10px', fontWeight: '700' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '0.95rem' },
+    addBtn: { padding: '12px 24px', borderRadius: '10px', fontWeight: '700', background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all 0.2s' },
     empty: { textAlign: 'center', color: '#999', marginTop: '80px', fontSize: '1rem' },
-    tableWrap: { background: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'auto' },
+    tableWrap: { background: '#fff', borderRadius: '16px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', overflow: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    th: { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#888', borderBottom: '2px solid #f5f0ea' },
+    th: { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#888', borderBottom: '2px solid var(--color-border)' },
     tr: { transition: 'background 0.15s' },
-    td: { padding: '16px 20px', fontSize: '0.875rem', borderBottom: '1px solid #f5f0ea' },
+    td: { padding: '16px 20px', fontSize: '0.875rem', borderBottom: '1px solid var(--color-border)' },
     nameCell: { display: 'flex', alignItems: 'center', gap: '12px' },
+    propertyLinkBtn: {
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        margin: 0,
+        fontWeight: '700',
+        color: 'var(--color-dark)',
+        cursor: 'pointer',
+        textAlign: 'left',
+        textDecoration: 'underline'
+    },
     thumbnail: { width: '48px', height: '36px', borderRadius: '6px', objectFit: 'cover' },
     badge: { padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '700' },
     badgeOpen: { background: '#eafaf1', color: '#2ecc71' },
-    badgeClosed: { background: '#f5f0ea', color: '#aaa' },
+    badgeClosed: { background: 'var(--color-bg)', color: '#aaa', border: '1px solid var(--color-border)' },
     statusBadge: { padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     actionBtns: { display: 'flex', gap: '8px' },
-    editBtn: { background: '#1A1A1A', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' },
-    delBtn: { background: '#fff', color: '#e74c3c', border: '1px solid #e74c3c', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' },
-    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-    dialog: { background: '#fff', borderRadius: '16px', padding: '32px', width: '380px' },
-    formModal: { background: '#fff', borderRadius: '20px', width: '680px', maxHeight: '90vh', overflowY: 'auto' },
+    editBtn: { background: 'var(--color-dark)', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' },
+    delBtn: { background: '#fff', color: '#e74c3c', border: '1px solid #e74c3c', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' },
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
+    dialog: { background: '#fff', borderRadius: '16px', padding: '32px', width: '380px', boxShadow: 'var(--shadow-elevated)', border: '1px solid var(--color-border)' },
+    formModal: { background: '#fff', borderRadius: '20px', width: '680px', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-elevated)', border: '1px solid var(--color-border)' },
     formHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 32px' },
-    formTitle: { fontSize: '1.4rem', fontWeight: '800' },
+    formTitle: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)' },
     closeBtn: { background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#999' },
     errorMsg: { color: '#d32f2f', background: '#fdecea', margin: '0 32px 16px', padding: '10px 16px', borderRadius: '8px', fontSize: '0.875rem' },
     form: { padding: '0 32px 32px' },
-    sectionDivider: { fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', color: '#aaa', borderBottom: '1px solid #f0ebe4', marginBottom: '20px', paddingBottom: '8px', marginTop: '24px' },
+    sectionDivider: { fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', color: '#aaa', borderBottom: '1px solid var(--color-border)', marginBottom: '20px', paddingBottom: '8px', marginTop: '24px' },
     formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' },
     formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
     label: { fontSize: '0.78rem', fontWeight: '700', color: '#666' },
-    input: { padding: '12px', border: '1px solid #e5e0da', borderRadius: '8px', outline: 'none', fontFamily: 'inherit' },
+    input: { padding: '12px', border: '1px solid var(--color-border)', borderRadius: '8px', outline: 'none', fontFamily: 'inherit', background: '#fff' },
+    totalPriceBox: {
+        padding: '12px',
+        border: '1px solid var(--color-border)',
+        borderRadius: '8px',
+        background: 'var(--color-bg)',
+        fontWeight: '800',
+        color: 'var(--color-dark)'
+    },
+    fieldError: { fontSize: '0.76rem', color: '#d32f2f', marginTop: '2px', fontWeight: '600' },
     checkRow: { display: 'flex', gap: '24px', marginBottom: '8px' },
     checkLabel: { display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' },
-    biddingSection: { background: '#fdfaf7', padding: '20px', borderRadius: '12px', marginBottom: '16px' },
+    biddingSection: { background: 'var(--color-bg)', padding: '20px', borderRadius: '12px', marginBottom: '16px', border: '1px solid var(--color-border)' },
     biddingFields: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' },
+    currentPriceCard: {
+        gridColumn: '1 / -1',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px 12px',
+        borderRadius: '8px',
+        border: '1px solid var(--color-border)',
+        background: '#fff'
+    },
+    currentPriceLabel: { fontSize: '0.78rem', fontWeight: '700', color: '#666' },
+    currentPriceValue: { fontSize: '1rem', fontWeight: '800', color: 'var(--color-dark)' },
     formFooter: { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' },
-    cancelBtn: { padding: '12px 24px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontWeight: '700' },
-    saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700' },
-    confirmDelBtn: { padding: '12px 24px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' },
-    dropZone: { border: '2px dashed #e5e0da', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' },
+    cancelBtn: { padding: '12px 24px', borderRadius: '8px', border: '1px solid var(--color-border)', background: '#fff', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' },
+    saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700', background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all 0.2s' },
+    confirmDelBtn: { padding: '12px 24px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' },
+    dropZone: { border: '2px dashed var(--color-border)', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' },
     dropContent: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' },
-    browseText: { color: '#1A1A1A', textDecoration: 'underline', fontWeight: '700', marginTop: '12px', fontSize: '0.85rem' },
+    browseText: { color: 'var(--color-dark)', textDecoration: 'underline', fontWeight: '700', marginTop: '12px', fontSize: '0.85rem' },
     previewGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px', marginTop: '14px' },
-    previewItem: { border: '1px solid #e5e0da', borderRadius: '10px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff' },
+    previewItem: { border: '1px solid var(--color-border)', borderRadius: '10px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff' },
     previewImage: { width: '100%', height: '110px', objectFit: 'cover', borderRadius: '8px' },
-    removeImgBtn: { background: '#fff', color: '#c0392b', border: '1px solid #f1b0aa', padding: '8px 10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }
+    removeImgBtn: { background: '#fff', color: '#c0392b', border: '1px solid #f1b0aa', padding: '8px 10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }
 };
 
 export default SellerListingsPage;

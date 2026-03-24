@@ -252,7 +252,61 @@ async def notify_winner_manually(
     return {"status": "winner notified successfully"}
 
 
-# ── Seller deletes a bid (optional cleanup) ───────────────────────────────────
+# ── Seller cancels an active bidding auction early ────────────────────────────
+@router.post("/cancel-auction/{land_id}", status_code=200)
+async def cancel_auction(
+    land_id: PydanticObjectId,
+    current_user: User = Depends(get_current_user)
+):
+    """Seller can cancel/close an active auction before the end time."""
+    land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
+    if not land:
+        raise HTTPException(status_code=404, detail="Land not found or you do not own it")
+
+    bidding = await BiddingSetup.find_one(BiddingSetup.land_id == land_id)
+    if not bidding or not bidding.open_for_bidding:
+        raise HTTPException(status_code=400, detail="This land is not currently open for bidding")
+
+    # Check auction hasn't already ended naturally
+    if bidding.bidding_end:
+        try:
+            end_time = dateutil.parser.isoparse(bidding.bidding_end)
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=timezone.utc)
+            if end_time <= datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Auction has already ended")
+        except ValueError:
+            pass
+
+    # Close the auction
+    bidding.open_for_bidding = False
+    bidding.bidding_end = datetime.now(timezone.utc).isoformat()
+    bidding.winner_notified = True  # prevent auto-winner notification
+    await bidding.save()
+
+    # Also update the land model
+    land.open_for_bidding = False
+    await land.save()
+
+    # Notify all bidders that the auction was cancelled
+    bids_on_land = await Bid.find(Bid.land_id == land_id).to_list()
+    notified_buyers = set()
+    for bid in bids_on_land:
+        if str(bid.buyer_id) not in notified_buyers:
+            notif = Notification(
+                user_id=bid.buyer_id,
+                type=NotificationType.general,
+                title="Auction Cancelled",
+                message=f"The seller has cancelled the auction for \"{land.name}\". Your bid has been voided.",
+                link=f"/lands/{str(land.id)}"
+            )
+            await notif.insert()
+            notified_buyers.add(str(bid.buyer_id))
+
+    return {"status": "auction cancelled", "land_id": str(land_id)}
+
+
+# ── Buyer cancels their own bid (only while auction is still live) ─────────────
 @router.delete("/{bid_id}", status_code=204)
 async def delete_bid(
     bid_id: PydanticObjectId,
@@ -261,4 +315,18 @@ async def delete_bid(
     bid = await Bid.find_one(Bid.id == bid_id, Bid.buyer_id == current_user.id)
     if not bid:
         raise HTTPException(status_code=404, detail="Bid not found or not yours")
+
+    # Check if auction is still live — buyers cannot cancel after it ends
+    bidding = await BiddingSetup.find_one(BiddingSetup.land_id == bid.land_id)
+    if bidding and bidding.bidding_end:
+        try:
+            end_time = dateutil.parser.isoparse(bidding.bidding_end)
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=timezone.utc)
+            if end_time <= datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Auction has ended. You can no longer cancel this bid.")
+        except ValueError:
+            pass
+
     await bid.delete()
+

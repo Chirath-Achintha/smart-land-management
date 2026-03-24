@@ -28,8 +28,11 @@ async def _build_response(visit: Visit) -> VisitResponse:
         visit_time=visit.visit_time,
         message=visit.message,
         seller_message=visit.seller_message,
+        agent_message=visit.agent_message,
         admin_message=visit.admin_message,
         status=visit.status,
+        cancel_reason=visit.cancel_reason,
+        cancelled_by=visit.cancelled_by,
         created_at=visit.created_at,
         internal_notes=visit.internal_notes,
         visit_feedback=visit.visit_feedback,
@@ -80,15 +83,17 @@ async def book_visit(
             detail=f"You already have a visit request for {data.visit_date} at {data.visit_time}. Please pick a different time slot."
         )
 
-    # Prevent duplicate pending visit of same type for same buyer/land
+    # Prevent duplicate pending visit (ANY TYPE) for same buyer/land
     existing = await Visit.find_one(
         Visit.land_id == land_id,
         Visit.buyer_id == current_user.id,
-        Visit.status == VisitStatus.Pending,
-        Visit.visit_type == data.visit_type
+        Visit.status == VisitStatus.Pending
     )
     if existing:
-        raise HTTPException(status_code=409, detail=f"You already have a pending {data.visit_type.replace('_', ' ')} request for this land.")
+        raise HTTPException(
+            status_code=409, 
+            detail=f"You already have a pending {existing.visit_type.replace('_', ' ')} request for this land. Please wait for the seller's response."
+        )
 
     visit = Visit(
         land_id=land_id,
@@ -107,7 +112,7 @@ async def book_visit(
         user_id=land.seller_id,
         title="Action Required: New Visit Request",
         message=f"A buyer has requested a {data.visit_type.replace('_', ' ').title()} for your property '{land.name}' scheduled for {data.visit_date} at {data.visit_time}. Please review and respond.",
-        link="/dashboard/seller/visits"
+        link=f"/dashboard/seller/visits?visit_id={visit.id}"
     ).insert()
     
     return await _build_response(visit)
@@ -188,8 +193,8 @@ async def update_visit_status(
         if current_user.role == "admin":
             visit.admin_message = data.seller_message
         elif current_user.role == "agent":
-            # Agents can also leave message
-            visit.admin_message = f"(Agent) {data.seller_message}"
+            # Store in dedicated agent field
+            visit.agent_message = data.seller_message
         else:
             visit.seller_message = data.seller_message
     if data.agent_id:
@@ -214,7 +219,7 @@ async def update_visit_status(
                 user_id=visit.buyer_id,
                 title="Visit Request Approved",
                 message=f"The owner has officially approved your visit request for '{land.name}' on {visit.visit_date} at {visit.visit_time}.",
-                link="/dashboard/visits"
+                link=f"/dashboard/visits?visit_id={visit.id}"
             ).insert()
             
             # If it's an Agent Visit, notify Admin to assign an agent
@@ -229,7 +234,7 @@ async def update_visit_status(
                 user_id=visit.buyer_id,
                 title="Visit Request Declined",
                 message=f"Your visit request for '{land.name}' on {visit.visit_date} has been declined by the owner. Please check the dashboard for any messages or suggest a new time.",
-                link="/dashboard/visits"
+                link=f"/dashboard/visits?visit_id={visit.id}"
             ).insert()
 
     # Admin Assigns Agent
@@ -242,7 +247,7 @@ async def update_visit_status(
                 user_id=agent.id,
                 title="Action Required: New Agent Assignment",
                 message=f"You have been officially assigned to facilitate a site visit at '{land.name}' with buyer {buyer.full_name} on {visit.visit_date} at {visit.visit_time}. Please officially accept to confirm.",
-                link="/dashboard/agent/assignments"
+                link=f"/dashboard/agent/assignments?visit_id={visit.id}"
             ).insert()
 
     # Admin Reject 
@@ -253,7 +258,7 @@ async def update_visit_status(
             user_id=visit.buyer_id,
             title="Update: Visit Request Cancelled by Admin",
             message=f"The administrative team has proactively declined your agent-facilitated visit request for '{land.name}' if one was pending. Reason: {visit.admin_message or 'No specific reason given.'}. Please check your dashboard for details.",
-            link="/dashboard/visits"
+            link=f"/dashboard/visits?visit_id={visit.id}"
         ).insert()
         # Notify Seller
         if land:
@@ -261,7 +266,7 @@ async def update_visit_status(
                 user_id=land.seller_id,
                 title="Notice: Professional Assignment Terminated",
                 message=f"Admin has declined/cancelled the agent facilitator request for your land '{land.name}' scheduled for {visit.visit_date}. The visit state has been set to Rejected.",
-                link="/dashboard/seller/visits"
+                link=f"/dashboard/seller/visits?visit_id={visit.id}"
             ).insert()
 
     # Agent Confirms Slot
@@ -272,14 +277,14 @@ async def update_visit_status(
             user_id=visit.buyer_id,
             title="Agent Visit Confirmed",
             message=f"Your assigned agent has successfully confirmed their schedule for the '{land.name}' visit on {visit.visit_date} at {visit.visit_time}. Their contact details are now available on your dashboard.",
-            link="/dashboard/visits"
+            link=f"/dashboard/visits?visit_id={visit.id}"
         ).insert()
         if land:
             await Notification(
                 user_id=land.seller_id,
                 title="Agent Assignment Confirmed",
                 message=f"An official agent has been assigned and has confirmed their attendance for your '{land.name}' visit on {visit.visit_date} at {visit.visit_time}. Their contact details are now available on your dashboard.",
-                link="/dashboard/seller/visits"
+                link=f"/dashboard/seller/visits?visit_id={visit.id}"
             ).insert()
             
             # Notify Admin
@@ -297,7 +302,7 @@ async def update_visit_status(
         # Notify Admin
         await _notify_admins(
             title="Action Required: Agent Declined Assignment",
-            message=f"Agent {current_user.full_name} has declined the assignment for '{land.name}' (Buyer: {buyer.full_name if buyer else 'N/A'}) on {visit.visit_date}. Reason: {data.seller_message or 'No reason provided.'}. Please re-assign or cancel.",
+            message=f"Agent {current_user.full_name} has declined the assignment for '{land.name}' (Buyer: {buyer.full_name if buyer else 'N/A'}) on {visit.visit_date}. Reason: {visit.agent_message or 'No reason provided.'}. Please re-assign or cancel.",
             link="/dashboard/admin/agent-visits"
         )
 
@@ -308,42 +313,76 @@ async def update_visit_status(
 @router.put("/{visit_id}/cancel", response_model=VisitResponse)
 async def cancel_visit(
     visit_id: PydanticObjectId,
+    data: dict = {},
     current_user: User = Depends(get_current_user)
 ):
     visit = await Visit.get(visit_id)
     if not visit:
         raise HTTPException(status_code=404, detail="Visit request not found")
     
-    if visit.buyer_id != current_user.id:
+    land = await Land.get(visit.land_id)
+    if not land:
+        raise HTTPException(status_code=404, detail="Associated land not found")
+
+    is_buyer = visit.buyer_id == current_user.id
+    is_seller = land.seller_id == current_user.id
+    
+    if not is_buyer and not is_seller:
         raise HTTPException(status_code=403, detail="Not authorized to cancel this visit")
     
     if visit.status in [VisitStatus.Completed, VisitStatus.Cancelled]:
         raise HTTPException(status_code=400, detail=f"Cannot cancel a visit that is already {visit.status.lower()}")
 
+    reason = data.get("reason", "").strip()
+    reason_suffix = f" Reason: {reason}" if reason else ""
+
     visit.status = VisitStatus.Cancelled
+    visit.cancel_reason = reason if reason else None
+    visit.cancelled_by = "buyer" if is_buyer else "seller"
     await visit.save()
     
-    # Notify Seller
-    land = await Land.get(visit.land_id)
-    if land:
+    if is_buyer:
+        # Notify Seller
         await Notification(
             user_id=land.seller_id,
-            title="Notice: Visit Cancelled",
-            message=f"The buyer has officially cancelled their scheduled visit for '{land.name}' previously set for {visit.visit_date} at {visit.visit_time}.",
-            link="/dashboard/seller/visits"
+            title="Notice: Visit Cancelled by Buyer",
+            message=f"The buyer has officially cancelled their scheduled visit for '{land.name}' previously set for {visit.visit_date} at {visit.visit_time}.{reason_suffix}",
+            link=f"/dashboard/seller/visits?visit_id={visit.id}"
         ).insert()
         
         if visit.visit_type == VisitType.AgentVisit:
-            msg_admin = f"The scheduled Agent Visit for '{land.name}' on {visit.visit_date} has been cancelled by the buyer. No further action is required."
-            await _notify_admins("Notice: Agent Visit Cancelled", msg_admin, "/dashboard/admin/agent-visits")
+            msg_admin = f"The scheduled Agent Visit for '{land.name}' on {visit.visit_date} has been cancelled by the buyer.{reason_suffix}"
+            await _notify_admins("Notice: Agent Visit Cancelled", msg_admin, f"/dashboard/admin/agent-visits?visit_id={visit.id}")
             
             if visit.agent_id:
-                msg_agent = f"Your scheduled visit for '{land.name}' on {visit.visit_date} at {visit.visit_time} has been proactively cancelled by the buyer. You have been unassigned from this task."
+                msg_agent = f"Your scheduled visit for '{land.name}' on {visit.visit_date} at {visit.visit_time} has been proactively cancelled by the buyer.{reason_suffix}"
                 await Notification(
                     user_id=visit.agent_id,
                     title="Notice: Assignment Cancelled",
                     message=msg_agent,
-                    link="/dashboard/agent/assignments"
+                    link=f"/dashboard/agent/assignments?visit_id={visit.id}"
+                ).insert()
+    else:
+        # Seller cancelled
+        # Notify Buyer
+        await Notification(
+            user_id=visit.buyer_id,
+            title="Notice: Visit Cancelled by Seller",
+            message=f"The owner of '{land.name}' has cancelled your scheduled visit set for {visit.visit_date} at {visit.visit_time}.{reason_suffix}",
+            link=f"/dashboard/visits?visit_id={visit.id}"
+        ).insert()
+
+        if visit.visit_type == VisitType.AgentVisit:
+            msg_admin = f"The scheduled Agent Visit for '{land.name}' on {visit.visit_date} has been cancelled by the seller.{reason_suffix}"
+            await _notify_admins("Notice: Agent Visit Cancelled", msg_admin, f"/dashboard/admin/agent-visits?visit_id={visit.id}")
+            
+            if visit.agent_id:
+                msg_agent = f"Your scheduled visit for '{land.name}' on {visit.visit_date} at {visit.visit_time} has been cancelled by the seller.{reason_suffix}"
+                await Notification(
+                    user_id=visit.agent_id,
+                    title="Notice: Assignment Cancelled",
+                    message=msg_agent,
+                    link=f"/dashboard/agent/assignments?visit_id={visit.id}"
                 ).insert()
     
     return await _build_response(visit)
@@ -400,7 +439,7 @@ async def update_visit(
             user_id=land.seller_id,
             title="Action Required: Visit Rescheduled",
             message=f"The buyer has requested a schedule change for '{land.name}'. The new proposed time is {data.visit_date} at {data.visit_time}. Please review and officially re-approve this request.",
-            link="/dashboard/seller/visits"
+            link=f"/dashboard/seller/visits?visit_id={visit.id}"
         ).insert()
 
     return await _build_response(visit)

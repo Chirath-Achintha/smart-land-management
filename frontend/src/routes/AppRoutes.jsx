@@ -53,10 +53,12 @@ import SellerVisitsPage from '../pages/dashboard/seller/SellerVisitsPage';
 import AgentClientsPage from '../pages/dashboard/agent/AgentClientsPage';
 
 import { useAuth } from '../context/AuthContext';
+import { getDefaultDashboardPath } from '../routePaths';
 
 const AppRoutes = () => {
     const { user } = useAuth();
     const role = user?.role;
+    const dashboardPath = getDefaultDashboardPath(role);
 
     const getDashboardByRole = () => {
         if (!user) return <Navigate to="/login" replace />;
@@ -80,19 +82,19 @@ const AppRoutes = () => {
                 {/* Protected Land Routes - Sellers blocked */}
                 <Route
                     path="/lands"
-                    element={role === 'seller' ? <Navigate to="/dashboard" replace /> : <LandListingPage />}
+                    element={role === 'seller' ? <Navigate to={dashboardPath} replace /> : <LandListingPage />}
                 />
                 <Route
                     path="/lands/:id"
-                    element={role === 'seller' ? <Navigate to="/dashboard" replace /> : <LandDetailPage />}
+                    element={role === 'seller' ? <Navigate to={dashboardPath} replace /> : <LandDetailPage />}
                 />
                 <Route
                     path="/bidding/:id"
-                    element={role === 'seller' ? <Navigate to="/dashboard" replace /> : <BiddingPage />}
+                    element={role === 'seller' ? <Navigate to={dashboardPath} replace /> : <BiddingPage />}
                 />
                 <Route
                     path="/schedule-visit/:id"
-                    element={role === 'seller' ? <Navigate to="/dashboard" replace /> : <ScheduleVisitPage />}
+                    element={role === 'seller' ? <Navigate to={dashboardPath} replace /> : <ScheduleVisitPage />}
                 />
 
                 <Route path="/inquiry" element={<InquiryPage />} />
@@ -103,7 +105,7 @@ const AppRoutes = () => {
                             ? <Navigate to="/login" replace state={{ from: '/services' }} />
                             : role === 'buyer'
                                 ? <Navigate to="/dashboard/services" replace />
-                                : <Navigate to="/dashboard" replace />
+                                : <Navigate to={dashboardPath} replace />
                     }
                 />
 
@@ -117,7 +119,7 @@ const AppRoutes = () => {
                 </Route>
 
                 {/* Dashboard Routes */}
-                <Route element={<DashboardLayout role={role} />}>
+                <Route element={user ? <DashboardLayout role={role} /> : <Navigate to="/login" replace />}>
                     <Route path="/dashboard" element={getDashboardByRole()} />
                     <Route path="/dashboard/properties" element={<div><h2 style={{ color: '#333' }}>Saved Properties</h2><p>Saved properties content goes here.</p></div>} />
                     <Route path="/dashboard/projects" element={<ConstructorProjectsPage />} />
@@ -131,10 +133,14 @@ const AppRoutes = () => {
                     <Route path="/dashboard/visits" element={<BuyerVisitsPage />} />
                     <Route
                         path="/dashboard/services"
-                        element={role === 'buyer' ? <ServiceBookingPage /> : <Navigate to="/dashboard" replace />}
+                        element={role === 'buyer' ? <ServiceBookingPage /> : <Navigate to={dashboardPath} replace />}
                     />
                     <Route path="/dashboard/users" element={<UserManagement />} />
                     <Route path="/dashboard/seller/listings" element={<SellerListingsPage />} />
+                    <Route
+                        path="/dashboard/seller/listings/:id"
+                        element={role === 'seller' ? <LandDetailPage /> : <Navigate to={dashboardPath} replace />}
+                    />
                     <Route path="/dashboard/seller/bids" element={<SellerBidsPage />} />
                     <Route path="/dashboard/seller/bidding" element={<SellerBiddingPage />} />
                     <Route path="/dashboard/seller/availability" element={<SellerAvailabilityPage />} />
@@ -149,7 +155,7 @@ const AppRoutes = () => {
                 </Route>
 
                 {/* Fallback Catch-all Route */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
+                <Route path="*" element={user ? <Navigate to={dashboardPath} replace /> : <Navigate to="/login" replace />} />
             </Route>
         </Routes>
     );

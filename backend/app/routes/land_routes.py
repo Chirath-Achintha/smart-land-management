@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 import os
 import uuid
 import shutil
+import re
 from typing import List
 from datetime import datetime
 from urllib.parse import urlparse
 from beanie import PydanticObjectId
+from beanie.operators import In
 
 from app.models.land_model import Land
 
@@ -17,6 +19,15 @@ from app.routes.auth_routes import get_current_user
 
 router = APIRouter(prefix="/lands", tags=["Lands"])
 UPLOAD_ROOT = os.path.abspath(os.path.join("static", "uploads"))
+
+
+def sanitize_land_folder_name(land_name: str) -> str:
+    raw_name = (land_name or "").strip().lower()
+    if not raw_name:
+        return "untitled-land"
+
+    safe_name = re.sub(r"[^a-z0-9]+", "-", raw_name).strip("-")
+    return (safe_name[:80] or "untitled-land")
 
 
 def get_local_uploaded_image_paths(image_url_value: str) -> List[str]:
@@ -98,14 +109,19 @@ def ensure_admin(user: User):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
 @router.post("/upload")
-async def upload_image(file: UploadFile = File(...)):
-    # Create static directory if not exists
-    os.makedirs("static/uploads", exist_ok=True)
-    
-    # Generate unique filename
-    file_extension = os.path.splitext(file.filename)[1]
+async def upload_image(
+    file: UploadFile = File(...),
+    land_name: str = Form("untitled-land")
+):
+    # Create /static/uploads/{land-name} and keep each land's files grouped.
+    land_folder = sanitize_land_folder_name(land_name)
+    land_upload_root = os.path.join(UPLOAD_ROOT, land_folder)
+    os.makedirs(land_upload_root, exist_ok=True)
+
+    # Generate unique filename inside that land folder
+    file_extension = os.path.splitext(file.filename or "")[1]
     filename = f"{uuid.uuid4()}{file_extension}"
-    file_path = os.path.join("static/uploads", filename)
+    file_path = os.path.join(land_upload_root, filename)
     
     # Save file
     with open(file_path, "wb") as buffer:
@@ -113,7 +129,7 @@ async def upload_image(file: UploadFile = File(...)):
         
     # Return absolute URL (assuming backend runs on localhost:8000)
     # In production, this should be the actual server URL
-    url = f"http://localhost:8000/static/uploads/{filename}"
+    url = f"http://localhost:8000/static/uploads/{land_folder}/{filename}"
     return {"url": url}
 
 
@@ -156,11 +172,10 @@ async def create_land(
 # ── Get all Available lands (public, for buyers) ──────────────────────────────
 @router.get("/", response_model=List[LandResponse])
 async def get_all_lands():
-    # Public view: Show only Available lands that have been VERIFIED by an admin.
-    # Unverified/Pending lands should only be seen by the seller in their Dashboard.
+    # Public view: Fetch all lands from DB with status Available or Reserved.
+    # Only real DB records are returned — no hardcoded or fake data.
     lands = await Land.find(
-        Land.status == "Available",
-        Land.is_verified == True
+        In(Land.status, ["Available", "Reserved"])
     ).sort("-created_at").to_list()
     # Attach bidding setup to each land for the response
     for land in lands:
@@ -274,10 +289,10 @@ async def admin_verify_land(
 # ── Get a single land by ID ───────────────────────────────────────────────────
 @router.get("/{land_id}", response_model=LandResponse)
 async def get_land(land_id: PydanticObjectId):
+    # Fetch any land from DB by ID — no verification filter so all real DB lands are accessible.
     land = await Land.find_one(
         Land.id == land_id,
-        Land.status == "Available",
-        Land.is_verified == True
+        In(Land.status, ["Available", "Reserved"])
     )
     if not land:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found")
@@ -294,12 +309,17 @@ async def update_land(
     data: dict, # Using dict to handle mixed fields flexibly durante transition
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "seller":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can update land listings")
+    if current_user.role not in ["seller", "admin"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers or admins can update land listings")
 
-    land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
-    if not land:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
+    if current_user.role == "seller":
+        land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
+        if not land:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
+    else:
+        land = await Land.find_one(Land.id == land_id)
+        if not land:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found")
 
     bidding = await BiddingSetup.find_one(BiddingSetup.land_id == land_id)
 
@@ -337,12 +357,13 @@ async def update_land(
         land.total_price = p * ppp
 
     if land_fields_updated or bidding_fields_updated:
-        # Any seller-side update requires admin re-verification.
-        land.is_verified = False
-        land.review_status = "pending"
-        land.verified_by = None
-        land.verified_at = None
-        land.verification_note = None
+        # Only seller-side edits require re-verification. Admin edits keep current review state.
+        if current_user.role == "seller":
+            land.is_verified = False
+            land.review_status = "pending"
+            land.verified_by = None
+            land.verified_at = None
+            land.verification_note = None
 
     land.updated_at = datetime.utcnow()
 
@@ -361,12 +382,17 @@ async def delete_land(
     land_id: PydanticObjectId,
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "seller":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can delete land listings")
+    if current_user.role not in ["seller", "admin"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers or admins can delete land listings")
 
-    land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
-    if not land:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
+    if current_user.role == "seller":
+        land = await Land.find_one(Land.id == land_id, Land.seller_id == current_user.id)
+        if not land:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found or not yours")
+    else:
+        land = await Land.find_one(Land.id == land_id)
+        if not land:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found")
 
     image_paths = get_local_uploaded_image_paths(land.image_url or "")
     

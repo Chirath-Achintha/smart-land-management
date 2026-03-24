@@ -29,8 +29,11 @@ class VisitResponse(BaseModel):
     visit_time: str
     message:    Optional[str] = None
     seller_message: Optional[str] = None
+    agent_message: Optional[str] = None
     admin_message: Optional[str] = None
     status:     VisitStatus
+    cancel_reason: Optional[str] = None
+    cancelled_by:   Optional[str] = None
     created_at: datetime
     internal_notes: Optional[str] = None
     visit_feedback: Optional[str] = None

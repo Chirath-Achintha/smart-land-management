@@ -18,9 +18,21 @@ const BiddingPage = () => {
     const [isAuctionEnded, setIsAuctionEnded] = useState(false);
     const [isAuctionStarted, setIsAuctionStarted] = useState(true);
     const [timeToStart, setTimeToStart] = useState('');
+    const [cancelTarget, setCancelTarget] = useState(null); // bid to cancel
+    const [cancelling, setCancelling] = useState(false);
 
     const token = localStorage.getItem('access_token');
     const isLoggedIn = !!token;
+
+    // Decode logged-in buyer's name from JWT (to identify own bids)
+    const getMyName = () => {
+        if (!token) return null;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.sub || payload.email || null;
+        } catch { return null; }
+    };
+    const myEmail = getMyName();
 
     // ── Fetch land details ──────────────────────────────────────────────────
     useEffect(() => {
@@ -153,6 +165,32 @@ const BiddingPage = () => {
             setError('Cannot reach the server. Please check your connection.');
         }
         setSubmitting(false);
+    };
+
+    // ── Cancel own bid ──────────────────────────────────────────────────────
+    const handleCancelBid = async () => {
+        if (!cancelTarget) return;
+        const bidId = cancelTarget.id || cancelTarget._id;
+        setCancelling(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/bids/${bidId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (res.ok || res.status === 204) {
+                setSuccess('✅ Your bid has been cancelled.');
+                setCancelTarget(null);
+                fetchBids();
+                setTimeout(() => setSuccess(''), 4000);
+            } else {
+                const err = await res.json();
+                alert(`Error: ${err.detail || 'Could not cancel bid.'}`);
+            }
+        } catch {
+            alert('Failed to connect to the server.');
+        } finally {
+            setCancelling(false);
+        }
     };
 
     // ── Loading / not found ─────────────────────────────────────────────────
@@ -316,39 +354,86 @@ const BiddingPage = () => {
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {sortedBids.map((bid, i) => (
-                                    <div key={bid.id} style={{
-                                        ...S.bidItem,
-                                        borderLeft: i === 0 ? '4px solid #27ae60' : '4px solid #f0ebe4',
-                                        background: i === 0 ? '#f0fdf4' : '#fafaf9',
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <div style={{ ...S.avatar, background: i === 0 ? '#27ae60' : '#1A1A1A' }}>
-                                                    {(bid.buyer_name || 'B').charAt(0).toUpperCase()}
+                                {sortedBids.map((bid, i) => {
+                                    const isMyBid = isLoggedIn && myEmail && bid.buyer_email === myEmail;
+                                    const canCancel = isMyBid && !isAuctionEnded;
+                                    return (
+                                        <div key={bid.id} style={{
+                                            ...S.bidItem,
+                                            borderLeft: i === 0 ? '4px solid #27ae60' : isMyBid ? '4px solid #3498db' : '4px solid #f0ebe4',
+                                            background: i === 0 ? '#f0fdf4' : isMyBid ? '#EBF5FB' : '#fafaf9',
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ ...S.avatar, background: i === 0 ? '#27ae60' : isMyBid ? '#3498db' : '#1A1A1A' }}>
+                                                        {(bid.buyer_name || 'B').charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <div style={S.bidderName}>
+                                                            {bid.buyer_name || 'Bidder'}
+                                                            {isMyBid && <span style={{ marginLeft: '6px', fontSize: '0.65rem', background: '#3498db', color: '#fff', padding: '1px 6px', borderRadius: '4px', fontWeight: '700' }}>YOU</span>}
+                                                        </div>
+                                                        {i === 0 && <div style={S.highestTag}>🏆 Highest Bid</div>}
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div style={S.bidderName}>{bid.buyer_name || 'Bidder'}</div>
-                                                    {i === 0 && <div style={S.highestTag}>🏆 Highest Bid</div>}
-                                                </div>
+                                                <span style={S.bidTime}>
+                                                    {bid.created_at
+                                                        ? new Date(bid.created_at).toLocaleString('en-LK', { dateStyle: 'short', timeStyle: 'short' })
+                                                        : ''}
+                                                </span>
                                             </div>
-                                            <span style={S.bidTime}>
-                                                {bid.created_at
-                                                    ? new Date(bid.created_at).toLocaleString('en-LK', { dateStyle: 'short', timeStyle: 'short' })
-                                                    : ''}
-                                            </span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                                                <div style={S.bidAmount}>Rs. {Number(bid.amount).toLocaleString()}</div>
+                                                {canCancel && (
+                                                    <button
+                                                        style={S.cancelBidBtn}
+                                                        onClick={() => setCancelTarget(bid)}
+                                                    >
+                                                        ✕ Cancel
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {bid.message && (
+                                                <div style={S.bidMsg}>"{bid.message}"</div>
+                                            )}
                                         </div>
-                                        <div style={S.bidAmount}>Rs. {Number(bid.amount).toLocaleString()}</div>
-                                        {bid.message && (
-                                            <div style={S.bidMsg}>"{bid.message}"</div>
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* ── Cancel Bid Confirmation Modal ── */}
+            {cancelTarget && (
+                <div style={S.overlay}>
+                    <div style={S.confirmDialog}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🗑️</div>
+                        <h3 style={{ margin: '0 0 10px', fontSize: '1.15rem', fontWeight: '800', color: '#1A1A1A' }}>Cancel Your Bid?</h3>
+                        <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: '1.6', marginBottom: '24px' }}>
+                            Are you sure you want to withdraw your bid of <strong>Rs. {Number(cancelTarget.amount).toLocaleString()}</strong>?
+                            This can only be done while the auction is still active.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <button
+                                style={{ padding: '12px 24px', background: '#fff', border: '1.5px solid #ddd', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', color: '#555' }}
+                                onClick={() => setCancelTarget(null)}
+                                disabled={cancelling}
+                            >
+                                Keep Bid
+                            </button>
+                            <button
+                                style={{ padding: '12px 24px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(231,76,60,0.3)' }}
+                                onClick={handleCancelBid}
+                                disabled={cancelling}
+                            >
+                                {cancelling ? 'Cancelling…' : 'Yes, Cancel Bid'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -406,6 +491,9 @@ const S = {
     bidAmount: { fontSize: '1.15rem', fontWeight: '800', color: '#1A1A1A', marginTop: '4px' },
     bidMsg: { fontSize: '0.8rem', color: '#999', fontStyle: 'italic', marginTop: '4px' },
     noBids: { textAlign: 'center', padding: '48px 16px' },
+    cancelBidBtn: { padding: '5px 12px', background: '#FFF0EE', color: '#e74c3c', border: '1.5px solid #e74c3c', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' },
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+    confirmDialog: { background: '#fff', padding: '36px', borderRadius: '20px', maxWidth: '420px', width: '90%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' },
 };
 
 export default BiddingPage;

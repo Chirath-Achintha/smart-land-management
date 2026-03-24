@@ -1,0 +1,4 @@
+Total lands in database: 3
+Name: Rathna Siri Lands, Status: Available, Verified: True, Village: Alpitiya, District: Galle
+Name: DSD Property, Status: Available, Verified: False, Village: Kurunegala, District: Kurunegala
+Name: land, Status: Available, Verified: True, Village: habaraduwa, District: Galle

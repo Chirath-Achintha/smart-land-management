@@ -110,7 +110,7 @@ const AgentVisitsPage = () => {
     const filtered = filter === 'All' 
         ? visits 
         : filter === 'To Assign' 
-            ? visits.filter(v => v.status === 'SellerAccepted' || v.status === 'AgentDeclined')
+            ? visits.filter(v => v.status === 'Pending' || v.status === 'SellerAccepted' || v.status === 'AgentDeclined')
             : visits.filter(v => v.status === filter);
 
     return (
@@ -120,7 +120,7 @@ const AgentVisitsPage = () => {
                     <h1 style={S.title}>Agent Site Requests</h1>
                     <p style={S.subtitle}>Manage site visit requests assigned for agent assistance.</p>
                 </div>
-                <div style={S.countBadge}>{visits.filter(v => v.status === 'SellerAccepted' || v.status === 'AgentDeclined').length} To Assign</div>
+                <div style={S.countBadge}>{visits.filter(v => v.status === 'Pending' || v.status === 'SellerAccepted' || v.status === 'AgentDeclined').length} To Assign</div>
             </div>
 
             {error && <div style={S.errBox}>{error}</div>}
@@ -138,7 +138,7 @@ const AgentVisitsPage = () => {
                         {f !== 'All' && (
                             <span style={S.filterCount}>
                                 {visits.filter(v => 
-                                    f === 'To Assign' ? (v.status === 'SellerAccepted' || v.status === 'AgentDeclined') : v.status === f
+                                    f === 'To Assign' ? (v.status === 'Pending' || v.status === 'SellerAccepted' || v.status === 'AgentDeclined') : v.status === f
                                 ).length}
                             </span>
                         )}
@@ -185,22 +185,36 @@ const AgentVisitsPage = () => {
                                 </div>
 
                                 <div style={S.messageSection}>
-                                    {visit.status === 'SellerAccepted' ? (
+                                    {['Pending', 'SellerAccepted', 'AgentDeclined'].includes(visit.status) ? (
                                         <div style={S.replyArea}>
                                             <select
                                                 style={selectedAgents[vId] ? { ...S.replyInput, borderColor: '#1A1A1A', background: '#F0F7FF' } : S.replyInput}
                                                 value={selectedAgents[vId] || ''}
                                                 onChange={(e) => setSelectedAgents(prev => ({ ...prev, [vId]: e.target.value }))}
                                             >
-                                                <option value="">Select a local agent...</option>
-                                                {localAgents.map(a => (
-                                                    <option key={a.id || a._id} value={a.id || a._id}>
-                                                        {a.full_name || a.name} ({a.address || a.Address})
-                                                    </option>
-                                                ))}
-                                                {localAgents.length === 0 && (
-                                                    <option disabled>No local agents found for this area</option>
-                                                )}
+                                                {(() => {
+                                                    const landLocParts = (visit.land_address || "").split(',');
+                                                    const landDistrict = landLocParts[landLocParts.length - 1]?.trim().toLowerCase();
+                                                    
+                                                    const localAgents = agents.filter(a => {
+                                                        const agentAddr = (a.address || a.Address || "").toLowerCase();
+                                                        return landDistrict && agentAddr.includes(landDistrict);
+                                                    });
+
+                                                    return (
+                                                        <>
+                                                            <option value="">Select an agent...</option>
+                                                            {localAgents.map(a => (
+                                                                <option key={a.id || a._id} value={a.id || a._id}>
+                                                                    {a.full_name || a.name}
+                                                                </option>
+                                                            ))}
+                                                            {localAgents.length === 0 && (
+                                                                <option disabled>No agents found in {landDistrict?.toUpperCase()}</option>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </select>
 
                                             {selectedAgents[vId] && (
@@ -208,26 +222,38 @@ const AgentVisitsPage = () => {
                                                     <div style={S.busyTitle}>Agent's Schedule for {visit.visit_date}:</div>
                                                     {agentBusyMap[selectedAgents[vId]]?.[visit.visit_date]?.length > 0 ? (
                                                         <div style={S.busyList}>
-                                                            {agentBusyMap[selectedAgents[vId]][visit.visit_date].map((t, idx) => (
-                                                                <span key={idx} style={{ 
-                                                                    ...S.busyTag, 
-                                                                    background: t === visit.visit_time ? '#ffebee' : '#F9F7F5',
-                                                                    color: t === visit.visit_time ? '#c62828' : '#777',
-                                                                    border: t === visit.visit_time ? '1px solid #ef9a9a' : '1px solid #E5E0DA'
-                                                                }}>
-                                                                    {t} {t === visit.visit_time ? '(CONFLICT)' : ''}
-                                                                </span>
-                                                            ))}
+                                                                {agentBusyMap[selectedAgents[vId]][visit.visit_date].map((t, idx) => {
+                                                                    const parseTime = (str) => {
+                                                                        const [h, m] = (str || "0:0").split(':').map(Number);
+                                                                        return h * 60 + m;
+                                                                    };
+                                                                    const timeDiff = Math.abs(parseTime(t) - parseTime(visit.visit_time));
+                                                                    const isExact = t === visit.visit_time;
+                                                                    const isTooClose = !isExact && timeDiff < 120; // Within 2 hours
+                                                                    
+                                                                    let style = { ...S.busyTag };
+                                                                    if (isExact) {
+                                                                        style = { ...style, background: '#ffebee', color: '#c62828', border: '1px solid #ef9a9a', fontWeight: '800' };
+                                                                    } else if (isTooClose) {
+                                                                        style = { ...style, background: '#ffebee', color: '#c62828', border: '1px solid #ef9a9a', fontWeight: '800' };
+                                                                    }
+                                                                    
+                                                                    return (
+                                                                        <span key={idx} style={style}>
+                                                                            {t} {isExact ? '(CONFLICT)' : isTooClose ? '(TOO CLOSE)' : ''}
+                                                                        </span>
+                                                                    );
+                                                                })}
                                                         </div>
                                                     ) : (
-                                                        <div style={S.freeNote}>Full Availability: No other assignments on this date.</div>
+                                                        <div style={S.freeNote}>No other schedules</div>
                                                     )}
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
                                         <>
-                                            {visit.agent_name && (
+                                            {visit.agent_name && visit.status !== 'Rejected' && (
                                                 <div style={{ ...S.messageWrapper, border: 'none', background: '#e3f2fd' }}>
                                                     <div style={{ ...S.messageKey, color: '#1565c0' }}>Assigned Agent</div>
                                                     <div style={S.messageContent}>{visit.agent_name}</div>
@@ -239,63 +265,68 @@ const AgentVisitsPage = () => {
                                                     <div style={S.messageContent}>{visit.message}</div>
                                                 </div>
                                             )}
-                                            {visit.admin_message && (
-                                                <div style={{ ...S.messageWrapper, marginTop: '8px', background: visit.status === 'AgentDeclined' ? '#fff3e0' : '#F9F7F5' }}>
-                                                    <div style={S.messageKey}>{visit.status === 'AgentDeclined' ? 'AGENT DECLINE REASON' : 'Admin Notes'}</div>
-                                                    <div style={S.messageContent}>{visit.admin_message}</div>
+                                            {visit.agent_message && visit.status === 'AgentDeclined' && (
+                                                <div style={{ ...S.messageWrapper, marginTop: '8px', background: '#fff3e0' }}>
+                                                    <div style={S.messageKey}>AGENT DECLINE REASON</div>
+                                                    <div style={S.messageContent}>{visit.agent_message}</div>
                                                 </div>
                                             )}
                                         </>
                                     )}
                                 </div>
-
-                                <div style={S.actionSection}>
-                                    <div style={{ textAlign: 'right', marginBottom: '10px' }}>
-                                        <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>
-                                            {visit.status === 'SellerAccepted' ? 'READY TO ASSIGN' : visit.status.toUpperCase()}
-                                        </span>
-                                    </div>
-
-                                    {(visit.status === 'SellerAccepted' || visit.status === 'AgentDeclined') && (
-                                        <div style={S.actionButtons}>
-                                            <button
-                                                style={S.primaryBtn}
-                                                disabled={updating === vId}
-                                                onClick={() => updateStatus(vId, 'Assigned')}>
-                                                {visit.status === 'AgentDeclined' ? 'Re-assign Agent' : 'Confirm & Assign'}
-                                            </button>
-                                            <button
-                                                style={S.secondaryBtn}
-                                                disabled={updating === vId}
-                                                onClick={() => {
-                                                    setRejectingVisit(visit);
-                                                    setRejectMessage('');
-                                                }}>
-                                                Cancel Visit
-                                            </button>
+                                    <div style={S.actionSection}>
+                                        <div style={{ textAlign: 'right', marginBottom: '10px' }}>
+                                            <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>
+                                                {visit.status === 'SellerAccepted' ? 'READY TO ASSIGN' : visit.status.toUpperCase()}
+                                            </span>
                                         </div>
-                                    )}
-                                </div>
+
+                                        {['Pending', 'SellerAccepted', 'AgentDeclined'].includes(visit.status) && (
+                                            <div style={S.actionButtons}>
+                                                <button
+                                                    style={S.primaryBtn}
+                                                    disabled={updating === vId}
+                                                    onClick={() => updateStatus(vId, 'Assigned')}>
+                                                    {visit.status === 'AgentDeclined' ? 'Re-assign Agent' : 'Confirm & Assign'}
+                                                </button>
+                                                <button
+                                                    style={S.secondaryBtn}
+                                                    disabled={updating === vId}
+                                                    onClick={() => {
+                                                        setRejectingVisit(visit);
+                                                        setRejectMessage('');
+                                                    }}>
+                                                    Decline Visit
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                             </div>
                         );
                     })}
                 </div>
             )}
 
-            {/* Decline Message Modal */}
-            {rejectingVisit && (
+            {/* Decline Message Modal */}            {rejectingVisit && (
                 <div style={S.modalOverlay}>
                     <div style={S.modalBox}>
-                        <h2 style={S.modalTitle}>Decline Request</h2>
-                        <p style={S.modalSubtitle}>Please provide a reason or a message to the buyer for declining this visit.</p>
+                        <div style={{ ...S.modalIcon, background: '#fee2e2' }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 9V11M12 15H12.01M5.07183 19H18.9282C20.4678 19 21.4301 17.3333 20.6603 16L13.7321 4C12.9623 2.66667 11.0378 2.66667 10.268 4L3.33975 16C2.56995 17.3333 3.5322 19 5.07183 19Z" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </div>
+
+                        <h2 style={S.modalTitle}>Decline Request?</h2>
+                        <p style={S.modalSubtitle}>This will decline the visit request for this property. This action cannot be undone.</p>
                         
-                        <div style={S.modalInfo}>
-                            <strong>{rejectingVisit.buyer_name}</strong> - {rejectingVisit.land_name}
+                        <div style={S.modalInfoBox}>
+                            <div style={S.modalInfoMain}>{rejectingVisit.buyer_name || 'Buyer'}</div>
+                            <div style={S.modalInfoSub}>{new Date(rejectingVisit.visit_date).toLocaleDateString()} at {rejectingVisit.visit_time}</div>
                         </div>
 
                         <textarea
                             style={S.modalInput}
-                            placeholder="Type your message here... (e.g. Agent unavailable on this date, please pick another time)"
+                            placeholder="Please provide a reason for declining this visit..."
                             value={rejectMessage}
                             onChange={(e) => setRejectMessage(e.target.value)}
                         />
@@ -306,7 +337,7 @@ const AgentVisitsPage = () => {
                                 onClick={() => setRejectingVisit(null)}
                                 disabled={updating === (rejectingVisit._id || rejectingVisit.id)}
                             >
-                                Cancel
+                                Not Now
                             </button>
                             <button 
                                 style={S.confirmDeclineBtn}
@@ -324,56 +355,59 @@ const AgentVisitsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
-    subtitle: { color: '#777', fontSize: '0.95rem' },
-    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.8rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '0.95rem' },
+    countBadge: { background: 'var(--color-dark)', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.8rem' },
     errBox: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem', border: '1px solid #ef9a9a' },
     filterRow: { display: 'flex', gap: '12px', marginBottom: '32px' },
     filterBtn: { padding: '8px 20px', borderRadius: '30px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' },
     filterCount: { background: 'rgba(0,0,0,0.1)', borderRadius: '10px', padding: '1px 6px', fontSize: '0.7rem' },
     empty: { textAlign: 'center', color: '#aaa', padding: '80px 20px' },
     cards: { display: 'flex', flexDirection: 'column', gap: '16px' },
-    card: { background: '#fff', borderRadius: '16px', padding: '20px 24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F0EBE4', display: 'flex', gap: '32px', alignItems: 'center' },
+    card: { background: '#fff', borderRadius: '16px', padding: '20px 24px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', gap: '32px', alignItems: 'center' },
     infoSection: { flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '12px' },
     detailsStrip: { display: 'flex', gap: '20px' },
     infoItem: { display: 'flex', flexDirection: 'column', gap: '2px' },
-    buyerName: { fontWeight: '800', fontSize: '1.2rem', color: '#1A1A1A' },
-    landName: { fontSize: '0.85rem', color: '#666', fontWeight: '500' },
+    buyerName: { fontWeight: '800', fontSize: '1.2rem', color: 'var(--color-dark)' },
+    landName: { fontSize: '0.85rem', color: 'var(--color-text-soft)', fontWeight: '500' },
     statusLabel: { padding: '4px 10px', borderRadius: '6px', fontSize: '0.62rem', fontWeight: '900', letterSpacing: '0.05em' },
     detailKey: { fontSize: '0.6rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.05em', textTransform: 'uppercase' },
-    detailVal: { fontSize: '0.9rem', fontWeight: '700', color: '#1A1A1A' },
+    detailVal: { fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-dark)' },
 
     messageSection: { flex: '2 1 300px' },
-    messageWrapper: { background: '#F9F7F5', borderRadius: '12px', padding: '12px 16px', border: '1px dashed #E5E0DA' },
+    messageWrapper: { background: 'var(--color-bg)', borderRadius: '12px', padding: '12px 16px', border: '1px dashed var(--color-border)' },
     messageKey: { fontSize: '0.6rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '2px' },
     messageContent: { fontSize: '0.82rem', color: '#444', lineHeight: '1.4' },
 
     actionSection: { flex: '1 1 250px' },
     actionButtons: { display: 'flex', gap: '8px', marginTop: '10px' },
-    primaryBtn: { flex: 1, padding: '10px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
+    primaryBtn: { flex: 1, padding: '10px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer', transition: 'transform 0.2s' },
     secondaryBtn: { flex: 1, padding: '10px', background: '#fff', color: '#C62828', border: '1.5px solid #FDECEA', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
     replyArea: { display: 'flex', flexDirection: 'column' },
-    replyInput: { width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E5E0DA', fontSize: '0.85rem', outline: 'none', background: '#fff' },
+    replyInput: { width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--color-border)', fontSize: '0.85rem', outline: 'none', background: '#fff' },
 
     // Modal Styles
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px' },
-    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
-    modalSubtitle: { fontSize: '0.9rem', color: '#666', lineHeight: '1.5', margin: 0 },
-    modalInfo: { padding: '12px 16px', background: '#FAF6F1', borderRadius: '12px', fontSize: '0.9rem', color: '#444' },
-    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', '&:focus': { borderColor: '#1A1A1A' } },
-    modalActions: { display: 'flex', gap: '12px', marginTop: '10px' },
-    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
-    confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },
+    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: 'var(--shadow-elevated)', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', textAlign: 'center' },
+    modalIcon: { width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' },
+    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
+    modalSubtitle: { fontSize: '0.9rem', color: 'var(--color-text-soft)', lineHeight: '1.5', margin: 0 },
+    modalInfoBox: { width: '100%', padding: '16px', background: 'var(--color-bg)', borderRadius: '16px', border: '1px solid var(--color-border)' },
+    modalInfoMain: { fontWeight: '800', fontSize: '1.1rem', color: 'var(--color-dark)' },
+    modalInfoSub: { fontSize: '0.82rem', color: '#888', marginTop: '4px', fontWeight: '600' },
+    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid var(--color-border)', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', textAlign: 'left' },
+    modalActions: { display: 'flex', gap: '12px', marginTop: '10px', width: '100%' },
+    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid var(--color-border)', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
+    confirmDeclineBtn: { flex: 1, padding: '14px', background: '#d32f2f', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },
     
     // Busy Preview Styles
-    busyPreview: { marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '12px', border: '1px solid #E5E0DA' },
+    busyPreview: { marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '12px', border: '1px solid var(--color-border)' },
     busyTitle: { fontSize: '0.65rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '8px' },
     busyList: { display: 'flex', flexWrap: 'wrap', gap: '6px' },
     busyTag: { padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700' },
-    freeNote: { fontSize: '0.75rem', color: '#2e7d32', fontWeight: '600', fontStyle: 'italic' }
+    freeNote: { fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: '600', fontStyle: 'italic' }
 };
 
 export default AgentVisitsPage;

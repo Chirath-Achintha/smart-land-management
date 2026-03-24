@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
@@ -7,6 +8,7 @@ const BuyerVisitsPage = () => {
     const [myVisits, setMyVisits] = useState([]);
     const [loading, setLoading] = useState(true);
     const [updatingVisit, setUpdatingVisit] = useState(null);
+    const navigate = useNavigate();
     const [cancellingVisit, setCancellingVisit] = useState(null);
     const [editData, setEditData] = useState({ date: '', time: '', message: '' });
     const [availability, setAvailability] = useState([]);
@@ -17,6 +19,7 @@ const BuyerVisitsPage = () => {
     // Calendar State
     const [currentDate, setCurrentDate] = useState(new Date()); // Auto-detect current month/year
     const [highlightedVisitId, setHighlightedVisitId] = useState(null);
+    const [cancelReason, setCancelReason] = useState('');
 
     useEffect(() => {
         const tok = localStorage.getItem('access_token');
@@ -29,6 +32,38 @@ const BuyerVisitsPage = () => {
             .catch(() => setMyVisits([]))
             .finally(() => setLoading(false));
     }, []);
+
+    const location = useLocation();
+
+    // Scroll to visit logic
+    useEffect(() => {
+        if (!loading && myVisits.length > 0) {
+            const params = new URLSearchParams(location.search);
+            const visitId = params.get('visit_id');
+            if (visitId) {
+                // Find visit and set filter if needed
+                const v = myVisits.find(v => (v._id || v.id) === visitId);
+                if (v) {
+                    if (v.status === 'Cancelled' || v.status === 'Rejected') {
+                        setFilter('Cancelled');
+                    } else if (v.status === 'Accepted' || v.status === 'Completed') {
+                        setFilter(v.status);
+                    } else if (v.status === 'Pending') {
+                        setFilter('Pending');
+                    }
+                    
+                    setTimeout(() => {
+                        setHighlightedVisitId(visitId);
+                        const el = document.getElementById(`visit-card-${visitId}`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        setTimeout(() => { setHighlightedVisitId(null); }, 3000);
+                    }, 100);
+                }
+            }
+        }
+    }, [location.search, loading, myVisits]);
 
     // Filter by visit type separately
     const [visitTypeFilter, setVisitTypeFilter] = useState('All');
@@ -63,17 +98,23 @@ const BuyerVisitsPage = () => {
             const tok = localStorage.getItem('access_token');
             const res = await fetch(`${API}/visits/${vId}/cancel`, {
                 method: 'PUT',
-                headers: { 'Authorization': `Bearer ${tok}` }
+                headers: { 
+                    'Authorization': `Bearer ${tok}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason: cancelReason })
             });
+
             if (res.ok) {
-                setMyVisits(myVisits.map(v => v.id === vId || v._id === vId ? { ...v, status: 'Cancelled' } : v));
+                setMyVisits(prev => prev.map(v => (v._id || v.id) === vId ? { ...v, status: 'Cancelled' } : v));
                 setCancellingVisit(null);
+                setCancelReason('');
             } else {
                 const err = await res.json();
-                alert(err.detail || 'Failed to cancel visit');
+                alert(err.detail || 'Failed to cancel');
             }
         } catch (err) {
-            alert('Error cancelling visit');
+            alert('Error cancelling');
         }
     };
 
@@ -220,7 +261,19 @@ const BuyerVisitsPage = () => {
         return (
             <div style={S.calendarRoot}>
                 <div style={S.calHeader}>
-                    <h2 style={S.calTitle}>{monthNames[month]} {year}</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <h2 style={S.calTitle}>{monthNames[month]} {year}</h2>
+                        <div style={S.calLegend}>
+                            <div style={S.legendItem}>
+                                <div style={{ ...S.legendDot, background: '#1565C0' }}></div>
+                                <span>Self Visit</span>
+                            </div>
+                            <div style={S.legendItem}>
+                                <div style={{ ...S.legendDot, background: '#7B1FA2' }}></div>
+                                <span>Agent Visit</span>
+                            </div>
+                        </div>
+                    </div>
                     <div style={S.calNav}>
                         <button style={S.calNavBtn} onClick={prevMonth}>&lt;</button>
                         <button style={{ ...S.calNavBtn, ...S.todayBtn }} onClick={goToToday}>Today</button>
@@ -243,9 +296,9 @@ const BuyerVisitsPage = () => {
                                             style={{ 
                                                 ...S.eventTag, 
                                                 cursor: 'pointer',
-                                                background: v.visit_type === 'self_visit' ? '#E3F2FD' : '#F3E5F5',
+                                                background: v.visit_type === 'self_visit' ? '#E3F1FF' : '#F5E6FF',
                                                 color: v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2',
-                                                borderLeft: `3px solid ${v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'}`
+                                                borderLeft: `5px solid ${v.visit_type === 'self_visit' ? '#1565C0' : '#7B1FA2'}`
                                             }}
                                             onClick={() => scrollToVisit(v.id || v._id)}
                                             title="Click to see details above"
@@ -359,52 +412,67 @@ const BuyerVisitsPage = () => {
                                         <span style={S.detailLabel}>TIME SLOT</span>
                                         <span style={S.detailVal}>{visit.visit_time}</span>
                                     </div>
-                                    {visit.message && (
-                                        <div style={S.messageBox}>
-                                            <span style={S.messageTitle}>Your Message</span>
-                                            <p style={S.messageContent}>{visit.message}</p>
-                                        </div>
-                                    )}
-                                    {visit.seller_message && (
-                                        <div style={{ 
-                                            ...S.messageBox, 
-                                            background: (visit.status === 'Rejected' && !visit.admin_message) ? '#fdecea' : '#E8F5E9' 
-                                        }}>
-                                            <span style={{ 
-                                                ...S.messageTitle, 
-                                                color: (visit.status === 'Rejected' && !visit.admin_message) ? '#C62828' : '#2E7D32' 
-                                            }}>
-                                                Seller's Reply
-                                            </span>
-                                            <p style={{ 
-                                                ...S.messageContent, 
-                                                color: (visit.status === 'Rejected' && !visit.admin_message) ? '#C62828' : '#1B5E20' 
-                                            }}>
-                                                {visit.seller_message}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {visit.admin_message && (
-                                        <div style={{ 
-                                            ...S.messageBox, 
-                                            marginTop: visit.seller_message ? '12px' : '0',
-                                            padding: '16px',
-                                            borderRadius: '16px',
-                                            background: (visit.status === 'Rejected') ? '#fdecea' : '#E3F2FD' 
-                                        }}>
-                                            <span style={{ 
-                                                ...S.messageTitle, 
-                                                color: (visit.status === 'Rejected') ? '#C62828' : '#1565C0' 
-                                            }}>
-                                                Admin's Reply
-                                            </span>
-                                            <p style={{ 
-                                                ...S.messageContent, 
-                                                color: (visit.status === 'Rejected') ? '#C62828' : '#0D47A1' 
-                                            }}>
-                                                {visit.admin_message}
-                                            </p>
-                                        </div>
+                                    {visit.status === 'Cancelled' ? (
+                                        visit.cancel_reason && (
+                                            <div style={{ ...S.messageBox, background: '#fdecea', border: '1px solid #ef9a9a' }}>
+                                                <span style={{ ...S.messageTitle, color: '#c62828' }}>
+                                                    {visit.cancelled_by === 'buyer' ? 'My Cancellation Reason' : 
+                                                     visit.cancelled_by === 'seller' ? "Owner's Cancellation Reason" : 
+                                                     'Cancellation Reason'}
+                                                </span>
+                                                <p style={{ ...S.messageContent, color: '#c62828' }}>{visit.cancel_reason}</p>
+                                            </div>
+                                        )
+                                    ) : (
+                                        <>
+                                            {visit.message && (
+                                                <div style={S.messageBox}>
+                                                    <span style={S.messageTitle}>Your Message</span>
+                                                    <p style={S.messageContent}>{visit.message}</p>
+                                                </div>
+                                            )}
+                                            {visit.seller_message && (
+                                                <div style={{ 
+                                                    ...S.messageBox, 
+                                                    background: (visit.status === 'Rejected' && !visit.admin_message) ? '#fdecea' : '#E8F5E9' 
+                                                }}>
+                                                    <span style={{ 
+                                                        ...S.messageTitle, 
+                                                        color: (visit.status === 'Rejected' && !visit.admin_message) ? '#C62828' : '#2E7D32' 
+                                                    }}>
+                                                        Seller's Reply
+                                                    </span>
+                                                    <p style={{ 
+                                                        ...S.messageContent, 
+                                                        color: (visit.status === 'Rejected' && !visit.admin_message) ? '#C62828' : '#1B5E20' 
+                                                    }}>
+                                                        {visit.seller_message}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {visit.admin_message && (
+                                                <div style={{ 
+                                                    ...S.messageBox, 
+                                                    marginTop: visit.seller_message ? '12px' : '0',
+                                                    padding: '16px',
+                                                    borderRadius: '16px',
+                                                    background: (visit.status === 'Rejected') ? '#fdecea' : '#E3F2FD' 
+                                                }}>
+                                                    <span style={{ 
+                                                        ...S.messageTitle, 
+                                                        color: (visit.status === 'Rejected') ? '#C62828' : '#1565C0' 
+                                                    }}>
+                                                        Admin's Reply
+                                                    </span>
+                                                    <p style={{ 
+                                                        ...S.messageContent, 
+                                                        color: (visit.status === 'Rejected') ? '#C62828' : '#0D47A1' 
+                                                    }}>
+                                                        {visit.admin_message}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
 
                                     {/* Agent Details */}
@@ -442,7 +510,7 @@ const BuyerVisitsPage = () => {
                                                 </button>
                                             )}
                                         </div>
-                                        <button style={S.viewBtn} onClick={() => window.location.href = `/lands/${visit.land_id}`}>View Land</button>
+                                        <button style={S.viewBtn} onClick={() => navigate(`/lands/${visit.land_id}`)}>View Land</button>
                                     </div>
                                     <div style={{ marginTop: '12px', width: '100%' }}>
                                         <span style={S.receivedDate}>Request sent {new Date(visit.created_at).toLocaleDateString()}</span>
@@ -531,14 +599,25 @@ const BuyerVisitsPage = () => {
             {/* Cancel Confirmation Modal */}
             {cancellingVisit && (
                 <div style={S.modalOverlay}>
-                    <div style={{ ...S.modalContent, maxWidth: '400px', textAlign: 'center' }}>
-                        <div style={S.warningIcon}>!</div>
-                        <h2 style={S.modalTitle}>Are you sure?</h2>
-                        <p style={S.modalSub}>You are about to cancel your visit request for <strong>{cancellingVisit.land_name}</strong>. This action cannot be undone.</p>
+                    <div style={S.modalContent}>
+                        <h2 style={S.modalTitle}>Cancel Trip</h2>
+                        <p style={S.modalSub}>Please provide a reason for cancelling your visit request.</p>
                         
+                        <div style={S.modalInfoBox}>
+                            <div style={S.modalInfoMain}>Property: {cancellingVisit.land_name}</div>
+                            <div style={S.modalInfoSub}>Scheduled for: {cancellingVisit.visit_date} at {cancellingVisit.visit_time}</div>
+                        </div>
+
+                        <textarea
+                            style={{ ...S.input, minHeight: '120px', marginTop: '20px' }}
+                            placeholder="e.g. Schedule conflict, sorry..."
+                            value={cancelReason}
+                            onChange={(e) => setCancelReason(e.target.value)}
+                        />
+
                         <div style={{ ...S.modalFooter, justifyContent: 'center', marginTop: '32px' }}>
-                            <button style={S.cancelBtn} onClick={() => setCancellingVisit(null)}>Keep Booking</button>
-                            <button style={{ ...S.saveBtn, backgroundColor: '#e74c3c' }} onClick={handleCancelSubmit}>Yes, Cancel it</button>
+                            <button style={S.cancelBtn} onClick={() => { setCancellingVisit(null); setCancelReason(''); }}>Back</button>
+                            <button style={{ ...S.saveBtn, backgroundColor: '#1A1A1A' }} onClick={handleCancelSubmit}>Confirm Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -559,70 +638,75 @@ const BuyerVisitsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px', letterSpacing: '-0.02em' },
-    subtitle: { color: '#777', fontSize: '1rem', fontWeight: '500' },
-    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
-    typeToggleRow: { display: 'flex', gap: '8px', marginBottom: '20px', background: '#F0EBE4', padding: '6px', borderRadius: '40px', width: 'fit-content' },
+    title: { fontSize: '2.2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px', letterSpacing: '-0.02em' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem', fontWeight: '500' },
+    countBadge: { background: 'var(--color-primary)', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
+    typeToggleRow: { display: 'flex', gap: '8px', marginBottom: '20px', background: 'var(--color-bg)', padding: '6px', borderRadius: '40px', width: 'fit-content', border: '1px solid var(--color-border)' },
     typeTab: { padding: '10px 20px', borderRadius: '30px', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s ease-in-out' },
     filterRow: { display: 'flex', gap: '12px', marginBottom: '40px', flexWrap: 'wrap' },
     filterBtn: { padding: '8px 20px', borderRadius: '30px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' },
-    filterCount: { borderRadius: '10px', padding: '2px 8px', fontSize: '0.75rem', border: '1px solid #e5e0da' },
+    filterCount: { borderRadius: '10px', padding: '2px 8px', fontSize: '0.75rem', border: '1px solid var(--color-border)' },
     empty: { textAlign: 'center', color: '#aaa', padding: '100px 20px', fontSize: '1.1rem', fontWeight: '500' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' },
 
-    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 8px 32px rgba(26, 26, 26, 0.04)', border: '1px solid #F0EBE4', display: 'flex', flexDirection: 'column' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '1px solid #F0EBE4', paddingBottom: '16px' },
-    landName: { fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '2px' },
+    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '16px' },
+    landName: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '2px' },
     typeTag: { fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' },
     statusBadge: { padding: '4px 12px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '900', letterSpacing: '0.08em' },
 
     details: { display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' },
     detailRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     detailLabel: { fontSize: '0.68rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.08em' },
-    detailVal: { fontSize: '0.92rem', fontWeight: '700', color: '#1A1A1A' },
+    detailVal: { fontSize: '0.92rem', fontWeight: '700', color: 'var(--color-dark)' },
 
-    messageBox: { background: '#F9F7F5', borderRadius: '16px', padding: '16px', marginTop: '8px' },
+    messageBox: { background: 'var(--color-bg)', borderRadius: '16px', padding: '16px', marginTop: '8px' },
     messageTitle: { fontSize: '0.65rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em', display: 'block' },
     messageContent: { fontSize: '0.88rem', color: '#444', lineHeight: '1.5', fontWeight: '500', margin: 0 },
 
-    footer: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid #F0EBE4', paddingTop: '16px' },
+    footer: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: '16px' },
     receivedDate: { fontSize: '0.72rem', color: '#BBB', fontWeight: '600' },
-    viewBtn: { background: 'none', border: '1.5px solid #1A1A1A', borderRadius: '10px', padding: '8px 16px', fontWeight: '700', fontSize: '0.85rem', color: '#1A1A1A', cursor: 'pointer', transition: 'all 0.2s ease-in-out', hover: { background: '#1A1A1A', color: '#fff' } },
+    viewBtn: { background: 'none', border: '1.5px solid var(--color-dark)', borderRadius: '10px', padding: '8px 16px', fontWeight: '700', fontSize: '0.85rem', color: 'var(--color-dark)', cursor: 'pointer', transition: 'all 0.2s ease-in-out' },
     
     // Modal Styles
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modalContent: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 24px 64px rgba(0,0,0,0.2)' },
-    modalTitle: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    modalSub: { color: '#666', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '32px' },
-    modalBody: { display: 'flex', flexDirection: 'column', gap: '20px' },
-    input: { padding: '16px', borderRadius: '12px', border: '1.5px solid #F0EBE4', fontSize: '1rem', outline: 'none', background: '#FDFDFD', width: '100%', boxSizing: 'border-box' },
+    modalContent: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: 'var(--shadow-elevated)', display: 'flex', flexDirection: 'column', gap: '20px' },
+    modalTitle: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
+    modalSub: { color: 'var(--color-text-soft)', fontSize: '1rem', lineHeight: '1.5', margin: 0 },
+    modalInfoBox: { padding: '24px', background: 'var(--color-bg)', borderRadius: '16px', border: '1px solid var(--color-border)' },
+    modalInfoMain: { fontSize: '1rem', fontWeight: '700', color: 'var(--color-dark)', marginBottom: '4px' },
+    modalInfoSub: { fontSize: '0.88rem', color: 'var(--color-text-soft)', fontWeight: '500' },
+    input: { padding: '20px', borderRadius: '16px', border: '1.5px solid var(--color-border)', fontSize: '1rem', outline: 'none', background: '#fff', width: '100%', boxSizing: 'border-box' },
     label: { fontSize: '0.68rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.08em', marginBottom: '8px', display: 'block' },
-    modalFooter: { display: 'flex', gap: '12px', marginTop: '40px', justifyContent: 'flex-end' },
-    cancelBtn: { padding: '12px 24px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontWeight: '800', color: '#666', cursor: 'pointer', fontSize: '0.9rem' },
-    saveBtn: { padding: '12px 24px', background: '#1A1A1A', border: 'none', borderRadius: '12px', fontWeight: '800', color: '#fff', cursor: 'pointer', fontSize: '0.9rem' },
+    modalFooter: { display: 'flex', gap: '14px', marginTop: '10px' },
+    cancelBtn: { flex: 1, padding: '16px', background: 'var(--color-bg)', border: 'none', borderRadius: '14px', fontWeight: '800', fontSize: '1rem', color: '#666', cursor: 'pointer' },
+    saveBtn: { flex: 1, padding: '16px', background: 'var(--color-primary)', border: 'none', borderRadius: '14px', fontWeight: '800', fontSize: '1rem', color: '#fff', cursor: 'pointer' },
     warningIcon: { width: '50px', height: '50px', borderRadius: '50%', border: '3px solid #e74c3c', color: '#e74c3c', fontSize: '1.5rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
 
     // Schedule / Calendar Styles
-    scheduleSection: { marginTop: '80px', background: '#fff', padding: '48px', borderRadius: '32px', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0' },
+    scheduleSection: { marginTop: '80px', background: '#fff', padding: '48px', borderRadius: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
     scheduleHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' },
-    sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px', margin: 0 },
-    sectionSubtitle: { fontSize: '1rem', color: '#777', margin: 0 },
+    sectionTitle: { fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px', margin: 0 },
+    sectionSubtitle: { fontSize: '1rem', color: 'var(--color-text-soft)', margin: 0 },
     
-    calendarRoot: { border: '1px solid #F0EBE4', borderRadius: '32px', overflow: 'hidden', background: '#fff' },
-    calHeader: { padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F0F0F0' },
-    calTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    calendarRoot: { border: '1px solid var(--color-border)', borderRadius: '32px', overflow: 'hidden', background: '#fff' },
+    calHeader: { padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)' },
+    calTitle: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
+    calLegend: { display: 'flex', gap: '16px', marginTop: '6px' },
+    legendItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem', fontWeight: '800', color: 'var(--color-text-soft)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    legendDot: { width: '8px', height: '8px', borderRadius: '50%' },
     calNav: { display: 'flex', gap: '8px' },
-    calNavBtn: { padding: '8px 16px', border: '1px solid #E5E0DA', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#1A1A1A', fontFamily: 'inherit' },
-    todayBtn: { padding: '8px 20px', background: '#1A1A1A', color: '#fff', border: 'none' },
+    calNavBtn: { padding: '8px 16px', border: '1px solid var(--color-border)', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: 'var(--color-dark)', fontFamily: 'inherit' },
+    todayBtn: { padding: '8px 20px', background: 'var(--color-primary)', color: '#fff', border: 'none' },
     calGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(140px, auto)' },
-    weekDayHead: { padding: '16px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', borderBottom: '1px solid #F0F0F0', background: '#FAF9F7' },
-    dayCell: { borderRight: '1px solid #F0F0F0', borderBottom: '1px solid #F0F0F0', padding: '12px', minHeight: '140px' },
+    weekDayHead: { padding: '16px', fontSize: '0.75rem', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' },
+    dayCell: { borderRight: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '12px', minHeight: '140px' },
     dayNum: { textAlign: 'right', fontSize: '0.85rem', fontWeight: '800', color: '#666', marginBottom: '8px' },
-    todayCircle: { background: '#00B4D8', color: '#fff', padding: '4px 8px', borderRadius: '50%', fontSize: '0.75rem' },
+    todayCircle: { background: 'var(--color-primary)', color: '#fff', padding: '4px 8px', borderRadius: '50%', fontSize: '0.75rem' },
     eventList: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    eventTag: { padding: '6px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '6px', transition: 'transform 0.2s', ':hover': { transform: 'translateX(4px)' } },
+    eventTag: { padding: '6px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '6px', transition: 'transform 0.2s' },
     eventDot: { width: '4px', height: '4px', borderRadius: '50%', background: 'currentColor' }
 };
 

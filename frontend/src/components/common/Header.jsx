@@ -3,11 +3,15 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { SearchIcon, UserIcon, BrandLogo, LockIcon } from '../../pages/landing/LandingIcons';
 import { NAV } from '../../pages/landing/landingData.jsx';
 import { useAuth } from '../../context/AuthContext';
+import { getDefaultDashboardPath } from '../../routePaths';
 import '../../pages/landing/LandingPage.css';
 
 const Header = () => {
     const { user, logout } = useAuth();
+    const dashboardPath = getDefaultDashboardPath(user?.role);
+
     const [activeNav, setActiveNav] = useState("Home");
+    const [isScrolled, setIsScrolled] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -27,6 +31,16 @@ const Header = () => {
             setActiveNav('Home');
         }
     }, [location.hash, location.pathname]);
+
+    useEffect(() => {
+        const onScroll = () => {
+            setIsScrolled(window.scrollY > 20);
+        };
+
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     const handleLogoClick = () => {
         setActiveNav('Home');
@@ -51,9 +65,9 @@ const Header = () => {
     };
 
     return (
-        <nav className="landing-nav">
+        <nav className={`landing-nav ${isScrolled ? 'is-scrolled' : ''}`}>
             <div className="nav-logo" style={{ cursor: 'pointer' }} onClick={handleLogoClick}>
-                <BrandLogo color="#556B2F" />
+                <BrandLogo color="#EAF8EA" />
                 <span className="nav-logo-text">Smart Land Management System</span>
             </div>
             <ul className="landing-nav-links">
@@ -100,16 +114,16 @@ const Header = () => {
                 
                 {user ? (
                     <>
-                        <button className="nav-icon" onClick={() => navigate('/dashboard')} title="Dashboard">
+                        <button className="nav-icon" onClick={() => navigate(dashboardPath)} title="Dashboard">
                             <UserIcon />
                         </button>
-                        <div style={{ width: '1px', height: '24px', backgroundColor: '#E5E7EB', margin: '0 4px' }}></div>
+                        <div className="nav-divider"></div>
                         <button className="btn-dark" onClick={handleLogout}>Logout</button>
                     </>
                 ) : (
                     <>
                         <button className="nav-icon" onClick={() => handleAuthClick('/login')}><UserIcon /></button>
-                        <div style={{ width: '1px', height: '24px', backgroundColor: '#E5E7EB', margin: '0 4px' }}></div>
+                        <div className="nav-divider"></div>
                         <button className="btn-dark" onClick={() => handleAuthClick('/login')}>Sign in</button>
                     </>
                 )}

@@ -5,8 +5,8 @@ import toast from 'react-hot-toast';
 const API = API_BASE_URL;
 
 const STATUS_STYLE = {
-    Pending: { color: '#92400e', background: '#FEF3C7' },
-    'Quote Submitted': { color: '#1e40af', background: '#dbeafe' },
+    Pending: { bg: '#FFF8E1', color: '#B45309' },
+    'Quote Submitted': { bg: '#E0F2FE', color: '#0369A1' },
 };
 
 const toErrorMessage = (payload, fallback) => {
@@ -66,8 +66,8 @@ const ConstructorServiceBookingsPage = () => {
     }, [token]);
 
     const submitQuote = async (id) => {
-        if (!quoteData.amount || isNaN(quoteData.amount)) {
-            toast.error('Please enter a valid amount');
+        if (!quoteData.amount || isNaN(quoteData.amount) || parseFloat(quoteData.amount) <= 0) {
+            toast.error('Please enter a valid positive amount');
             return;
         }
         setUpdating(id);
@@ -244,6 +244,7 @@ const ConstructorServiceBookingsPage = () => {
                                 <input 
                                     style={S.input}
                                     type="number"
+                                    min="1"
                                     placeholder="e.g. 500000"
                                     value={quoteData.amount}
                                     onChange={e => setQuoteData({ ...quoteData, amount: e.target.value })}
@@ -273,52 +274,52 @@ const ConstructorServiceBookingsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
-    subtitle: { color: '#777', fontSize: '0.95rem' },
-    countBadge: { background: '#d32f2f', color: '#fff', borderRadius: '20px', padding: '6px 16px', fontWeight: '800', fontSize: '0.9rem' },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' },
+    title: { fontSize: '2.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0, letterSpacing: '-0.02em' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem', fontWeight: '500', marginTop: '6px' },
+    countBadge: { background: 'var(--color-primary)', color: '#fff', borderRadius: '30px', padding: '8px 20px', fontWeight: '800', fontSize: '0.85rem' },
     
-    empty: { textAlign: 'center', color: '#aaa', padding: '60px', background: '#fff', borderRadius: '16px' },
-    emptyBox: { textAlign: 'center', color: '#6B7280', padding: '60px', background: '#fff', borderRadius: '16px', border: '1px dashed #E5E7EB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
+    empty: { textAlign: 'center', color: '#BBB', padding: '100px 40px', background: '#fff', borderRadius: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
+    emptyBox: { textAlign: 'center', color: 'var(--color-text-soft)', padding: '100px 40px', background: '#fff', borderRadius: '32px', border: '1px dashed var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' },
     
-    gridContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' },
-    card: { background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F0F0F0', display: 'flex', flexDirection: 'column', gap: '16px' },
-    cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    idBadge: { background: '#F3F4F6', color: '#374151', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800' },
-    dateBadge: { color: '#6B7280', fontSize: '0.8rem', fontWeight: '600' },
-    cardTitle: { margin: 0, fontSize: '1.2rem', fontWeight: '800', color: '#111827' },
-    cardInfo: { display: 'flex', flexDirection: 'column', gap: '10px', background: '#F9FAFB', padding: '16px', borderRadius: '12px' },
-    infoGroup: { display: 'flex', flexDirection: 'column', gap: '2px' },
-    infoLabel: { fontSize: '0.7rem', fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase' },
-    infoValue: { fontSize: '0.95rem', fontWeight: '600', color: '#111827' },
+    gridContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' },
+    card: { background: '#fff', padding: '32px', borderRadius: '24px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '20px' },
+    cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: '16px' },
+    idBadge: { background: 'var(--color-bg)', color: '#AAA', padding: '4px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    statusPill: { fontSize: '0.68rem', fontWeight: '900', padding: '4px 12px', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.05em' },
     
-    cardActions: { display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto' },
-    viewBtn: { padding: '10px', background: '#F3F4F6', color: '#374151', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.88rem' },
-    acceptBtn: { flex: 1, padding: '10px', background: '#111827', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.88rem' },
-    rejectBtn: { flex: 1, padding: '10px', background: '#fff', color: '#EF4444', border: '1px solid #FECACA', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.88rem' },
+    cardTitle: { margin: 0, fontSize: '1.3rem', fontWeight: '800', color: 'var(--color-dark)' },
+    cardInfo: { display: 'flex', flexDirection: 'column', gap: '14px', background: 'var(--color-bg)', padding: '20px', borderRadius: '16px' },
+    infoGroup: { display: 'flex', flexDirection: 'column', gap: '4px' },
+    infoLabel: { fontSize: '0.65rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase', letterSpacing: '0.08em' },
+    infoValue: { fontSize: '0.92rem', fontWeight: '700', color: 'var(--color-dark)' },
+    
+    cardActions: { display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: '20px' },
+    viewBtn: { padding: '12px', background: 'var(--color-bg)', color: '#666', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
+    acceptBtn: { flex: 1, padding: '12px', background: 'var(--color-dark)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
+    rejectBtn: { flex: 1, padding: '12px', background: 'transparent', color: '#e74c3c', border: '1.5px solid #ffccbc', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
 
     overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modal: { background: '#fff', borderRadius: '28px', padding: '36px', width: '100%', maxWidth: '520px', boxShadow: '0 24px 60px rgba(0,0,0,0.15)' },
-    modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
-    modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
-    closeX: { background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#AAA' },
-    modalBody: { marginBottom: '24px' },
-    mGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' },
-    mLabel: { fontSize: '0.72rem', color: '#AAA', fontWeight: '700', textTransform: 'uppercase' },
-    mVal: { fontWeight: '700', color: '#1A1A1A', margin: '4px 0 0', fontSize: '0.95rem' },
-    notesBox: { background: '#F9FAFB', borderRadius: '10px', padding: '16px', fontSize: '0.9rem', color: '#374151', fontStyle: 'italic', border: '1px solid #E5E7EB' },
-    modalFoot: { display: 'flex', gap: '12px' },
-    mAcceptBtn: { flex: 1, padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem' },
-    mRejectBtn: { flex: 1, padding: '14px', background: '#FEF2F2', color: '#EF4444', border: '1px dashed #FECACA', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem' },
+    modal: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '560px', boxShadow: 'var(--shadow-elevated)', display: 'flex', flexDirection: 'column', gap: '24px' },
+    modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    modalTitle: { fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
+    closeX: { background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#AAA' },
+    modalBody: { display: 'flex', flexDirection: 'column', gap: '20px' },
+    mGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
+    mLabel: { fontSize: '0.72rem', color: '#AAA', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em' },
+    mVal: { fontWeight: '700', color: 'var(--color-dark)', margin: '4px 0 0', fontSize: '0.95rem' },
+    notesBox: { background: 'var(--color-bg)', borderRadius: '16px', padding: '20px', fontSize: '0.92rem', color: '#444', lineHeight: '1.6', border: '1px solid var(--color-border)', borderLeft: '4px solid var(--color-primary)' },
+    modalFoot: { display: 'flex', gap: '14px' },
+    mAcceptBtn: { flex: 1, padding: '16px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '16px', fontWeight: '800', cursor: 'pointer', fontSize: '1rem' },
+    mRejectBtn: { flex: 1, padding: '16px', background: 'var(--color-bg)', color: '#e74c3c', border: '1px solid #ffccbc', borderRadius: '16px', fontWeight: '800', cursor: 'pointer', fontSize: '1rem' },
     
-    statusPill: { fontSize: '0.7rem', fontWeight: '800', padding: '4px 10px', borderRadius: '20px', textTransform: 'uppercase' },
-    quoteBadge: { background: '#eff6ff', color: '#1e40af', padding: '10px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '700', marginTop: '4px' },
-    waitingBtn: { width: '100%', padding: '10px', background: '#F3F4F6', color: '#9CA3AF', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'not-allowed', fontSize: '0.85rem' },
-    formGroup: { marginBottom: '16px' },
-    label: { display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#374151', marginBottom: '6px' },
-    input: { width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E5E7EB', boxSizing: 'border-box' },
-    textarea: { width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E5E7EB', boxSizing: 'border-box', height: '100px', resize: 'none' },
+    quoteBadge: { background: '#ECFDF5', color: '#047857', padding: '12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '800', marginTop: '4px', border: '1px solid #A7F3D0' },
+    waitingBtn: { width: '100%', padding: '12px', background: 'var(--color-bg)', color: '#BBB', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'not-allowed', fontSize: '0.85rem' },
+    formGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
+    label: { fontSize: '0.72rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase', letterSpacing: '0.08em' },
+    input: { width: '100%', padding: '16px', borderRadius: '16px', border: '1.5px solid var(--color-border)', boxSizing: 'border-box', fontSize: '1rem', outline: 'none' },
+    textarea: { width: '100%', padding: '16px', borderRadius: '16px', border: '1.5px solid var(--color-border)', boxSizing: 'border-box', height: '120px', resize: 'none', fontSize: '1rem', outline: 'none' },
 };
 
 export default ConstructorServiceBookingsPage;

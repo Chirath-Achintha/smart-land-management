@@ -317,7 +317,14 @@ const LandDetailPage = () => {
                                             </div>
                                             <button
                                                 style={S.svcBookBtn}
-                                                onClick={() => openBookingModal(svc)}
+                                                onClick={() => {
+                                                    if (!currentUser?.loggedIn) {
+                                                        // Use the current land detail path as the 'from' location
+                                                        navigate('/login', { state: { from: `/lands/${id}` } });
+                                                    } else {
+                                                        openBookingModal(svc);
+                                                    }
+                                                }}
                                             >Book Now</button>
                                         </div>
                                     ))}

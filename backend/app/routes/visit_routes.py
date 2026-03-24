@@ -83,15 +83,17 @@ async def book_visit(
             detail=f"You already have a visit request for {data.visit_date} at {data.visit_time}. Please pick a different time slot."
         )
 
-    # Prevent duplicate pending visit of same type for same buyer/land
+    # Prevent duplicate pending visit (ANY TYPE) for same buyer/land
     existing = await Visit.find_one(
         Visit.land_id == land_id,
         Visit.buyer_id == current_user.id,
-        Visit.status == VisitStatus.Pending,
-        Visit.visit_type == data.visit_type
+        Visit.status == VisitStatus.Pending
     )
     if existing:
-        raise HTTPException(status_code=409, detail=f"You already have a pending {data.visit_type.replace('_', ' ')} request for this land.")
+        raise HTTPException(
+            status_code=409, 
+            detail=f"You already have a pending {existing.visit_type.replace('_', ' ')} request for this land. Please wait for the seller's response."
+        )
 
     visit = Visit(
         land_id=land_id,

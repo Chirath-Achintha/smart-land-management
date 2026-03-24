@@ -134,57 +134,57 @@ const SellerDashboard = () => {
 };
 
 const S = {
-    root: { background: 'var(--sage-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '36px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--sage-text-dark)', marginBottom: '8px' },
-    subtitle: { color: 'var(--sage-text-med)', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem' },
     cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '40px' },
-    card: { background: 'var(--sage-card)', borderRadius: '16px', padding: '32px 28px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.3s ease, box-shadow 0.3s ease', cursor: 'default' },
+    card: { background: 'var(--color-surface)', borderRadius: '16px', padding: '32px 28px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.3s ease, box-shadow 0.3s ease', cursor: 'default' },
     statVal: { fontSize: '2.8rem', fontWeight: '800', lineHeight: 1 },
-    statLabel: { fontSize: '0.85rem', color: 'var(--sage-text-light)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    statLabel: { fontSize: '0.85rem', color: 'var(--color-text-soft)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
 
     dashboardContent: { display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '32px' },
     mainColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
     sideColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
 
-    sectionCard: { background: 'var(--sage-card)', borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
+    sectionCard: { background: 'var(--color-surface)', borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(85, 107, 47, 0.05)', paddingBottom: '16px' },
-    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--sage-text-dark)', margin: 0 },
+    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
 
     editActions: { display: 'flex', gap: '8px' },
-    editBtn: { padding: '8px 16px', background: 'rgba(85, 107, 47, 0.05)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--sage-primary)' },
-    saveBtn: { padding: '8px 16px', background: 'var(--sage-primary)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#fff' },
-    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid #DDD', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--sage-text-med)' },
+    editBtn: { padding: '8px 16px', background: 'rgba(85, 107, 47, 0.05)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--color-primary)' },
+    saveBtn: { padding: '8px 16px', background: 'var(--color-primary)', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#fff' },
+    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid #DDD', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--color-text-soft)' },
 
     profileGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' },
     profileItem: { display: 'flex', flexDirection: 'column', gap: '6px' },
-    label: { fontSize: '0.75rem', fontWeight: '700', color: 'var(--sage-text-light)', textTransform: 'uppercase' },
-    value: { fontSize: '1rem', fontWeight: '600', color: 'var(--sage-text-dark)' },
-    input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(85, 107, 47, 0.1)', background: 'var(--sage-bg)', fontSize: '0.9rem', outline: 'none', color: 'var(--sage-text-dark)' },
+    label: { fontSize: '0.75rem', fontWeight: '700', color: 'var(--color-text-soft)', textTransform: 'uppercase' },
+    value: { fontSize: '1rem', fontWeight: '600', color: 'var(--color-dark)' },
+    input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(85, 107, 47, 0.1)', background: 'var(--color-bg)', fontSize: '0.9rem', outline: 'none', color: 'var(--color-dark)' },
 
     dangerZone: { marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed rgba(244, 67, 54, 0.2)' },
     deleteLink: { background: 'none', border: 'none', color: '#F44336', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', padding: 0, textDecoration: 'underline', opacity: 0.7 },
 
     btnRow: { display: 'flex', gap: '16px', flexWrap: 'wrap' },
     actionBtn: { padding: '14px 28px', borderRadius: '10px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer', border: 'none', fontFamily: "'DM Sans', sans-serif" },
-    outlineBtn: { background: 'var(--sage-card)', color: 'var(--sage-primary)', border: '2px solid var(--color-secondary)' },
+    outlineBtn: { background: 'var(--color-surface)', color: 'var(--color-primary)', border: '2px solid var(--color-border)' },
 
     activityList: { display: 'flex', flexDirection: 'column' },
     activityItem: { display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 0', borderBottom: '1px solid rgba(85, 107, 47, 0.05)' },
-    actText: { flex: 1, fontSize: '0.9rem', color: 'var(--sage-text-dark)', fontWeight: '500' },
-    actTime: { fontSize: '0.75rem', color: 'var(--sage-text-light)', whiteSpace: 'nowrap' },
+    actText: { flex: 1, fontSize: '0.9rem', color: 'var(--color-dark)', fontWeight: '500' },
+    actTime: { fontSize: '0.75rem', color: 'var(--color-text-soft)', whiteSpace: 'nowrap' },
 
     // Modal
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(45, 58, 45, 0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modal: { background: 'var(--sage-card)', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '440px', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' },
-    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: 'var(--sage-text-dark)', marginBottom: '12px' },
-    modalText: { color: 'var(--sage-text-med)', marginBottom: '24px', lineHeight: '1.5' },
+    modal: { background: 'var(--color-surface)', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '440px', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' },
+    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '12px' },
+    modalText: { color: 'var(--color-text-soft)', marginBottom: '24px', lineHeight: '1.5' },
     verifyGroup: { marginBottom: '32px', textAlign: 'left' },
-    verifyLabel: { fontSize: '0.85rem', display: 'block', marginBottom: '8px', color: 'var(--sage-text-dark)' },
-    verifyInput: { width: '100%', padding: '14px', borderRadius: '12px', border: '2px solid rgba(85, 107, 47, 0.1)', fontSize: '1.1rem', fontWeight: '800', textAlign: 'center', letterSpacing: '2px', outline: 'none', color: 'var(--sage-text-dark)', background: 'var(--sage-bg)' },
+    verifyLabel: { fontSize: '0.85rem', display: 'block', marginBottom: '8px', color: 'var(--color-dark)' },
+    verifyInput: { width: '100%', padding: '14px', borderRadius: '12px', border: '2px solid rgba(85, 107, 47, 0.1)', fontSize: '1.1rem', fontWeight: '800', textAlign: 'center', letterSpacing: '2px', outline: 'none', color: 'var(--color-dark)', background: 'var(--color-bg)' },
     modalActions: { display: 'flex', flexDirection: 'column', gap: '12px' },
     confirmDeleteBtn: { padding: '16px', background: '#F44336', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', cursor: 'pointer' },
-    cancelDeleteBtn: { padding: '14px', background: 'transparent', color: 'var(--sage-text-med)', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer' }
+    cancelDeleteBtn: { padding: '14px', background: 'transparent', color: 'var(--color-text-soft)', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer' }
 };
 
 export default SellerDashboard;

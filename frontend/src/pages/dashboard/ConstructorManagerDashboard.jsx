@@ -110,8 +110,8 @@ const ConstructorManagerDashboard = () => {
                     
                     <div style={{ ...S.statCard, gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', background: '#fff' }}>
                          <div style={{ flex: 1 }}>
-                             <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 10px 0', color: '#1A1A1A' }}>Lifetime Request Analytics</h3>
-                             <p style={{ fontSize: '0.8rem', color: '#777', margin: 0 }}>A quick snapshot of your entire assignment footprint.</p>
+                             <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 10px 0', color: 'var(--color-dark)' }}>Lifetime Request Analytics</h3>
+                             <p style={{ fontSize: '0.8rem', color: 'var(--color-text-soft)', margin: 0 }}>A quick snapshot of your entire assignment footprint.</p>
                          </div>
                          <div style={{ width: '180px', height: '140px' }}>
                              {chartData.length > 0 ? (
@@ -225,19 +225,19 @@ const S = {
     statLabel: { fontSize: '0.7rem', fontWeight: '800', color: '#7C8B91', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' },
     statValue: { fontSize: '2.4rem', fontWeight: '800' },
 
-    actionBtnOutline: { border: '1px solid var(--color-secondary)', background: '#fff', color: 'var(--color-primary)', borderRadius: '10px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' },
+    actionBtnOutline: { border: '1px solid var(--color-border)', background: '#fff', color: 'var(--color-primary)', borderRadius: '10px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' },
 
     section: { marginTop: '10px' },
     sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
     tableCard: { background: '#fff', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    tableHeaderTr: { background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' },
+    tableHeaderTr: { background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' },
     th: { textAlign: 'left', padding: '16px 20px', fontSize: '0.75rem', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' },
-    tr: { borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s', ':hover': { backgroundColor: '#F9FAFB' } },
-    td: { padding: '16px 20px', fontSize: '0.9rem', color: '#111827' },
+    tr: { borderBottom: '1px solid var(--color-border)', transition: 'background-color 0.15s' },
+    td: { padding: '16px 20px', fontSize: '0.9rem', color: 'var(--color-dark)' },
     statusBadge: { padding: '6px 14px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' },
 
-    empty: { textAlign: 'center', color: '#6B7280', padding: '40px', background: '#fff', borderRadius: '20px', border: '1px dashed #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    empty: { textAlign: 'center', color: '#6B7280', padding: '40px', background: '#fff', borderRadius: '20px', border: '1px dashed var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     error: { border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', padding: '16px', borderRadius: '12px' },
 };
 

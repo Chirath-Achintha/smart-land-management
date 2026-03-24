@@ -32,6 +32,7 @@ const EMPTY_FORM = {
     land_type: 'Residential', road_access: '',
     electricity: false, water: false,
     image_url: '',           // stored as URL string
+    self_visit_only: false,
     open_for_bidding: false, starting_bid: '', bidding_end: '',
 };
 
@@ -558,6 +559,7 @@ const SellerListingsPage = () => {
                             <div style={S.checkRow}>
                                 <label style={S.checkLabel}><input type="checkbox" name="electricity" checked={form.electricity} onChange={handleFormChange} /> Electricity</label>
                                 <label style={S.checkLabel}><input type="checkbox" name="water" checked={form.water} onChange={handleFormChange} /> Water</label>
+                                <label style={S.checkLabel}><input type="checkbox" name="self_visit_only" checked={form.self_visit_only} onChange={handleFormChange} /> Self Visit Only</label>
                             </div>
 
                             <div style={S.sectionDivider}>Property Image</div>
@@ -656,28 +658,28 @@ const SellerListingsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     notifPanel: { background: '#FFF5F5', border: '1px solid #FFE4E4', borderRadius: '20px', padding: '20px', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' },
     notifHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
     notifTitle: { fontSize: '1rem', fontWeight: '800', margin: 0 },
     unreadBadge: { fontSize: '0.7rem', background: '#FF4D4D', color: '#FFF', padding: '2px 8px', borderRadius: '10px', marginLeft: '8px' },
     readAllBtn: { background: 'none', border: 'none', color: '#666', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' },
     notifList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-    notifItem: { display: 'flex', gap: '12px', alignItems: 'center', background: '#FFF', padding: '12px', borderRadius: '12px', border: '1px solid #F0EBE4' },
+    notifItem: { display: 'flex', gap: '12px', alignItems: 'center', background: '#FFF', padding: '12px', borderRadius: '12px', border: '1px solid var(--color-border)' },
     notifDot: { width: '8px', height: '8px', background: '#FF4D4D', borderRadius: '50%' },
-    notifText: { fontSize: '0.9rem', color: '#1A1A1A' },
-    notifSub: { fontSize: '0.8rem', color: '#666' },
+    notifText: { fontSize: '0.9rem', color: 'var(--color-dark)' },
+    notifSub: { fontSize: '0.8rem', color: 'var(--color-text-soft)' },
     rejectReason: { marginTop: '6px', fontSize: '0.74rem', color: '#a23a2b', fontWeight: '600' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A' },
-    subtitle: { color: '#777', fontSize: '0.95rem' },
-    addBtn: { padding: '12px 24px', borderRadius: '10px', fontWeight: '700' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '0.95rem' },
+    addBtn: { padding: '12px 24px', borderRadius: '10px', fontWeight: '700', background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all 0.2s' },
     empty: { textAlign: 'center', color: '#999', marginTop: '80px', fontSize: '1rem' },
-    tableWrap: { background: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'auto' },
+    tableWrap: { background: '#fff', borderRadius: '16px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', overflow: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    th: { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#888', borderBottom: '2px solid #f5f0ea' },
+    th: { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#888', borderBottom: '2px solid var(--color-border)' },
     tr: { transition: 'background 0.15s' },
-    td: { padding: '16px 20px', fontSize: '0.875rem', borderBottom: '1px solid #f5f0ea' },
+    td: { padding: '16px 20px', fontSize: '0.875rem', borderBottom: '1px solid var(--color-border)' },
     nameCell: { display: 'flex', alignItems: 'center', gap: '12px' },
     propertyLinkBtn: {
         background: 'none',
@@ -685,7 +687,7 @@ const S = {
         padding: 0,
         margin: 0,
         fontWeight: '700',
-        color: '#1A1A1A',
+        color: 'var(--color-dark)',
         cursor: 'pointer',
         textAlign: 'left',
         textDecoration: 'underline'
@@ -693,36 +695,36 @@ const S = {
     thumbnail: { width: '48px', height: '36px', borderRadius: '6px', objectFit: 'cover' },
     badge: { padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '700' },
     badgeOpen: { background: '#eafaf1', color: '#2ecc71' },
-    badgeClosed: { background: '#f5f0ea', color: '#aaa' },
+    badgeClosed: { background: 'var(--color-bg)', color: '#aaa', border: '1px solid var(--color-border)' },
     statusBadge: { padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     actionBtns: { display: 'flex', gap: '8px' },
-    editBtn: { background: '#1A1A1A', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' },
-    delBtn: { background: '#fff', color: '#e74c3c', border: '1px solid #e74c3c', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' },
-    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-    dialog: { background: '#fff', borderRadius: '16px', padding: '32px', width: '380px' },
-    formModal: { background: '#fff', borderRadius: '20px', width: '680px', maxHeight: '90vh', overflowY: 'auto' },
+    editBtn: { background: 'var(--color-dark)', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' },
+    delBtn: { background: '#fff', color: '#e74c3c', border: '1px solid #e74c3c', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' },
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
+    dialog: { background: '#fff', borderRadius: '16px', padding: '32px', width: '380px', boxShadow: 'var(--shadow-elevated)', border: '1px solid var(--color-border)' },
+    formModal: { background: '#fff', borderRadius: '20px', width: '680px', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-elevated)', border: '1px solid var(--color-border)' },
     formHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 32px' },
-    formTitle: { fontSize: '1.4rem', fontWeight: '800' },
+    formTitle: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)' },
     closeBtn: { background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#999' },
     errorMsg: { color: '#d32f2f', background: '#fdecea', margin: '0 32px 16px', padding: '10px 16px', borderRadius: '8px', fontSize: '0.875rem' },
     form: { padding: '0 32px 32px' },
-    sectionDivider: { fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', color: '#aaa', borderBottom: '1px solid #f0ebe4', marginBottom: '20px', paddingBottom: '8px', marginTop: '24px' },
+    sectionDivider: { fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', color: '#aaa', borderBottom: '1px solid var(--color-border)', marginBottom: '20px', paddingBottom: '8px', marginTop: '24px' },
     formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' },
     formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
     label: { fontSize: '0.78rem', fontWeight: '700', color: '#666' },
-    input: { padding: '12px', border: '1px solid #e5e0da', borderRadius: '8px', outline: 'none', fontFamily: 'inherit' },
+    input: { padding: '12px', border: '1px solid var(--color-border)', borderRadius: '8px', outline: 'none', fontFamily: 'inherit', background: '#fff' },
     totalPriceBox: {
         padding: '12px',
-        border: '1px solid #d8d1c8',
+        border: '1px solid var(--color-border)',
         borderRadius: '8px',
-        background: '#fdfaf7',
+        background: 'var(--color-bg)',
         fontWeight: '800',
-        color: '#1A1A1A'
+        color: 'var(--color-dark)'
     },
     fieldError: { fontSize: '0.76rem', color: '#d32f2f', marginTop: '2px', fontWeight: '600' },
     checkRow: { display: 'flex', gap: '24px', marginBottom: '8px' },
     checkLabel: { display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' },
-    biddingSection: { background: '#fdfaf7', padding: '20px', borderRadius: '12px', marginBottom: '16px' },
+    biddingSection: { background: 'var(--color-bg)', padding: '20px', borderRadius: '12px', marginBottom: '16px', border: '1px solid var(--color-border)' },
     biddingFields: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' },
     currentPriceCard: {
         gridColumn: '1 / -1',
@@ -731,22 +733,22 @@ const S = {
         justifyContent: 'space-between',
         padding: '10px 12px',
         borderRadius: '8px',
-        border: '1px solid #d8d1c8',
+        border: '1px solid var(--color-border)',
         background: '#fff'
     },
     currentPriceLabel: { fontSize: '0.78rem', fontWeight: '700', color: '#666' },
-    currentPriceValue: { fontSize: '1rem', fontWeight: '800', color: '#1A1A1A' },
+    currentPriceValue: { fontSize: '1rem', fontWeight: '800', color: 'var(--color-dark)' },
     formFooter: { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' },
-    cancelBtn: { padding: '12px 24px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontWeight: '700' },
-    saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700' },
-    confirmDelBtn: { padding: '12px 24px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' },
-    dropZone: { border: '2px dashed #e5e0da', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' },
+    cancelBtn: { padding: '12px 24px', borderRadius: '8px', border: '1px solid var(--color-border)', background: '#fff', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' },
+    saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700', background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all 0.2s' },
+    confirmDelBtn: { padding: '12px 24px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' },
+    dropZone: { border: '2px dashed var(--color-border)', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' },
     dropContent: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' },
-    browseText: { color: '#1A1A1A', textDecoration: 'underline', fontWeight: '700', marginTop: '12px', fontSize: '0.85rem' },
+    browseText: { color: 'var(--color-dark)', textDecoration: 'underline', fontWeight: '700', marginTop: '12px', fontSize: '0.85rem' },
     previewGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px', marginTop: '14px' },
-    previewItem: { border: '1px solid #e5e0da', borderRadius: '10px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff' },
+    previewItem: { border: '1px solid var(--color-border)', borderRadius: '10px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff' },
     previewImage: { width: '100%', height: '110px', objectFit: 'cover', borderRadius: '8px' },
-    removeImgBtn: { background: '#fff', color: '#c0392b', border: '1px solid #f1b0aa', padding: '8px 10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }
+    removeImgBtn: { background: '#fff', color: '#c0392b', border: '1px solid #f1b0aa', padding: '8px 10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }
 };
 
 export default SellerListingsPage;

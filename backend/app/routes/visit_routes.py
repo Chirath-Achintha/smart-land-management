@@ -28,6 +28,7 @@ async def _build_response(visit: Visit) -> VisitResponse:
         visit_time=visit.visit_time,
         message=visit.message,
         seller_message=visit.seller_message,
+        agent_message=visit.agent_message,
         admin_message=visit.admin_message,
         status=visit.status,
         cancel_reason=visit.cancel_reason,
@@ -190,8 +191,8 @@ async def update_visit_status(
         if current_user.role == "admin":
             visit.admin_message = data.seller_message
         elif current_user.role == "agent":
-            # Agents can also leave message
-            visit.admin_message = f"(Agent) {data.seller_message}"
+            # Store in dedicated agent field
+            visit.agent_message = data.seller_message
         else:
             visit.seller_message = data.seller_message
     if data.agent_id:
@@ -299,7 +300,7 @@ async def update_visit_status(
         # Notify Admin
         await _notify_admins(
             title="Action Required: Agent Declined Assignment",
-            message=f"Agent {current_user.full_name} has declined the assignment for '{land.name}' (Buyer: {buyer.full_name if buyer else 'N/A'}) on {visit.visit_date}. Reason: {data.seller_message or 'No reason provided.'}. Please re-assign or cancel.",
+            message=f"Agent {current_user.full_name} has declined the assignment for '{land.name}' (Buyer: {buyer.full_name if buyer else 'N/A'}) on {visit.visit_date}. Reason: {visit.agent_message or 'No reason provided.'}. Please re-assign or cancel.",
             link="/dashboard/admin/agent-visits"
         )
 

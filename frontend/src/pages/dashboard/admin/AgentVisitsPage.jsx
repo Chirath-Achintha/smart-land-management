@@ -265,10 +265,10 @@ const AgentVisitsPage = () => {
                                                     <div style={S.messageContent}>{visit.message}</div>
                                                 </div>
                                             )}
-                                            {visit.admin_message && (
-                                                <div style={{ ...S.messageWrapper, marginTop: '8px', background: visit.status === 'AgentDeclined' ? '#fff3e0' : '#F9F7F5' }}>
-                                                    <div style={S.messageKey}>{visit.status === 'AgentDeclined' ? 'AGENT DECLINE REASON' : 'Admin Notes'}</div>
-                                                    <div style={S.messageContent}>{visit.admin_message}</div>
+                                            {visit.agent_message && visit.status === 'AgentDeclined' && (
+                                                <div style={{ ...S.messageWrapper, marginTop: '8px', background: '#fff3e0' }}>
+                                                    <div style={S.messageKey}>AGENT DECLINE REASON</div>
+                                                    <div style={S.messageContent}>{visit.agent_message}</div>
                                                 </div>
                                             )}
                                         </>
@@ -355,59 +355,59 @@ const AgentVisitsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px' },
-    subtitle: { color: '#777', fontSize: '0.95rem' },
-    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.8rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '0.95rem' },
+    countBadge: { background: 'var(--color-dark)', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.8rem' },
     errBox: { background: '#fdecea', color: '#d32f2f', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.88rem', border: '1px solid #ef9a9a' },
     filterRow: { display: 'flex', gap: '12px', marginBottom: '32px' },
     filterBtn: { padding: '8px 20px', borderRadius: '30px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' },
     filterCount: { background: 'rgba(0,0,0,0.1)', borderRadius: '10px', padding: '1px 6px', fontSize: '0.7rem' },
     empty: { textAlign: 'center', color: '#aaa', padding: '80px 20px' },
     cards: { display: 'flex', flexDirection: 'column', gap: '16px' },
-    card: { background: '#fff', borderRadius: '16px', padding: '20px 24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F0EBE4', display: 'flex', gap: '32px', alignItems: 'center' },
+    card: { background: '#fff', borderRadius: '16px', padding: '20px 24px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', gap: '32px', alignItems: 'center' },
     infoSection: { flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '12px' },
     detailsStrip: { display: 'flex', gap: '20px' },
     infoItem: { display: 'flex', flexDirection: 'column', gap: '2px' },
-    buyerName: { fontWeight: '800', fontSize: '1.2rem', color: '#1A1A1A' },
-    landName: { fontSize: '0.85rem', color: '#666', fontWeight: '500' },
+    buyerName: { fontWeight: '800', fontSize: '1.2rem', color: 'var(--color-dark)' },
+    landName: { fontSize: '0.85rem', color: 'var(--color-text-soft)', fontWeight: '500' },
     statusLabel: { padding: '4px 10px', borderRadius: '6px', fontSize: '0.62rem', fontWeight: '900', letterSpacing: '0.05em' },
     detailKey: { fontSize: '0.6rem', fontWeight: '800', color: '#AAA', letterSpacing: '0.05em', textTransform: 'uppercase' },
-    detailVal: { fontSize: '0.9rem', fontWeight: '700', color: '#1A1A1A' },
+    detailVal: { fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-dark)' },
 
     messageSection: { flex: '2 1 300px' },
-    messageWrapper: { background: '#F9F7F5', borderRadius: '12px', padding: '12px 16px', border: '1px dashed #E5E0DA' },
+    messageWrapper: { background: 'var(--color-bg)', borderRadius: '12px', padding: '12px 16px', border: '1px dashed var(--color-border)' },
     messageKey: { fontSize: '0.6rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '2px' },
     messageContent: { fontSize: '0.82rem', color: '#444', lineHeight: '1.4' },
 
     actionSection: { flex: '1 1 250px' },
     actionButtons: { display: 'flex', gap: '8px', marginTop: '10px' },
-    primaryBtn: { flex: 1, padding: '10px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
+    primaryBtn: { flex: 1, padding: '10px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer', transition: 'transform 0.2s' },
     secondaryBtn: { flex: 1, padding: '10px', background: '#fff', color: '#C62828', border: '1.5px solid #FDECEA', borderRadius: '8px', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' },
     replyArea: { display: 'flex', flexDirection: 'column' },
-    replyInput: { width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E5E0DA', fontSize: '0.85rem', outline: 'none', background: '#fff' },
+    replyInput: { width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--color-border)', fontSize: '0.85rem', outline: 'none', background: '#fff' },
 
     // Modal Styles
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', textAlign: 'center' },
+    modalBox: { background: '#fff', borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: 'var(--shadow-elevated)', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', textAlign: 'center' },
     modalIcon: { width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' },
-    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
-    modalSubtitle: { fontSize: '0.9rem', color: '#666', lineHeight: '1.5', margin: 0 },
-    modalInfoBox: { width: '100%', padding: '16px', background: '#FAF6F1', borderRadius: '16px', border: '1px solid #F0EBE4' },
-    modalInfoMain: { fontWeight: '800', fontSize: '1.1rem', color: '#1A1A1A' },
+    modalTitle: { fontSize: '1.5rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
+    modalSubtitle: { fontSize: '0.9rem', color: 'var(--color-text-soft)', lineHeight: '1.5', margin: 0 },
+    modalInfoBox: { width: '100%', padding: '16px', background: 'var(--color-bg)', borderRadius: '16px', border: '1px solid var(--color-border)' },
+    modalInfoMain: { fontWeight: '800', fontSize: '1.1rem', color: 'var(--color-dark)' },
     modalInfoSub: { fontSize: '0.82rem', color: '#888', marginTop: '4px', fontWeight: '600' },
-    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid #F0EBE4', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', textAlign: 'left' },
+    modalInput: { width: '100%', boxSizing: 'border-box', minHeight: '120px', borderRadius: '16px', border: '1.5px solid var(--color-border)', padding: '16px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', textAlign: 'left' },
     modalActions: { display: 'flex', gap: '12px', marginTop: '10px', width: '100%' },
-    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid #E5E0DA', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
-    confirmDeclineBtn: { flex: 1, padding: '14px', background: '#C62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },
+    cancelBtn: { flex: 1, padding: '14px', background: 'none', border: '1.5px solid var(--color-border)', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', color: '#666' },
+    confirmDeclineBtn: { flex: 1, padding: '14px', background: '#d32f2f', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s' },
     
     // Busy Preview Styles
-    busyPreview: { marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '12px', border: '1px solid #E5E0DA' },
+    busyPreview: { marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '12px', border: '1px solid var(--color-border)' },
     busyTitle: { fontSize: '0.65rem', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '8px' },
     busyList: { display: 'flex', flexWrap: 'wrap', gap: '6px' },
     busyTag: { padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700' },
-    freeNote: { fontSize: '0.75rem', color: '#2e7d32', fontWeight: '600', fontStyle: 'italic' }
+    freeNote: { fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: '600', fontStyle: 'italic' }
 };
 
 export default AgentVisitsPage;

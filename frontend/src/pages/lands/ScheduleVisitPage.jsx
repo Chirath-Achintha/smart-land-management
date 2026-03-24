@@ -49,16 +49,16 @@ const ScheduleVisitPage = () => {
         fetch(`${API}/visits/my-requests`, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
-        .then(r => r.json())
-        .then(data => {
-            const v = data.find(item => item.id === editId);
-            if (v) {
-                setVisitType(v.visit_type);
-                setDate(v.visit_date);
-                setTime(v.visit_time);
-                setMessage(v.message || '');
-            }
-        });
+            .then(r => r.json())
+            .then(data => {
+                const v = data.find(item => item.id === editId);
+                if (v) {
+                    setVisitType(v.visit_type);
+                    setDate(v.visit_date);
+                    setTime(v.visit_time);
+                    setMessage(v.message || '');
+                }
+            });
     }, [editId]);
 
     // Fetch Availability
@@ -85,7 +85,7 @@ const ScheduleVisitPage = () => {
 
         const selectedDateObj = new Date(date);
         const dayName = DAYS[selectedDateObj.getDay() === 0 ? 6 : selectedDateObj.getDay() - 1];
-        
+
         const daySlot = availability.find(a => a.day === dayName);
         if (!daySlot) {
             setError(`The owner is not available on ${dayName}s. Please pick an available day.`);
@@ -117,7 +117,7 @@ const ScheduleVisitPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (error) return; // Prevent submission if live error exists
-        
+
         setError(''); setSubmitting(true);
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -150,8 +150,8 @@ const ScheduleVisitPage = () => {
                 const err = await res.json();
                 setError(err.detail || 'Failed to process visit request.');
             } else {
-                setSuccess(editId 
-                    ? `✓ Visit schedule has been updated successfully!` 
+                setSuccess(editId
+                    ? `✓ Visit schedule has been updated successfully!`
                     : `✓ ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit request sent for ${date} at ${time}. Waiting for seller confirmation.`
                 );
                 setTimeout(() => {
@@ -277,6 +277,16 @@ const ScheduleVisitPage = () => {
                                     </div>
                                 )}
 
+                                {visitType === 'agent_visit' && (
+                                    <div style={S.feeNotice}>
+                                        <div style={{ fontSize: '1.2rem', marginBottom: '8px' }}>💳 Notice: Agent Visit Fee</div>
+                                        <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                            To confirm an <strong>Agent Visit</strong>, a non-refundable service fee of <strong>Rs. 5,000</strong> is required.
+                                            the assigned agent will contact you for the payment once the request is submitted.
+                                        </p>
+                                    </div>
+                                )}
+
                                 <button type="submit" className="btn-dark" style={{ ...S.submitBtn, opacity: (submitting || error) ? 0.6 : 1 }} disabled={submitting || error}>
                                     {submitting ? 'Sending Request...' : `Confirm ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit`}
                                 </button>
@@ -290,14 +300,14 @@ const ScheduleVisitPage = () => {
                                 <div style={S.successIcon}>✓</div>
                                 <div style={S.successText}>{success}</div>
                                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                                    <button 
-                                        onClick={() => navigate(`/lands/${land?._id || land?.id || id}`)} 
+                                    <button
+                                        onClick={() => navigate(`/lands/${land?._id || land?.id || id}`)}
                                         style={S.returnBtn}
                                     >
                                         Return to Land Details
                                     </button>
-                                    <button 
-                                        onClick={() => navigate('/dashboard/visits')} 
+                                    <button
+                                        onClick={() => navigate('/dashboard/visits')}
                                         style={{ ...S.returnBtn, background: '#f5f0ea', color: '#1a1a1a', border: '1.5px solid #1a1a1a' }}
                                     >
                                         View My Visits
@@ -352,6 +362,7 @@ const S = {
     submitBtn: { padding: '18px', borderRadius: '14px', fontSize: '1.1rem', fontWeight: '700', marginTop: '10px' },
     disclaimer: { fontSize: '0.8rem', color: '#aaa', textAlign: 'center', lineHeight: '1.5' },
     error: { background: '#fdecea', color: '#d32f2f', padding: '14px', borderRadius: '12px', fontSize: '0.9rem' },
+    feeNotice: { background: '#F0F9FF', border: '1.5px solid #BAE6FD', borderRadius: '16px', padding: '24px', color: '#0369A1', fontWeight: '700', marginBottom: '8px' },
 
     // Success
     successCard: { textAlign: 'center', padding: '40px 0' },

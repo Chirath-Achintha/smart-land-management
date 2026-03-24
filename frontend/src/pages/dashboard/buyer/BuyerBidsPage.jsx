@@ -220,36 +220,36 @@ const BuyerBidsPage = () => {
 };
 
 const S = {
-    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
 
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
-    title: { fontSize: '2.2rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '6px', letterSpacing: '-0.02em' },
-    subtitle: { color: '#777', fontSize: '1rem', fontWeight: '500' },
-    countBadge: { background: '#1A1A1A', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
+    title: { fontSize: '2.2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '6px', letterSpacing: '-0.02em' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem', fontWeight: '500' },
+    countBadge: { background: 'var(--color-primary)', color: '#fff', borderRadius: '30px', padding: '8px 18px', fontWeight: '700', fontSize: '0.85rem' },
     empty: { textAlign: 'center', color: '#aaa', padding: '100px 20px', fontSize: '1.1rem', fontWeight: '500' },
-    browseLink: { color: '#1A1A1A', fontWeight: '800', textDecoration: 'none', marginLeft: '8px' },
+    browseLink: { color: 'var(--color-primary)', fontWeight: '800', textDecoration: 'none', marginLeft: '8px' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' },
 
-    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 8px 32px rgba(26, 26, 26, 0.04)', border: '1px solid #F0EBE4', position: 'relative' },
-    winnerMedal: { position: 'absolute', top: '-12px', left: '20px', background: '#FFD700', color: '#1A1A1A', padding: '4px 12px', borderRadius: '10px', fontWeight: '900', fontSize: '0.7rem', border: '2px solid #FFF' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #F0EBE4', paddingBottom: '16px' },
-    landName: { fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A', margin: 0 },
+    card: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', position: 'relative' },
+    winnerMedal: { position: 'absolute', top: '-12px', left: '20px', background: '#FFD700', color: 'var(--color-dark)', padding: '4px 12px', borderRadius: '10px', fontWeight: '900', fontSize: '0.7rem', border: '2px solid #FFF' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '16px' },
+    landName: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
     bidId: { fontSize: '0.7rem', fontWeight: '700', color: '#CCC', textTransform: 'uppercase' },
 
     details: { display: 'flex', flexDirection: 'column', gap: '16px' },
     detailRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     detailLabel: { fontSize: '0.85rem', color: '#888', fontWeight: '500' },
-    amount: { fontSize: '1.1rem', fontWeight: '800', color: '#1A1A1A' },
+    amount: { fontSize: '1.1rem', fontWeight: '800', color: 'var(--color-dark)' },
     date: { fontSize: '0.95rem', fontWeight: '600', color: '#555' },
 
     statusRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', flexWrap: 'wrap', gap: '8px' },
     activeBadge: { background: '#E8F5E9', color: '#4CAF50', padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase' },
-    viewBtn: { background: 'none', border: '1px solid #1A1A1A', color: '#1A1A1A', padding: '8px 16px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
+    viewBtn: { background: 'none', border: '1px solid var(--color-dark)', color: 'var(--color-dark)', padding: '8px 16px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
     cancelBidBtn: { background: '#FFF0EE', color: '#e74c3c', border: '1.5px solid #e74c3c', padding: '8px 14px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '0.82rem', transition: 'all 0.2s' },
 
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-    modal: { background: '#FFF', padding: '32px', borderRadius: '24px', maxWidth: '450px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' },
-    textArea: { width: '100%', height: '120px', borderRadius: '16px', border: '1px solid #EEE', padding: '16px', fontFamily: 'inherit', fontSize: '0.9rem', resize: 'none', marginTop: '12px', boxSizing: 'border-box' },
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
+    modal: { background: '#FFF', padding: '32px', borderRadius: '24px', maxWidth: '450px', width: '90%', boxShadow: 'var(--shadow-elevated)' },
+    textArea: { width: '100%', height: '120px', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '16px', fontFamily: 'inherit', fontSize: '0.9rem', resize: 'none', marginTop: '12px', boxSizing: 'border-box' },
 };
 
 export default BuyerBidsPage;

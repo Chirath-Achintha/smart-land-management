@@ -785,22 +785,22 @@ const AdminDashboard = () => {
 };
 
 const S = {
-    root: { background: 'var(--sage-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '36px' },
-    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--sage-text-dark)', marginBottom: '8px' },
-    subtitle: { color: 'var(--sage-text-med)', fontSize: '1rem' },
+    title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem' },
     cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '40px' },
-    card: { background: 'var(--sage-card)', borderRadius: '16px', padding: '32px 28px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'all 0.2s', cursor: 'pointer' },
+    card: { background: 'var(--color-surface)', borderRadius: '16px', padding: '32px 28px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.3s ease, box-shadow 0.3s ease', cursor: 'default' },
     statVal: { fontSize: '2.8rem', fontWeight: '800', lineHeight: 1 },
-    statLabel: { fontSize: '0.85rem', color: 'var(--sage-text-light)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    statLabel: { fontSize: '0.85rem', color: 'var(--color-text-soft)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
 
     dashboardContent: { display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '32px' },
     mainColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
     sideColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
 
-    sectionCard: { background: 'var(--sage-card)', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', border: '1px solid rgba(85, 107, 47, 0.05)' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(85, 107, 47, 0.05)', paddingBottom: '16px' },
-    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--sage-text-dark)', margin: 0 },
+    sectionCard: { background: 'var(--color-surface)', borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--color-border-light)', paddingBottom: '16px' },
+    sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
     tabActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
     tabBtn: {
         padding: '8px 12px',
@@ -834,9 +834,9 @@ const S = {
     outlineBtn: { background: 'var(--sage-card)', color: 'var(--sage-primary)', border: '2px solid var(--sage-primary)' },
 
     activityList: { display: 'flex', flexDirection: 'column' },
-    activityItem: { display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 0', borderBottom: '1px solid rgba(85, 107, 47, 0.05)' },
-    actText: { flex: 1, fontSize: '0.9rem', color: 'var(--sage-text-dark)', fontWeight: '500' },
-    actTime: { fontSize: '0.75rem', color: 'var(--sage-text-light)', whiteSpace: 'nowrap' },
+    activityItem: { display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 0', borderBottom: '1px solid var(--color-border)' },
+    actText: { flex: 1, fontSize: '0.9rem', color: 'var(--color-dark)', fontWeight: '500' },
+    actTime: { fontSize: '0.75rem', color: 'var(--color-text-soft)', whiteSpace: 'nowrap' },
 
     verifyWrap: { display: 'flex', flexDirection: 'column', gap: '16px' },
     sellerBlock: { border: '1px solid rgba(85, 107, 47, 0.12)', borderRadius: '14px', overflow: 'hidden' },
@@ -1124,11 +1124,11 @@ const S = {
         color: '#4f5d42',
         fontWeight: '700'
     },
-    modalTitle: { margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#263319' },
-    modalText: { marginTop: '8px', marginBottom: '12px', fontSize: '0.9rem', color: '#5a6650' },
+    modalTitle: { margin: 0, fontSize: '1.1rem', fontWeight: '800', color: 'var(--color-dark)' },
+    modalText: { marginTop: '8px', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--color-text-soft)' },
     modalTextArea: {
         width: '100%',
-        border: '1px solid #ced9c1',
+        border: '1px solid var(--color-border)',
         borderRadius: '10px',
         padding: '10px 12px',
         fontFamily: "'DM Sans', sans-serif",

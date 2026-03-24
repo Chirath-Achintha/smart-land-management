@@ -290,8 +290,18 @@ const InquiryPage = () => {
                                                     <h3 style={S.inqTitle}>{inq.title}</h3>
                                                     {!inq.admin_reply && (
                                                         <div style={{ display: 'flex', gap: '8px' }}>
-                                                            <button onClick={() => handleEditClick(inq)} style={S.actionBtn}>✏️ Edit</button>
-                                                            <button onClick={() => handleDelete(inq._id)} style={{ ...S.actionBtn, color: '#d32f2f' }}>🗑️ Delete</button>
+                                                            <button 
+                                                                onClick={() => handleEditClick(inq)} 
+                                                                style={{ ...S.actionBtn, color: '#3182CE' }}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleDelete(inq._id)} 
+                                                                style={{ ...S.actionBtn, color: '#E53E3E' }}
+                                                            >
+                                                                Delete
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </div>
@@ -376,7 +386,7 @@ const S = {
 
     inqFooter: { marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #F0F0F0', display: 'flex', justifyContent: 'flex-end' },
     inqId: { fontSize: '0.72rem', color: '#CCC', fontWeight: '600' },
-    actionBtn: { background: 'none', border: 'none', color: '#2196F3', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', transition: 'background 0.2s' },
+    actionBtn: { background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '6px 14px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s', textTransform: 'uppercase', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', justifyContent: 'center' },
 
     loginNoticeBox: { textAlign: 'center', marginTop: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' },
     loginNotice: { color: '#666', fontSize: '0.95rem' },

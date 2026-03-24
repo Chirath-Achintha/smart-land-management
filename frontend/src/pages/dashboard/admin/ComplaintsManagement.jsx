@@ -174,40 +174,40 @@ const ComplaintsManagement = () => {
 };
 
 const styles = {
-    container: { padding: '32px', maxWidth: '1200px', margin: '0 auto' },
+    container: { padding: '32px', maxWidth: '1200px', margin: '0 auto', background: 'var(--color-bg)', minHeight: '100%' },
     header: { marginBottom: '32px' },
-    title: { fontSize: '1.75rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    subtitle: { color: '#666', fontSize: '0.95rem' },
+    title: { fontSize: '1.75rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    subtitle: { color: 'var(--color-text-soft)', fontSize: '0.95rem' },
 
-    tabs: { display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid #ede8e1', paddingBottom: '1px' },
-    tab: { padding: '10px 20px', backgroundColor: 'transparent', border: 'none', color: '#666', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600' },
-    activeTab: { padding: '10px 20px', backgroundColor: '#fff', border: '1px solid #ede8e1', borderBottom: '2px solid #1A1A1A', color: '#1A1A1A', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '700' },
+    tabs: { display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--color-border)', paddingBottom: '1px' },
+    tab: { padding: '10px 20px', backgroundColor: 'transparent', border: 'none', color: 'var(--color-text-soft)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600' },
+    activeTab: { padding: '10px 20px', backgroundColor: '#fff', border: '1px solid var(--color-border)', borderBottom: '2px solid var(--color-primary)', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '700' },
 
     list: { display: 'flex', flexDirection: 'column', gap: '24px' },
-    card: { backgroundColor: '#fff', borderRadius: '16px', border: '1px solid #ede8e1', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' },
+    card: { backgroundColor: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '24px', boxShadow: 'var(--shadow-soft)' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' },
     id: { fontSize: '0.7rem', fontWeight: '800', color: '#bbb', textTransform: 'uppercase', display: 'block', marginBottom: '4px' },
-    subject: { fontSize: '1.2rem', fontWeight: '800', color: '#1A1A1A', margin: '4px 0' },
-    user: { fontSize: '0.85rem', color: '#666', marginBottom: '8px' },
+    subject: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: '4px 0' },
+    user: { fontSize: '0.85rem', color: 'var(--color-text-soft)', marginBottom: '8px' },
     typeTag: { fontSize: '0.7rem', backgroundColor: '#F3F4F6', color: '#374151', padding: '2px 8px', borderRadius: '4px', fontWeight: '700', textTransform: 'uppercase' },
 
     actions: { display: 'flex', gap: '12px' },
-    statusSelect: { padding: '8px 12px', borderRadius: '8px', border: '1px solid #eee', fontSize: '0.85rem', fontWeight: '700', outline: 'none', cursor: 'pointer', backgroundColor: '#fff' },
+    statusSelect: { padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '0.85rem', fontWeight: '700', outline: 'none', cursor: 'pointer', backgroundColor: '#fff' },
     deleteBtn: { padding: '8px 12px', backgroundColor: '#fff', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' },
 
-    cardBody: { padding: '20px', backgroundColor: '#F9FAFB', borderRadius: '12px', marginBottom: '16px' },
+    cardBody: { padding: '20px', backgroundColor: 'var(--color-bg)', borderRadius: '12px', marginBottom: '16px' },
     content: { fontSize: '0.95rem', color: '#444', lineHeight: '1.6', margin: 0 },
 
-    replyBox: { padding: '16px', backgroundColor: '#eef2ff', borderRadius: '12px', marginBottom: '16px', borderLeft: '4px solid #4f46e5' },
-    replyHeader: { fontSize: '0.75rem', fontWeight: '800', color: '#4338ca', marginBottom: '4px', textTransform: 'uppercase' },
+    replyBox: { padding: '16px', backgroundColor: '#eef2ff', borderRadius: '12px', marginBottom: '16px', borderLeft: '4px solid var(--color-blue)' },
+    replyHeader: { fontSize: '0.75rem', fontWeight: '800', color: 'var(--color-blue)', marginBottom: '4px', textTransform: 'uppercase' },
     replyContent: { fontSize: '0.9rem', color: '#1e1b4b', margin: 0 },
 
     replyForm: { display: 'flex', gap: '12px', alignItems: 'flex-end' },
-    textarea: { flex: 1, padding: '14px', borderRadius: '10px', border: '1px solid #eee', fontSize: '0.92rem', minHeight: '80px', fontFamily: 'inherit', outline: 'none', transition: 'border 0.2s' },
-    sendBtn: { padding: '12px 24px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem', transition: 'opacity 0.2s' },
+    textarea: { flex: 1, padding: '14px', borderRadius: '10px', border: '1px solid var(--color-border)', fontSize: '0.92rem', minHeight: '80px', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' },
+    sendBtn: { padding: '12px 24px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem', transition: 'opacity 0.2s' },
 
     loading: { textAlign: 'center', padding: '40px', color: '#666' },
-    emptyState: { textAlign: 'center', padding: '60px', backgroundColor: '#F9FAFB', borderRadius: '20px', border: '2px dashed #ede8e1', color: '#999' }
+    emptyState: { textAlign: 'center', padding: '60px', backgroundColor: 'var(--color-bg)', borderRadius: '20px', border: '2px dashed var(--color-border)', color: '#999' }
 };
 
 export default ComplaintsManagement;

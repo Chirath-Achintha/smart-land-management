@@ -357,37 +357,37 @@ const S = {
     count: { background: 'var(--color-blue)', color: '#fff', padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem' },
 
     profilePicWrapper: { cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    profileInitials: { width: '48px', height: '48px', background: '#3498db', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: '800', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' },
+    profileInitials: { width: '48px', height: '48px', background: 'var(--color-blue)', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: '800', boxShadow: 'var(--shadow-soft)' },
 
     dashboardContent: { display: 'flex', flexDirection: 'column', gap: '32px' },
     mainColumn: { display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' },
 
     sectionCard: { background: '#fff', borderRadius: '24px', padding: '24px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #F0F0F0', paddingBottom: '16px' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--color-border)', paddingBottom: '16px' },
     sectionTitle: { fontSize: '1.1rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
 
     tableWrap: { overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    th: { textAlign: 'left', padding: '16px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#6C7A80', borderBottom: '2px solid #F1F4F3' },
-    td: { padding: '16px', fontSize: '0.9rem', color: 'var(--color-text)', borderBottom: '1px solid #F1F4F3' },
+    th: { textAlign: 'left', padding: '16px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#6C7A80', borderBottom: '2px solid var(--color-border)' },
+    td: { padding: '16px', fontSize: '0.9rem', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)' },
 
     landCell: { display: 'flex', flexDirection: 'column', gap: '2px' },
-    landId: { fontSize: '0.75rem', fontWeight: '800', color: '#3498db' },
-    landName: { fontWeight: '700', color: '#1A1A1A' },
-    location: { fontSize: '0.8rem', color: '#777' },
+    landId: { fontSize: '0.75rem', fontWeight: '800', color: 'var(--color-blue)' },
+    landName: { fontWeight: '700', color: 'var(--color-dark)' },
+    location: { fontSize: '0.8rem', color: 'var(--color-text-soft)' },
 
     partiesCell: { display: 'flex', flexDirection: 'column', gap: '4px' },
     partyLabel: { fontSize: '0.8rem', color: '#888' },
-    partyValue: { fontWeight: '700', color: '#1A1A1A' },
+    partyValue: { fontWeight: '700', color: 'var(--color-dark)' },
 
     dateTime: { display: 'flex', flexDirection: 'column', gap: '2px' },
-    date: { fontWeight: '700', color: '#1A1A1A' },
+    date: { fontWeight: '700', color: 'var(--color-dark)' },
     time: { fontSize: '0.75rem', color: '#999' },
 
     actionGroup: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
     confirmBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
     reportBtn: { padding: '6px 14px', background: 'var(--color-blue)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
-    outlineMiniBtn: { padding: '6px 12px', background: 'transparent', border: '1px solid #DDD', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#666' },
+    outlineMiniBtn: { padding: '6px 12px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#666' },
     cancelBtnSmall: { padding: '6px 14px', background: '#fdedec', color: '#e74c3c', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
     reportBadge: { color: 'var(--color-primary)', fontWeight: '700', fontSize: '0.85rem' },
 
@@ -398,30 +398,30 @@ const S = {
     profileList: { display: 'flex', flexDirection: 'column', gap: '20px' },
     profileItem: { display: 'flex', flexDirection: 'column', gap: '4px' },
     label: { fontSize: '0.7rem', fontWeight: '800', color: '#BBB', textTransform: 'uppercase' },
-    value: { fontSize: '0.95rem', fontWeight: '700', color: '#1A1A1A' },
-    input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid #EEE', background: '#F9F9F9', fontSize: '0.9rem', outline: 'none' },
+    value: { fontSize: '0.95rem', fontWeight: '700', color: 'var(--color-dark)' },
+    input: { padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-bg)', fontSize: '0.9rem', outline: 'none' },
 
     editActions: { display: 'flex', gap: '8px' },
-    editBtn: { padding: '6px 14px', background: '#F5F5F5', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#1A1A1A' },
-    saveBtn: { padding: '6px 14px', background: '#1A1A1A', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#fff' },
-    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid #DDD', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#666' },
+    editBtn: { padding: '6px 14px', background: 'var(--color-bg)', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--color-dark)' },
+    saveBtn: { padding: '6px 14px', background: 'var(--color-primary)', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#fff' },
+    cancelBtn: { padding: '8px 16px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', color: '#666' },
 
-    dangerZone: { marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #EEE' },
+    dangerZone: { marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed var(--color-border)' },
     deleteLink: { background: 'none', border: 'none', color: '#F44336', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', padding: 0, textDecoration: 'underline', opacity: 0.7 },
 
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modal: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '400px', textAlign: 'center' },
-    modalLarge: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '500px' },
-    modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    modalSubtitle: { fontSize: '0.9rem', color: '#777', marginBottom: '24px' },
+    modal: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: 'var(--shadow-elevated)' },
+    modalLarge: { background: '#fff', padding: '40px', borderRadius: '32px', width: '100%', maxWidth: '500px', boxShadow: 'var(--shadow-elevated)' },
+    modalTitle: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    modalSubtitle: { fontSize: '0.9rem', color: 'var(--color-text-soft)', marginBottom: '24px' },
     modalText: { color: '#666', marginBottom: '24px', fontSize: '0.9rem' },
 
     formGroup: { marginBottom: '20px' },
-    formLabel: { display: 'block', fontSize: '0.85rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' },
-    textarea: { width: '100%', minHeight: '100px', padding: '14px', borderRadius: '12px', border: '1px solid #EEE', background: '#F9F9F9', fontSize: '0.9rem', outline: 'none', resize: 'vertical' },
+    formLabel: { display: 'block', fontSize: '0.85rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
+    textarea: { width: '100%', minHeight: '100px', padding: '14px', borderRadius: '12px', border: '1px solid var(--color-border)', background: 'var(--color-bg)', fontSize: '0.9rem', outline: 'none', resize: 'vertical' },
 
     modalActionsRow: { display: 'flex', gap: '12px', marginTop: '32px' },
-    submitBtn: { flex: 2, padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' },
+    submitBtn: { flex: 2, padding: '14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' },
 
     confirmDeleteBtn: { padding: '16px', background: '#F44336', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', cursor: 'pointer' },
     cancelDeleteBtn: { padding: '12px', background: 'transparent', color: '#666', border: 'none', fontWeight: '600', cursor: 'pointer' }

@@ -12,6 +12,10 @@ const STATUS_COLORS = {
     Cancelled: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
     Completed: { bg: '#f5f5f5', color: '#616161', border: '#e0e0e0' }
 };
+const VISIT_COLORS = {
+    self_visit: { bg: '#E3F2FD', color: '#1565C0', border: '#1565C0' },
+    agent_visit: { bg: '#F3E5F5', color: '#7B1FA2', border: '#7B1FA2' }
+};
 
 const SellerVisitsPage = () => {
     const [visits, setVisits] = useState([]);
@@ -217,9 +221,9 @@ const SellerVisitsPage = () => {
                                         <div key={v.id || v._id} onClick={() => scrollToVisitCard(v)} style={{ 
                                             ...S.eventTag, 
                                             cursor: 'pointer',
-                                            background: v.visit_type === 'self_visit' ? 'var(--color-primary-light)' : 'var(--color-secondary-light)',
-                                            color: v.visit_type === 'self_visit' ? 'var(--color-primary-dark)' : 'var(--color-secondary-dark)',
-                                            borderLeft: `3px solid ${v.visit_type === 'self_visit' ? 'var(--color-primary-dark)' : 'var(--color-secondary-dark)'}`
+                                            background: VISIT_COLORS[v.visit_type]?.bg || '#f5f5f5',
+                                            color: VISIT_COLORS[v.visit_type]?.color || '#333',
+                                            borderLeft: `3px solid ${VISIT_COLORS[v.visit_type]?.border || '#ddd'}`
                                         }}>
                                             <span style={S.eventDot}></span>
                                             {v.visit_type === 'self_visit' ? 'Self' : 'Agent'} - {v.visit_time}
@@ -301,7 +305,7 @@ const SellerVisitsPage = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                                             <div>
                                                 <div style={S.buyerName}>{visit.buyer_name || 'Buyer'}</div>
-                                                <div style={{ ...S.typeLabel, color: visit.visit_type === 'self_visit' ? 'var(--color-primary-dark)' : 'var(--color-secondary-dark)' }}>{visit.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'}</div>
+                                                <div style={{ ...S.typeLabel, color: VISIT_COLORS[visit.visit_type]?.color || '#333' }}>{visit.visit_type === 'self_visit' ? 'Self Visit' : 'Agent Visit'}</div>
                                             </div>
                                             <span style={{ ...S.statusLabel, background: sc.bg, color: sc.color }}>{visit.status.toUpperCase()}</span>
                                         </div>

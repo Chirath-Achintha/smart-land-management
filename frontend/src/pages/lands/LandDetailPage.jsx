@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { PinIcon } from '../landing/LandingIcons';
 import './LandListingPage.css';
 
@@ -22,7 +23,11 @@ function getImageUrls(imageUrlValue) {
 const LandDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const location = useLocation();
+    const { user } = useAuth();
+    
+    // Fallback if user is null (from context) but might exist in localStorage (if context hasn't updated)
+    const currentUser = user || JSON.parse(localStorage.getItem('user') || '{}');
     const backPath = currentUser?.role === 'seller' ? '/dashboard/seller/listings' : '/lands';
 
     const [land, setLand] = useState(null);
@@ -333,13 +338,26 @@ const LandDetailPage = () => {
                                         opacity: land.open_for_bidding ? 1 : 0.45,
                                         cursor: land.open_for_bidding ? 'pointer' : 'not-allowed',
                                     }}
-                                    onClick={() => land.open_for_bidding && navigate(`/bidding/${id}`)}
+                                    onClick={() => {
+                                        if (!land.open_for_bidding) return;
+                                        if (!currentUser?.loggedIn) {
+                                            navigate('/login', { state: { from: `/bidding/${id}` } });
+                                        } else {
+                                            navigate(`/bidding/${id}`);
+                                        }
+                                    }}
                                     title={land.open_for_bidding ? '' : 'Bidding is currently closed'}>
                                     Place a Bid
                                 </button>
                                 <button
                                     style={{ flex: 1, padding: '14px', background: '#fff', border: '1.5px solid #1A1A1A', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' }}
-                                    onClick={() => navigate(`/schedule-visit/${id}`)}>
+                                    onClick={() => {
+                                        if (!currentUser?.loggedIn) {
+                                            navigate('/login', { state: { from: `/schedule-visit/${id}` } });
+                                        } else {
+                                            navigate(`/schedule-visit/${id}`);
+                                        }
+                                    }}>
                                     Schedule a Visit
                                 </button>
                             </div>
@@ -470,13 +488,19 @@ const LandDetailPage = () => {
                                     <input type="date" style={BK.inp}
                                         min={new Date().toISOString().split('T')[0]}
                                         value={bkgForm.preferred_date}
-                                        onChange={e => setBkgForm(p => ({ ...p, preferred_date: e.target.value }))} />
+                                        onChange={e => {
+                                            setBkgErr('');
+                                            setBkgForm(p => ({ ...p, preferred_date: e.target.value }));
+                                        }} />
                                 </div>
                                 <div style={BK.formGroup}>
                                     <label style={BK.lbl}>Preferred Time</label>
                                     <input type="time" style={BK.inp}
                                         value={bkgForm.preferred_time}
-                                        onChange={e => setBkgForm(p => ({ ...p, preferred_time: e.target.value }))} />
+                                        onChange={e => {
+                                            setBkgErr('');
+                                            setBkgForm(p => ({ ...p, preferred_time: e.target.value }));
+                                        }} />
                                 </div>
                                 <div style={BK.formGroup}>
                                     <label style={BK.lbl}>Notes (optional)</label>
@@ -489,10 +513,13 @@ const LandDetailPage = () => {
                                 <div style={BK.btnRow}>
                                     <button style={BK.cancelBtn} onClick={closeBookingModal}>Cancel</button>
                                     <button style={BK.nextBtn}
-                                        disabled={!bkgForm.preferred_date || !bkgForm.preferred_time}
                                         onClick={() => {
-                                            if (!bkgForm.preferred_date || !bkgForm.preferred_time) { setBkgErr('Please fill in date and time.'); return; }
-                                            setBkgErr(''); setBkgStep(2);
+                                            if (!bkgForm.preferred_date || !bkgForm.preferred_time) { 
+                                                setBkgErr('Please fill in both date and time to continue.'); 
+                                                return; 
+                                            }
+                                            setBkgErr(''); 
+                                            setBkgStep(2);
                                         }}>
                                         Next: Review →
                                     </button>

@@ -80,6 +80,25 @@ const BuyerBidsPage = () => {
         }
     };
 
+    const handleRespond = async (bidId, action) => {
+        try {
+            const res = await fetch(`${API}/bids/${bidId}/respond`, {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify({ action })
+            });
+            if (res.ok) {
+                alert(`Successfully ${action === 'accept' ? 'accepted' : 'declined'} the offer!`);
+                fetchData();
+            } else {
+                const err = await res.json();
+                alert(`Error: ${err.detail || 'Failed to respond.'}`);
+            }
+        } catch {
+            alert('Server error.');
+        }
+    };
+
     // Helper: is this bid's auction still live?
     const isBidCancellable = (bid) => {
         // If bid is a winner, don't allow cancel
@@ -125,13 +144,33 @@ const BuyerBidsPage = () => {
                                     </div>
                                 </div>
                                 <div style={S.statusRow}>
-                                    {bid.is_winner ? (
-                                        <span style={{ ...S.activeBadge, background: '#FFF9C4', color: '#FBC02D' }}>WIN CONFIRMED</span>
+                                    {bid.status === 'Offered' ? (
+                                        <span style={{ ...S.activeBadge, background: '#FFF3E0', color: '#E65100' }}>WIN OFFERED</span>
+                                    ) : bid.status === 'Won' ? (
+                                        <span style={{ ...S.activeBadge, background: '#E8F5E9', color: '#2E7D32' }}>PURCHASE IN PROGRESS</span>
+                                    ) : bid.status === 'Declined' ? (
+                                        <span style={{ ...S.activeBadge, background: '#FFEBEE', color: '#C62828' }}>OFFER DECLINED</span>
                                     ) : (
                                         <span style={S.activeBadge}>Active Bid</span>
                                     )}
                                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                        {bid.is_winner && (
+                                        {bid.status === 'Offered' && (
+                                            <>
+                                                <button
+                                                    style={{ ...S.viewBtn, background: '#27ae60', color: '#FFF', border: 'none' }}
+                                                    onClick={() => handleRespond(bid.id, 'accept')}
+                                                >
+                                                    Accept Win
+                                                </button>
+                                                <button
+                                                    style={{ ...S.viewBtn, background: '#e74c3c', color: '#FFF', border: 'none' }}
+                                                    onClick={() => handleRespond(bid.id, 'decline')}
+                                                >
+                                                    Decline
+                                                </button>
+                                            </>
+                                        )}
+                                        {bid.status === 'Won' && (
                                             <button
                                                 style={{ ...S.viewBtn, background: '#1A1A1A', color: '#FFF' }}
                                                 onClick={() => { setSelectedBid(bid); setShowContactModal(true); }}

@@ -8,6 +8,9 @@ class BidStatus(str, enum.Enum):
     pending  = "Pending"
     accepted = "Accepted"
     rejected = "Rejected"
+    offered  = "Offered"
+    won      = "Won"
+    declined = "Declined"
 
 class Bid(Document):
     land_id: PydanticObjectId

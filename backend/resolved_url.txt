@@ -1,0 +1,1 @@
+mongodb://chirath:nnCGrr2i8CXwJG1P@ac-bppdfea-shard-00-02.yckakom.mongodb.net:27017,ac-bppdfea-shard-00-01.yckakom.mongodb.net:27017,ac-bppdfea-shard-00-00.yckakom.mongodb.net:27017/smart_land_db?authSource=admin&replicaSet=atlas-6qsjoq-shard-0&retryWrites=true&w=majority

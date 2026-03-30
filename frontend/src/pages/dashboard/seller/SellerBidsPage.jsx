@@ -66,9 +66,10 @@ const SellerBidsPage = () => {
         return selectedLand === 'all' || msgLandId === String(selectedLand);
     });
 
-    // Highest bid per land
+    // Highest bid per land (excluding declined bids)
     const highestByLand = {};
     bids.forEach(b => {
+        if (b.status === 'Declined' || b.status === 'Rejected') return;
         const bId = b.land_id ? String(b.land_id) : 'unknown';
         if (!highestByLand[bId] || b.amount > highestByLand[bId]) {
             highestByLand[bId] = b.amount;
@@ -303,13 +304,19 @@ const SellerBidsPage = () => {
                                         {/* Action */}
                                         <div style={{ ...S.cell, flex: 1.5, justifyContent: 'center', gap: '8px' }}>
                                             {isHighest && ended ? (
-                                                notifiedIds.includes(String(bId)) ? (
+                                                bid.status === 'Offered' ? (
+                                                    <span style={{ color: '#E65100', fontWeight: '800', fontSize: '0.8rem' }}>Winner Notified (Pending Response) ⏳</span>
+                                                ) : bid.status === 'Won' ? (
+                                                    <span style={{ color: '#27ae60', fontWeight: '800', fontSize: '0.8rem' }}>Offer Accepted ✅</span>
+                                                ) : notifiedIds.includes(String(bId)) ? (
                                                     <span style={{ color: '#27ae60', fontWeight: '800', fontSize: '0.8rem' }}>Notified ✅</span>
                                                 ) : (
                                                     <button style={S.notifyBtn} onClick={() => handleNotify(bId)}>
                                                         🔔 Notify Winner
                                                     </button>
                                                 )
+                                            ) : bid.status === 'Declined' ? (
+                                                <span style={{ color: '#e74c3c', fontWeight: '800', fontSize: '0.8rem' }}>Declined by Buyer ❌</span>
                                             ) : live ? (
                                                 <span style={{ fontSize: '0.72rem', color: '#27ae60', fontWeight: '700' }}>🟢 Live</span>
                                             ) : (

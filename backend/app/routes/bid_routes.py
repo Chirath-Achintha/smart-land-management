@@ -127,10 +127,14 @@ async def _to_response(bid: Bid) -> BidResponse:
             if end_time.tzinfo is None:
                 end_time = end_time.replace(tzinfo=timezone.utc)
             
-            # If auction ended, check if this is the highest bid
+            # If auction ended, check if this is the highest bid (excluding rejected/declined)
             if end_time <= datetime.now(timezone.utc):
-                highest = await Bid.find(Bid.land_id == bid.land_id).sort("-amount").limit(1).to_list()
-                if highest and highest[0].id == bid.id:
+                highest = await Bid.find(
+                    Bid.land_id == bid.land_id,
+                    Bid.status != BidStatus.rejected,
+                    Bid.status != BidStatus.declined
+                ).sort("-amount").limit(1).to_list()
+                if highest and str(highest[0].id) == str(bid.id):
                     is_winner = True
         except Exception:
             pass
@@ -225,6 +229,10 @@ async def notify_winner_manually(
     if not land or land.seller_id != current_user.id:
         raise HTTPException(status_code=403, detail="You do not own this land listing")
         
+    # Update bid status to Offered
+    bid.status = BidStatus.offered
+    await bid.save()
+    
     # Send notification to Buyer
     contact_parts = [f"Name: {current_user.full_name}", f"Email: {current_user.email}"]
     if current_user.phone:
@@ -238,7 +246,7 @@ async def notify_winner_manually(
         user_id=bid.buyer_id,
         type=NotificationType.bid_won,
         title="Official Winner Notification",
-        message=f"The seller of \"{land.name}\" has officially notified you as the winner. Please contact them: {seller_info}",
+        message=f"The seller of \"{land.name}\" has officially notified you as the winner. Please accept or decline this offer in your My Biddings page. Seller contact: {seller_info}",
         link=f"/lands/{str(land.id)}"
     )
     await notif.insert()
@@ -249,7 +257,62 @@ async def notify_winner_manually(
         bidding.winner_notified = True
         await bidding.save()
         
-    return {"status": "winner notified successfully"}
+    return {"status": "winner notified successfully", "bid_status": "Offered"}
+
+
+class BidResponseAction(BaseModel):
+    action: str # "accept" or "decline"
+
+@router.post("/{bid_id}/respond")
+async def respond_to_bid(
+    bid_id: PydanticObjectId,
+    data: BidResponseAction,
+    current_user: User = Depends(get_current_user)
+):
+    bid = await Bid.get(bid_id)
+    if not bid or bid.buyer_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Bid not found or not yours")
+    
+    if bid.status != BidStatus.offered:
+         raise HTTPException(status_code=400, detail="This bid is not currently offered to you")
+
+    if data.action == "accept":
+        bid.status = BidStatus.won
+        await bid.save()
+
+        # Notify Seller
+        land = await Land.get(bid.land_id)
+        notif = Notification(
+            user_id=land.seller_id,
+            type=NotificationType.general,
+            title="Winning Offer Accepted!",
+            message=f"The buyer for \"{land.name}\" has accepted your winning offer.",
+            link=f"/dashboard/seller/bids"
+        )
+        await notif.insert()
+        return {"status": "accepted"}
+
+    elif data.action == "decline":
+        bid.status = BidStatus.declined
+        await bid.save()
+
+        # Find land and notify seller
+        land = await Land.get(bid.land_id)
+        notif = Notification(
+            user_id=land.seller_id,
+            type=NotificationType.general,
+            title="Winning Offer Declined",
+            message=f"The current winner for \"{land.name}\" has declined the offer. You can now notify the next highest bidder.",
+            link=f"/dashboard/seller/bids"
+        )
+        await notif.insert()
+
+        # Note: The system will automatically skip this bid in the _to_response logic
+        # and when the seller views their dashboard, the "next" highest will appear as the winner.
+        return {"status": "declined"}
+    
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action. Use 'accept' or 'decline'.")
 
 
 # ── Seller cancels an active bidding auction early ────────────────────────────

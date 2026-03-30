@@ -6,10 +6,10 @@ import os
 
 # Keep system DNS by default. Some networks block public resolvers like 8.8.8.8.
 # Set USE_GOOGLE_DNS_FOR_MONGO=true in .env only when SRV resolution fails locally.
-if os.getenv("USE_GOOGLE_DNS_FOR_MONGO", "false").lower() == "true":
+if settings.USE_GOOGLE_DNS_FOR_MONGO:
     try:
         dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
-        dns.resolver.default_resolver.nameservers = ["8.8.8.8"]
+        dns.resolver.default_resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
     except Exception as e:
         print(f"Warning: Could not force Google DNS for DB connection: {e}")
 

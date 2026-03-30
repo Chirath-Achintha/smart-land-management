@@ -3,7 +3,7 @@ from typing import List
 from beanie import PydanticObjectId
 
 from pydantic import BaseModel, Field
-from app.models.bid_model import Bid
+from app.models.bid_model import Bid, BidStatus
 
 from app.models.land_model import Land
 from app.models.user_model import User

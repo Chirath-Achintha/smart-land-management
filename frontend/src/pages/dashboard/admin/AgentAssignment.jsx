@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
@@ -188,7 +189,7 @@ const AgentAssignment = () => {
             })
                 .then(r => {
                     if (r.ok) {
-                        alert('Agent updated successfully!');
+                        toast.success('Agent updated successfully!');
                         fetchAgents();
                         setIsEditingAgent(false);
                         setCurrentAgent({ id: '', name: '', email: '', password: '', phone: '', district: '', village: '', nic: '', status: 'Active' });
@@ -201,7 +202,7 @@ const AgentAssignment = () => {
                 })
                 .catch(err => {
                     console.error('Update Error:', err);
-                    alert(`Failed to update agent: ${err.message}`);
+                    toast.error(`Failed to update agent: ${err.message}`);
                 });
         } else {
             fetch(`${API}/admin/agents`, {
@@ -218,14 +219,14 @@ const AgentAssignment = () => {
             })
                 .then(r => {
                     if (r.ok) {
-                        alert('Agent registered successfully!');
+                        toast.success('Agent registered successfully!');
                         fetchAgents();
                         setCurrentAgent({ id: '', name: '', email: '', password: '', phone: '', district: '', village: '', nic: '', status: 'Active' });
                     } else {
                         return r.json().then(err => { throw new Error(err.detail || 'Registration failed'); });
                     }
                 })
-                .catch(err => alert(err.message));
+                .catch(err => toast.error(err.message));
         }
     };
 
@@ -245,9 +246,9 @@ const AgentAssignment = () => {
                 .then(r => {
                     if (r.ok) {
                         setAgentsList(agentsList.filter(a => a.id !== id));
-                        alert('Agent deleted.');
+                        toast.success('Agent deleted.');
                     } else {
-                        alert('Failed to delete agent');
+                        toast.error('Failed to delete agent');
                     }
                 })
                 .catch(console.error);

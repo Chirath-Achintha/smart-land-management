@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import API_BASE_URL from '../../../apiConfig';
 
 const API = API_BASE_URL;
@@ -69,6 +70,7 @@ const AgentVisitsPage = () => {
         const agentId = selectedAgents[visitId];
         if (newStatus === 'Accepted' && !agentId) {
             setError('Please select an agent to assign before confirming.');
+            toast.error('Please select an agent to assign before confirming.');
             return;
         }
 
@@ -88,6 +90,7 @@ const AgentVisitsPage = () => {
             if (!res.ok) {
                 const err = await res.json();
                 setError(err.detail || 'Failed to update.');
+                toast.error(err.detail || 'Failed to update.');
             } else {
                 const assignedAgent = agents.find(a => (a.id || a._id) === agentId);
                 setVisits(prev => prev.map(v => {
@@ -102,8 +105,12 @@ const AgentVisitsPage = () => {
                 }));
                 setRejectingVisit(null);
                 setRejectMessage('');
+                toast.success(`Visit status updated to ${newStatus} successfully.`);
             }
-        } catch { setError('Server error. Try again.'); }
+        } catch { 
+            setError('Server error. Try again.');
+            toast.error('Server error. Try again.');
+        }
         setUpdating(null);
     };
 
@@ -185,6 +192,15 @@ const AgentVisitsPage = () => {
                                 </div>
 
                                 <div style={S.messageSection}>
+                                    {visit.status === 'AgentDeclined' && visit.agent_message && (
+                                        <div style={{ ...S.messageWrapper, marginBottom: '12px', background: '#fff3e0', border: '1px solid #ffe0b2' }}>
+                                            <div style={{ ...S.messageKey, color: '#e65100' }}>DECLINED BY: {visit.agent_name?.toUpperCase() || 'AGENT'}</div>
+                                            <div style={{ ...S.messageContent, color: '#c62828', fontWeight: '700', marginTop: '4px' }}>
+                                                "{visit.agent_message}"
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {['Pending', 'SellerAccepted', 'AgentDeclined'].includes(visit.status) ? (
                                         <div style={S.replyArea}>
                                             <select
@@ -263,12 +279,6 @@ const AgentVisitsPage = () => {
                                                 <div style={{ ...S.messageWrapper, marginTop: '8px' }}>
                                                     <div style={S.messageKey}>Buyer Notes</div>
                                                     <div style={S.messageContent}>{visit.message}</div>
-                                                </div>
-                                            )}
-                                            {visit.agent_message && visit.status === 'AgentDeclined' && (
-                                                <div style={{ ...S.messageWrapper, marginTop: '8px', background: '#fff3e0' }}>
-                                                    <div style={S.messageKey}>AGENT DECLINE REASON</div>
-                                                    <div style={S.messageContent}>{visit.agent_message}</div>
                                                 </div>
                                             )}
                                         </>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 
@@ -7,6 +8,8 @@ const API = API_BASE_URL;
 const STATUS_COLORS = {
     Pending: { bg: '#fff8e1', color: '#e65100', border: '#ffe082' },
     SellerAccepted: { bg: '#e3f2fd', color: '#1565c0', border: '#90caf9' }, // Awaiting Admin
+    Assigned: { bg: '#E3F2FD', color: '#0D47A1', border: '#BBDEFB' },
+    AgentDeclined: { bg: '#fff3e0', color: '#f57c00', border: '#ffe0b2' },
     Accepted: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
     Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
     Cancelled: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
@@ -104,6 +107,7 @@ const SellerVisitsPage = () => {
             if (!res.ok) {
                 const err = await res.json();
                 setError(err.detail || 'Failed to update.');
+                toast.error(err.detail || 'Failed to update.');
             } else {
                 setVisits(prev => prev.map(v => {
                     const vId = v._id || v.id;
@@ -116,8 +120,12 @@ const SellerVisitsPage = () => {
                 });
                 setRejectingVisit(null);
                 setRejectMessage('');
+                toast.success(`Visit request ${finalStatus === 'Rejected' ? 'declined' : 'accepted'} successfully.`);
             }
-        } catch { setError('Server error. Try again.'); }
+        } catch { 
+            setError('Server error. Try again.');
+            toast.error('Server error. Try again.');
+        }
         setUpdating(null);
     };
 
@@ -133,8 +141,14 @@ const SellerVisitsPage = () => {
     const filtered = filter === 'All' 
         ? landFiltered 
         : filter === 'Cancelled'
-            ? landFiltered.filter(v => v.status === 'Cancelled' || v.status === 'Rejected')
-            : landFiltered.filter(v => v.status === filter);
+            ? landFiltered.filter(v => v.status === 'Cancelled')
+            : filter === 'Rejected'
+                ? landFiltered.filter(v => v.status === 'Rejected')
+                : filter === 'Accepted'
+                    ? landFiltered.filter(v => ['Accepted', 'SellerAccepted', 'Assigned'].includes(v.status))
+                : filter === 'Pending'
+                    ? landFiltered.filter(v => ['Pending', 'AgentDeclined'].includes(v.status))
+                    : landFiltered.filter(v => v.status === filter);
 
     const byLand = filtered.reduce((acc, v) => {
         const key = v.land_id;
@@ -277,7 +291,7 @@ const SellerVisitsPage = () => {
             </div>
 
             <div style={S.filterRow}>
-                {['All', 'Pending', 'Accepted', 'Cancelled'].map(f => (
+                {['All', 'Pending', 'Accepted', 'Rejected', 'Cancelled'].map(f => (
                     <button key={f} onClick={() => setFilter(f)} style={{
                         ...S.filterBtn,
                         background: filter === f ? '#fff' : 'transparent',
@@ -286,7 +300,18 @@ const SellerVisitsPage = () => {
                     }}>
                         {f}
                         <span style={{ ...S.filterCount, background: filter === f ? 'var(--color-dark)' : 'transparent', color: filter === f ? '#fff' : 'var(--color-dark)' }}>
-                            {f === 'All' ? landFiltered.length : f === 'Cancelled' ? landFiltered.filter(v => v.status === 'Cancelled' || v.status === 'Rejected').length : landFiltered.filter(v => v.status === f).length}
+                            {f === 'All' 
+                                ? landFiltered.length 
+                                : f === 'Cancelled' 
+                                    ? landFiltered.filter(v => v.status === 'Cancelled').length 
+                                : f === 'Rejected'
+                                    ? landFiltered.filter(v => v.status === 'Rejected').length
+                                    : f === 'Accepted'
+                                        ? landFiltered.filter(v => ['Accepted', 'SellerAccepted', 'Assigned'].includes(v.status)).length
+                                    : f === 'Pending'
+                                        ? landFiltered.filter(v => v.status === 'Pending' || v.status === 'AgentDeclined').length
+                                        : landFiltered.filter(v => v.status === f).length
+                            }
                         </span>
                     </button>
                 ))}
@@ -323,12 +348,16 @@ const SellerVisitsPage = () => {
                                             </>
                                         )}
                                         <div style={S.timestamp}>Request received {new Date(visit.created_at).toLocaleDateString()}</div>
-                                        {visit.agent_name && (
+                                        {visit.agent_name && ['Accepted', 'Completed'].includes(visit.status) && (
                                             <div style={{ ...S.messageWrapper, background: 'var(--color-bg-light)', marginTop: '16px', border: '1px solid var(--color-border)' }}>
                                                 <div style={{ ...S.messageKey }}>ASSIGNED AGENT</div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
                                                     <div style={{ fontWeight: '700', color: 'var(--color-dark)' }}>{visit.agent_name}</div>
                                                     <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--color-primary)' }}>OFFICIAL AGENT</span>
+                                                </div>
+                                                <div style={{ marginTop: '10px', display: 'flex', gap: '20px', fontSize: '0.85rem' }}>
+                                                    <span style={{ color: 'var(--color-text-soft)', fontWeight: '700' }}>TEL: {visit.agent_phone || 'N/A'}</span>
+                                                    <span style={{ color: 'var(--color-text-soft)', fontWeight: '700' }}>NIC: {visit.agent_nic || 'N/A'}</span>
                                                 </div>
                                             </div>
                                         )}
@@ -374,7 +403,14 @@ const SellerVisitsPage = () => {
                             <button style={S.confirmDeclineBtn} onClick={async () => {
                                 const vId = cancellingVisit._id || cancellingVisit.id;
                                 const res = await fetch(`${API}/visits/${vId}/cancel`, { method: 'PUT', headers: authHeaders, body: JSON.stringify({ reason: cancelMessage }) });
-                                if (res.ok) { fetchVisits(); setCancellingVisit(null); }
+                                if (res.ok) { 
+                                    fetchVisits(); 
+                                    setCancellingVisit(null); 
+                                    toast.success('Visit cancelled successfully.');
+                                } else {
+                                    const err = await res.json();
+                                    toast.error(err.detail || 'Failed to cancel visit.');
+                                }
                             }}>Confirm</button>
                         </div>
                     </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { PinIcon } from '../landing/LandingIcons';
 import API_BASE_URL from '../../apiConfig';
@@ -25,6 +26,7 @@ const ScheduleVisitPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
+    const [agreedToFee, setAgreedToFee] = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -117,6 +119,7 @@ const ScheduleVisitPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (error) return; // Prevent submission if live error exists
+        if (visitType === 'agent_visit' && !agreedToFee) return; // Must agree to fee for agent visit
 
         setError(''); setSubmitting(true);
         const token = localStorage.getItem('access_token');
@@ -150,10 +153,11 @@ const ScheduleVisitPage = () => {
                 const err = await res.json();
                 setError(err.detail || 'Failed to process visit request.');
             } else {
-                setSuccess(editId
+                const msg = editId
                     ? `✓ Visit schedule has been updated successfully!`
-                    : `✓ ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit request sent for ${date} at ${time}. Waiting for seller confirmation.`
-                );
+                    : `✓ ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit request sent for ${date} at ${time}. Waiting for seller confirmation.`;
+                setSuccess(msg);
+                toast.success(msg);
                 setTimeout(() => {
                     navigate('/dashboard/visits');
                 }, 3000);
@@ -279,15 +283,36 @@ const ScheduleVisitPage = () => {
 
                                 {visitType === 'agent_visit' && (
                                     <div style={S.feeNotice}>
-                                        <div style={{ fontSize: '1.2rem', marginBottom: '8px' }}>💳 Notice: Agent Visit Fee</div>
-                                        <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                        <div style={{ fontSize: '1.2rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span>💳</span> Notice: Agent Visit Fee
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.6', color: '#0369A1', marginBottom: '20px' }}>
                                             To confirm an <strong>Agent Visit</strong>, a non-refundable service fee of <strong>Rs. 5,000</strong> is required.
-                                            the assigned agent will contact you for the payment once the request is submitted.
+                                            The assigned agent will contact you for the payment once the request is submitted.
                                         </p>
+                                        
+                                        <label style={S.checkboxLabel}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={agreedToFee} 
+                                                onChange={(e) => setAgreedToFee(e.target.checked)}
+                                                style={S.checkbox}
+                                            />
+                                            <span>I understand and agree to pay the Rs. 5,000 service fee.</span>
+                                        </label>
                                     </div>
                                 )}
 
-                                <button type="submit" className="btn-dark" style={{ ...S.submitBtn, opacity: (submitting || error) ? 0.6 : 1 }} disabled={submitting || error}>
+                                <button 
+                                    type="submit" 
+                                    className="btn-dark" 
+                                    style={{ 
+                                        ...S.submitBtn, 
+                                        opacity: (submitting || error || (visitType === 'agent_visit' && !agreedToFee)) ? 0.6 : 1,
+                                        cursor: (submitting || error || (visitType === 'agent_visit' && !agreedToFee)) ? 'not-allowed' : 'pointer'
+                                    }} 
+                                    disabled={submitting || error || (visitType === 'agent_visit' && !agreedToFee)}
+                                >
                                     {submitting ? 'Sending Request...' : `Confirm ${visitType === 'self_visit' ? 'Self' : 'Agent'} Visit`}
                                 </button>
 
@@ -368,7 +393,9 @@ const S = {
     successCard: { textAlign: 'center', padding: '40px 0' },
     successIcon: { width: '64px', height: '64px', background: '#27ae60', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', margin: '0 auto 24px' },
     successText: { fontSize: '1.1rem', fontWeight: '700', color: '#27ae60', lineHeight: '1.6', marginBottom: '32px' },
-    returnBtn: { padding: '14px 30px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' }
+    returnBtn: { padding: '14px 30px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' },
+    checkboxLabel: { display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none', background: '#fff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #BAE6FD', marginTop: '4px' },
+    checkbox: { width: '20px', height: '20px', cursor: 'pointer', accentColor: '#0369A1' }
 };
 
 export default ScheduleVisitPage;

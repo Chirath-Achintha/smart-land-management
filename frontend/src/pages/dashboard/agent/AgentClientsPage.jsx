@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../../context/AuthContext';
 import API_BASE_URL from '../../../apiConfig';
 
@@ -68,11 +69,11 @@ const AgentClientsPage = () => {
                 setClients(prev => prev.map(c => c.visitId === client.visitId ? { ...c, notes: tempNotes } : c));
                 setEditingNotes(null);
             } else {
-                alert('Cloud save failed. Please check connection.');
+                toast.error('Cloud save failed. Please check connection.');
             }
         } catch (err) {
             console.error('Update notes error:', err);
-            alert('Failed to save notes to database.');
+            toast.error('Failed to save notes to database.');
         }
     };
 

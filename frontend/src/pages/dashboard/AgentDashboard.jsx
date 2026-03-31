@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API_BASE_URL from '../../apiConfig';
@@ -69,8 +70,12 @@ const AgentDashboard = () => {
             if (res.ok) {
                 const updated = await res.json();
                 setBookings(prev => prev.map(b => (b._id || b.id) === visitId ? updated : b));
+                toast.success(`Trip status updated to ${newStatus}`);
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || 'Update failed.');
             }
-        } catch (err) { alert('Update failed.'); }
+        } catch (err) { toast.error('Update failed.'); }
         setIsUpdating(false);
     };
 
@@ -83,7 +88,7 @@ const AgentDashboard = () => {
     };
 
     const handleDeclineSubmit = async () => {
-        if (!declineReason.trim()) return alert('Please provide a reason for declining.');
+        if (!declineReason.trim()) return toast.error('Please provide a reason for declining.');
         setIsUpdating(true);
         try {
             const res = await fetch(`${API_BASE_URL}/visits/${activeDeclineVisit._id || activeDeclineVisit.id}/status`, {
@@ -101,13 +106,17 @@ const AgentDashboard = () => {
                 const updated = await res.json();
                 setBookings(prev => prev.map(b => (b._id || b.id) === (activeDeclineVisit._id || activeDeclineVisit.id) ? updated : b));
                 setShowDeclineModal(false);
+                toast.success('Assignment declined successfully.');
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || 'Failed to decline.');
             }
-        } catch (err) { alert('Update failed.'); }
+        } catch (err) { toast.error('Update failed.'); }
         setIsUpdating(false);
     };
 
     const handleCancel = (id) => updateStatus(id, 'Rejected');
-    const handleReschedule = (id) => alert('Please contact the seller or admin to reschedule the date.');
+    const handleReschedule = (id) => toast('Please contact the seller or admin to reschedule the date.');
     const handleSubmitReport = (id) => updateStatus(id, 'Completed');
 
     const filteredBookings = bookings.filter(b => b.status === activeTab);

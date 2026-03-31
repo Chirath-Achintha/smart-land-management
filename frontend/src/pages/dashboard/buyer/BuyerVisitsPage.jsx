@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useLocation, useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 
@@ -77,10 +78,19 @@ const BuyerVisitsPage = () => {
         : myVisits.filter(v => v.visit_type === visitTypeFilter);
 
     // Then filter by status
-    const filtered = filter === 'All' ? typedVisits : typedVisits.filter(v => v.status === filter);
+    const filtered = filter === 'All' 
+        ? typedVisits 
+        : filter === 'Accepted'
+            ? typedVisits.filter(v => ['Accepted', 'SellerAccepted', 'Assigned'].includes(v.status))
+        : filter === 'Pending'
+            ? typedVisits.filter(v => v.status === 'Pending' || v.status === 'AgentDeclined')
+            : typedVisits.filter(v => v.status === filter);
 
     const STATUS_COLORS = {
         Pending: { bg: '#fff8e1', color: '#e65100', border: '#ffe082' },
+        SellerAccepted: { bg: '#e1f5fe', color: '#0288d1', border: '#b3e5fc' },
+        Assigned: { bg: '#e3f2fd', color: '#1565c0', border: '#90caf9' },
+        AgentDeclined: { bg: '#fff3e0', color: '#f57c00', border: '#ffe0b2' },
         Accepted: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
         Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
         Cancelled: { bg: '#eeeeee', color: '#757575', border: '#e0e0e0' },
@@ -90,7 +100,7 @@ const BuyerVisitsPage = () => {
         if (!cancellingVisit) return;
         const vId = cancellingVisit._id || cancellingVisit.id;
         if (!vId || vId === 'undefined') {
-            alert('Error: Visit ID is missing');
+            toast.error('Error: Visit ID is missing');
             return;
         }
 
@@ -107,14 +117,15 @@ const BuyerVisitsPage = () => {
 
             if (res.ok) {
                 setMyVisits(prev => prev.map(v => (v._id || v.id) === vId ? { ...v, status: 'Cancelled' } : v));
+                toast.success('Your visit trip has been cancelled.');
                 setCancellingVisit(null);
                 setCancelReason('');
             } else {
                 const err = await res.json();
-                alert(err.detail || 'Failed to cancel');
+                toast.error(err.detail || 'Failed to cancel');
             }
         } catch (err) {
-            alert('Error cancelling');
+            toast.error('Error cancelling');
         }
     };
 
@@ -183,7 +194,7 @@ const BuyerVisitsPage = () => {
         if (!updatingVisit || updateError) return;
         const vId = updatingVisit._id || updatingVisit.id;
         if (!vId || vId === 'undefined') {
-            alert('Error: Visit ID is missing');
+            toast.error('Error: Visit ID is missing');
             return;
         }
 
@@ -209,15 +220,15 @@ const BuyerVisitsPage = () => {
                 const uId = updated._id || updated.id;
                 setMyVisits(myVisits.map(v => (v._id || v.id) === uId ? updated : v));
                 setUpdatingVisit(null);
-                alert('Schedule updated successfully!');
+                toast.success('Schedule updated successfully!');
             } else {
                 const err = await res.json();
                 const errorMsg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
-                alert(errorMsg || 'Failed to update schedule');
+                toast.error(errorMsg || 'Failed to update schedule');
             }
         } catch (err) {
             console.error('Update update error:', err);
-            alert('Error updating schedule. See console for details.');
+            toast.error('Error updating schedule.');
         }
     };
 
@@ -348,7 +359,7 @@ const BuyerVisitsPage = () => {
 
             {/* Filter tabs */}
             <div style={S.filterRow}>
-                {['All', 'Pending', 'Accepted', 'Rejected'].map(f => (
+                {['All', 'Pending', 'Accepted', 'Rejected', 'Cancelled'].map(f => (
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
@@ -363,7 +374,12 @@ const BuyerVisitsPage = () => {
                                 background: filter === f ? '#1A1A1A' : 'transparent',
                                 color: filter === f ? '#fff' : '#1A1A1A'
                             }}>
-                                {typedVisits.filter(v => v.status === f).length}
+                                {f === 'Accepted'
+                                    ? typedVisits.filter(v => ['Accepted', 'SellerAccepted', 'Assigned'].includes(v.status)).length
+                                : f === 'Pending'
+                                    ? typedVisits.filter(v => v.status === 'Pending' || v.status === 'AgentDeclined').length
+                                    : typedVisits.filter(v => v.status === f).length
+                                }
                             </span>
                         )}
                     </button>
@@ -476,7 +492,7 @@ const BuyerVisitsPage = () => {
                                     )}
 
                                     {/* Agent Details */}
-                                    {(visit.status === 'Accepted' || visit.status === 'Completed') && visit.agent_name && (
+                                    {['Accepted', 'Completed'].includes(visit.status) && visit.agent_name && (
                                         <div style={{ ...S.messageBox, background: '#F5F5F5', marginTop: '16px', border: '1px solid #E0E0E0' }}>
                                             <span style={S.messageTitle}>Assigned Agent</span>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>

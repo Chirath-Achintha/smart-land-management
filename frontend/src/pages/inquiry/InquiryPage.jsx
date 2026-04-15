@@ -9,21 +9,54 @@ const InquiryPage = () => {
 
     const [title, setTitle] = useState('');
     const [type, setType] = useState('General');
+    const [useCustomType, setUseCustomType] = useState(false);
+    const [customType, setCustomType] = useState('');
     const [message, setMessage] = useState('');
+    const [selectedLandId, setSelectedLandId] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitMsg, setSubmitMsg] = useState('');
     const [submitError, setSubmitError] = useState('');
 
     const [inquiries, setInquiries] = useState([]);
     const [loadingList, setLoadingList] = useState(false);
+    const [lands, setLands] = useState([]);
+    const [loadingLands, setLoadingLands] = useState(false);
 
     // Edit state
     const [editingId, setEditingId] = useState(null);
     const [editTitle, setEditTitle] = useState('');
     const [editType, setEditType] = useState('General');
     const [editMessage, setEditMessage] = useState('');
+    const [editLandId, setEditLandId] = useState('');
 
     const token = localStorage.getItem('access_token');
+    const allowedInquiryTypes = ['Listing', 'Service', 'General'];
+    const normalizeInquiryType = (value) => {
+        const raw = String(value || '').trim().toLowerCase();
+        const matched = allowedInquiryTypes.find((item) => item.toLowerCase() === raw);
+        return matched || 'General';
+    };
+    const validateCustomInquiryType = (value) => {
+        const trimmed = value.trim();
+
+        if (!trimmed) {
+            return 'Enter a custom inquiry type for testing.';
+        }
+
+        if (trimmed.length > 40) {
+            return 'Custom inquiry type must be 40 characters or fewer.';
+        }
+
+        if (!/^[A-Za-z]/.test(trimmed)) {
+            return 'Custom inquiry type must start with a letter (A-Z).';
+        }
+
+        if (!/^[A-Za-z0-9 _-]*$/.test(trimmed)) {
+            return 'Use only letters, numbers, spaces, underscore (_), or hyphen (-).';
+        }
+
+        return '';
+    };
 
     // Fetch buyer's own inquiries
     const fetchInquiries = () => {
@@ -40,22 +73,48 @@ const InquiryPage = () => {
             .catch(() => setLoadingList(false));
     };
 
-    useEffect(() => { fetchInquiries(); }, []);
+    const fetchLands = () => {
+        setLoadingLands(true);
+        fetch(`${API_BASE_URL}/lands/`)
+            .then(r => r.json())
+            .then(data => {
+                setLands(Array.isArray(data) ? data : []);
+                setLoadingLands(false);
+            })
+            .catch(() => {
+                setLands([]);
+                setLoadingLands(false);
+            });
+    };
+
+    useEffect(() => {
+        fetchInquiries();
+        fetchLands();
+    }, []);
 
     const handleEditClick = (inq) => {
         setEditingId(inq._id);
         setEditTitle(inq.title);
-        setEditType(inq.inquiry_type);
+        setEditType(normalizeInquiryType(inq.inquiry_type));
         setEditMessage(inq.message);
+        setEditLandId(inq.land_id || '');
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
+        setEditLandId('');
     };
 
     const handleUpdate = async (e) => {
         e.preventDefault();
         setSubmitError(''); setSubmitMsg('');
+
+        const normalizedEditType = normalizeInquiryType(editType);
+        if (normalizedEditType === 'Listing' && !editLandId) {
+            setSubmitError('Please select a land for listing inquiries.');
+            return;
+        }
+
         try {
             const res = await fetch(`${API_BASE_URL}/inquiries/${editingId}`, {
                 method: 'PUT',
@@ -63,7 +122,12 @@ const InquiryPage = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify({ title: editTitle, inquiry_type: editType, message: editMessage }),
+                body: JSON.stringify({
+                    title: editTitle,
+                    inquiry_type: normalizedEditType,
+                    message: editMessage,
+                    land_id: normalizedEditType === 'Listing' ? editLandId : null,
+                }),
             });
             if (!res.ok) {
                 const err = await res.json();
@@ -109,7 +173,29 @@ const InquiryPage = () => {
             return;
         }
 
+        if (!useCustomType && !allowedInquiryTypes.includes(type)) {
+            setSubmitError('Please select a valid inquiry type.');
+            return;
+        }
+
+        if (useCustomType) {
+            const validationMessage = validateCustomInquiryType(customType);
+            if (validationMessage) {
+                setSubmitError(validationMessage);
+                return;
+            }
+        }
+
+        if (!useCustomType && type === 'Listing' && !selectedLandId) {
+            setSubmitError('Please select a land for listing inquiries.');
+            return;
+        }
+
         setSubmitting(true);
+        const inquiryTypeToSend = useCustomType
+            ? (customType.trim() || type)
+            : type;
+
         try {
             const res = await fetch(`${API_BASE_URL}/inquiries/`, {
                 method: 'POST',
@@ -117,14 +203,24 @@ const InquiryPage = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify({ title, inquiry_type: type, message }),
+                body: JSON.stringify({
+                    title,
+                    inquiry_type: inquiryTypeToSend,
+                    message,
+                    land_id: !useCustomType && inquiryTypeToSend === 'Listing' ? selectedLandId : null,
+                }),
             });
             if (!res.ok) {
                 const err = await res.json();
                 setSubmitError(err.detail || 'Failed to submit. Please try again.');
             } else {
                 setSubmitMsg('✅ Your inquiry has been submitted. We will reply soon!');
-                setTitle(''); setType('General'); setMessage('');
+                setTitle('');
+                setType('General');
+                setUseCustomType(false);
+                setCustomType('');
+                setSelectedLandId('');
+                setMessage('');
                 fetchInquiries();
                 setTimeout(() => setSubmitMsg(''), 5000);
             }
@@ -141,6 +237,13 @@ const InquiryPage = () => {
             case 'Resolved': return '#4CAF50';
             default: return '#777';
         }
+    };
+
+    const getLandLabelById = (landId) => {
+        if (!landId) return '';
+        const land = lands.find((item) => (item._id || item.id) === landId);
+        if (!land) return 'Selected listing';
+        return `${land.name} - ${land.district} (${land.village})`;
     };
 
     return (
@@ -185,12 +288,58 @@ const InquiryPage = () => {
                                         style={S.input}
                                         value={type}
                                         onChange={e => setType(e.target.value)}
+                                        disabled={useCustomType}
                                     >
                                         <option value="Listing">About a Listing</option>
                                         <option value="Service">About a Service</option>
                                         <option value="General">General Complaint</option>
                                     </select>
+                                    <label style={S.inlineCheck}>
+                                        <input
+                                            type="checkbox"
+                                            checked={useCustomType}
+                                            onChange={(e) => setUseCustomType(e.target.checked)}
+                                        />
+                                        Use custom inquiry type (testing)
+                                    </label>
+                                    {useCustomType && (
+                                        <input
+                                            style={S.input}
+                                            placeholder="Example: RandomType"
+                                            value={customType}
+                                            onChange={(e) => setCustomType(e.target.value)}
+                                            maxLength={40}
+                                        />
+                                    )}
+                                    {useCustomType && (
+                                        <p style={S.hintText}>
+                                            This is for negative testing. Backend should map unknown types to General.
+                                        </p>
+                                    )}
                                 </div>
+
+                                {!useCustomType && type === 'Listing' && (
+                                    <div style={S.inputGroup}>
+                                        <label style={S.label}>Select Land</label>
+                                        <select
+                                            style={S.input}
+                                            value={selectedLandId}
+                                            onChange={e => setSelectedLandId(e.target.value)}
+                                            required
+                                        >
+                                            <option value="">Choose a listing...</option>
+                                            {lands.map((land) => (
+                                                <option key={land._id || land.id} value={land._id || land.id}>
+                                                    {land.name} - {land.district} ({land.village})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {loadingLands && <p style={S.hintText}>Loading available listings...</p>}
+                                        {!loadingLands && lands.length === 0 && (
+                                            <p style={S.hintText}>No available listings found right now.</p>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div style={S.inputGroup}>
                                     <label style={S.label}>Message Details</label>
@@ -256,6 +405,25 @@ const InquiryPage = () => {
                                                         <option value="General">General Complaint</option>
                                                     </select>
                                                 </div>
+                                                {normalizeInquiryType(editType) === 'Listing' && (
+                                                    <div style={S.inputGroup}>
+                                                        <label style={S.label}>Select Land</label>
+                                                        <select
+                                                            style={S.input}
+                                                            value={editLandId}
+                                                            onChange={e => setEditLandId(e.target.value)}
+                                                            required
+                                                        >
+                                                            <option value="">Choose a listing...</option>
+                                                            {lands.map((land) => (
+                                                                <option key={land._id || land.id} value={land._id || land.id}>
+                                                                    {land.name} - {land.district} ({land.village})
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        {loadingLands && <p style={S.hintText}>Loading available listings...</p>}
+                                                    </div>
+                                                )}
                                                 <div style={S.inputGroup}>
                                                     <label style={S.label}>Message Details</label>
                                                     <textarea
@@ -275,7 +443,7 @@ const InquiryPage = () => {
                                             <>
                                                 {/* Header row */}
                                                 <div style={S.inqHeader}>
-                                                    <span style={S.inqType}>{inq.inquiry_type}</span>
+                                                    <span style={S.inqType}>{normalizeInquiryType(inq.inquiry_type)}</span>
                                                     <span style={{
                                                         ...S.statusBadge,
                                                         backgroundColor: getStatusColor(inq.status) + '18',
@@ -305,6 +473,13 @@ const InquiryPage = () => {
                                                         </div>
                                                     )}
                                                 </div>
+
+                                                {normalizeInquiryType(inq.inquiry_type) === 'Listing' && inq.land_id && (
+                                                    <div style={S.landInfoBox}>
+                                                        <p style={S.landInfoLabel}>Selected Land</p>
+                                                        <p style={S.landInfoText}>{getLandLabelById(inq.land_id)}</p>
+                                                    </div>
+                                                )}
 
                                                 {/* Buyer's message */}
                                                 <div style={S.messageBox}>
@@ -358,6 +533,8 @@ const S = {
 
     form: { display: 'flex', flexDirection: 'column', gap: '20px' },
     inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
+    inlineCheck: { display: 'flex', alignItems: 'center', gap: '8px', color: '#555', fontSize: '0.84rem', fontWeight: '600' },
+    hintText: { margin: 0, color: '#777', fontSize: '0.78rem' },
     label: { fontSize: '0.85rem', fontWeight: '700', color: '#1A1A1A' },
     input: { padding: '12px 16px', borderRadius: '12px', border: '1px solid #EEE', fontSize: '0.95rem', background: '#F9F9F9', outline: 'none', fontFamily: "'DM Sans', sans-serif", transition: 'border 0.2s' },
     submitBtn: { padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', cursor: 'pointer', marginTop: '6px', fontFamily: "'DM Sans', sans-serif" },
@@ -371,6 +548,10 @@ const S = {
     inqType: { fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', color: '#1A1A1A', background: '#F5F5F5', padding: '4px 10px', borderRadius: '6px', letterSpacing: '0.05em' },
     statusBadge: { padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     inqTitle: { fontSize: '1.15rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '20px', marginTop: 0 },
+
+    landInfoBox: { background: '#F5F8ED', border: '1px solid #DDE7C6', borderRadius: '10px', padding: '10px 12px', marginBottom: '16px' },
+    landInfoLabel: { fontSize: '0.72rem', fontWeight: '800', color: '#6C7A3A', textTransform: 'uppercase', margin: '0 0 4px 0', letterSpacing: '0.03em' },
+    landInfoText: { fontSize: '0.88rem', color: '#2E3A1F', margin: 0, fontWeight: '600' },
 
     messageBox: { background: '#F9F9F9', padding: '16px', borderRadius: '12px', marginBottom: '16px' },
     msgLabel: { fontSize: '0.72rem', fontWeight: '700', color: '#999', marginBottom: '8px', textTransform: 'uppercase', margin: '0 0 8px 0' },

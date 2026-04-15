@@ -7,6 +7,7 @@ const ComplaintsManagement = () => {
     const [activeTab, setActiveTab] = useState('buyer'); // 'buyer' | 'seller'
     const [replyText, setReplyText] = useState({});
     const [submitting, setSubmitting] = useState({});
+    const [replyError, setReplyError] = useState({});
 
     const token = localStorage.getItem('access_token');
 
@@ -28,8 +29,16 @@ const ComplaintsManagement = () => {
         fetchInquiries();
     }, []);
 
-    const handleSendReply = async (id, status = 'In Progress') => {
-        const text = replyText[id] || '';
+    const handleSendReply = async (id, status = 'In Progress', requireMessage = false) => {
+        const text = (replyText[id] || '').trim();
+
+        if (requireMessage && !text) {
+            setReplyError((prev) => ({
+                ...prev,
+                [id]: 'Reply message is required before sending.',
+            }));
+            return;
+        }
         
         // If status is still 'Open' but we are sending a reply, move it to 'In Progress'
         const finalStatus = status === 'Open' ? 'In Progress' : status;
@@ -52,6 +61,7 @@ const ComplaintsManagement = () => {
 
             if (res.ok) {
                 setReplyText({ ...replyText, [id]: '' });
+                setReplyError((prev) => ({ ...prev, [id]: '' }));
                 fetchInquiries(); // Refresh list
             }
         } catch (error) {
@@ -78,6 +88,8 @@ const ComplaintsManagement = () => {
         const role = inq.buyer_role || 'buyer';
         return role.toLowerCase() === activeTab;
     });
+
+    const getInquiryId = (item) => item.id || item._id;
 
     return (
         <div style={styles.container}>
@@ -111,15 +123,23 @@ const ComplaintsManagement = () => {
             ) : (
                 <div style={styles.list}>
                     {filteredInquiries.map(item => (
-                        <div key={item._id} style={styles.card}>
+                        <div key={getInquiryId(item)} style={styles.card}>
                             <div style={styles.cardHeader}>
                                 <div>
-                                    <span style={styles.id}>#{item._id}</span>
+                                    <span style={styles.id}>#{getInquiryId(item)}</span>
                                     <h4 style={styles.subject}>{item.title}</h4>
                                     <p style={styles.user}>
                                         From: <strong>{item.buyer_name}</strong> ({item.buyer_email}) • {new Date(item.created_at).toLocaleDateString()}
                                     </p>
                                     <span style={styles.typeTag}>{item.inquiry_type}</span>
+                                    {item.inquiry_type === 'Listing' && (
+                                        <p style={styles.landInfo}>
+                                            Related Land: <strong>{item.land_name || 'Unknown Listing'}</strong>
+                                            {item.land_district || item.land_village
+                                                ? ` (${item.land_district || '-'} / ${item.land_village || '-'})`
+                                                : ''}
+                                        </p>
+                                    )}
                                 </div>
                                 <div style={styles.actions}>
                                     <select
@@ -128,14 +148,14 @@ const ComplaintsManagement = () => {
                                             color: item.status === 'Resolved' ? '#059669' : item.status === 'In Progress' ? '#d97706' : '#dc2626'
                                         }}
                                         value={item.status}
-                                        onChange={(e) => handleSendReply(item._id, e.target.value)}
-                                        disabled={submitting[item._id]}
+                                        onChange={(e) => handleSendReply(getInquiryId(item), e.target.value)}
+                                        disabled={submitting[getInquiryId(item)]}
                                     >
                                         <option value="Open">Open</option>
                                         <option value="In Progress">In Progress</option>
                                         <option value="Resolved">Resolved</option>
                                     </select>
-                                    <button style={styles.deleteBtn} onClick={() => handleRemove(item._id)}>Remove</button>
+                                    <button style={styles.deleteBtn} onClick={() => handleRemove(getInquiryId(item))}>Remove</button>
                                 </div>
                             </div>
 
@@ -154,17 +174,26 @@ const ComplaintsManagement = () => {
                                 <textarea
                                     placeholder="Type your reply here..."
                                     style={styles.textarea}
-                                    value={replyText[item._id] || ''}
-                                    onChange={(e) => setReplyText({ ...replyText, [item._id]: e.target.value })}
+                                    value={replyText[getInquiryId(item)] || ''}
+                                    onChange={(e) => {
+                                        const id = getInquiryId(item);
+                                        setReplyText({ ...replyText, [id]: e.target.value });
+                                        if ((replyError[id] || '') && e.target.value.trim()) {
+                                            setReplyError((prev) => ({ ...prev, [id]: '' }));
+                                        }
+                                    }}
                                 />
                                 <button
                                     style={styles.sendBtn}
-                                    onClick={() => handleSendReply(item._id, item.status)}
-                                    disabled={submitting[item._id] || !replyText[item._id]}
+                                    onClick={() => handleSendReply(getInquiryId(item), item.status, true)}
+                                    disabled={submitting[getInquiryId(item)]}
                                 >
-                                    {submitting[item._id] ? 'Sending...' : 'Send Reply'}
+                                    {submitting[getInquiryId(item)] ? 'Sending...' : 'Send Reply'}
                                 </button>
                             </div>
+                            {!!replyError[getInquiryId(item)] && (
+                                <p style={styles.replyErrorText}>{replyError[getInquiryId(item)]}</p>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -190,6 +219,7 @@ const styles = {
     subject: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: '4px 0' },
     user: { fontSize: '0.85rem', color: 'var(--color-text-soft)', marginBottom: '8px' },
     typeTag: { fontSize: '0.7rem', backgroundColor: '#F3F4F6', color: '#374151', padding: '2px 8px', borderRadius: '4px', fontWeight: '700', textTransform: 'uppercase' },
+    landInfo: { fontSize: '0.84rem', color: '#4b5563', marginTop: '8px', marginBottom: '0' },
 
     actions: { display: 'flex', gap: '12px' },
     statusSelect: { padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '0.85rem', fontWeight: '700', outline: 'none', cursor: 'pointer', backgroundColor: '#fff' },
@@ -205,6 +235,7 @@ const styles = {
     replyForm: { display: 'flex', gap: '12px', alignItems: 'flex-end' },
     textarea: { flex: 1, padding: '14px', borderRadius: '10px', border: '1px solid var(--color-border)', fontSize: '0.92rem', minHeight: '80px', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' },
     sendBtn: { padding: '12px 24px', backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.9rem', transition: 'opacity 0.2s' },
+    replyErrorText: { marginTop: '10px', marginBottom: 0, color: '#dc2626', fontSize: '0.85rem', fontWeight: '600' },
 
     loading: { textAlign: 'center', padding: '40px', color: '#666' },
     emptyState: { textAlign: 'center', padding: '60px', backgroundColor: 'var(--color-bg)', borderRadius: '20px', border: '2px dashed var(--color-border)', color: '#999' }

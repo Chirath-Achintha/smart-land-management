@@ -3,6 +3,7 @@ from typing import List
 from beanie import PydanticObjectId
 
 from app.models.inquiry_model import Inquiry, InquiryStatus, InquiryType
+from app.models.land_model import Land
 
 from app.models.user_model import User
 from app.schemas.inquiry_schema import InquiryCreate, InquiryResponse, InquiryAdminReply
@@ -15,6 +16,8 @@ def _to_response(inq: Inquiry) -> dict:
     return {
         "id": str(inq.id),
         "buyer_id": str(inq.buyer_id),
+        "receiver_id": str(inq.receiver_id) if inq.receiver_id else None,
+        "land_id": str(inq.land_id) if inq.land_id else None,
         "title": inq.title,
         "inquiry_type": inq.inquiry_type.value if hasattr(inq.inquiry_type, "value") else str(inq.inquiry_type),
         "message": inq.message,
@@ -27,6 +30,7 @@ def _to_response(inq: Inquiry) -> dict:
 
 async def _to_response_full(inq: Inquiry) -> dict:
     buyer = await User.get(inq.buyer_id)
+    land = await Land.get(inq.land_id) if inq.land_id else None
     return {
         "id": str(inq.id),
         "buyer_id": str(inq.buyer_id),
@@ -35,6 +39,9 @@ async def _to_response_full(inq: Inquiry) -> dict:
         "buyer_role": buyer.role if buyer else "unknown",
         "receiver_id": str(inq.receiver_id) if inq.receiver_id else None,
         "land_id": str(inq.land_id) if inq.land_id else None,
+        "land_name": land.name if land else None,
+        "land_district": land.district if land else None,
+        "land_village": land.village if land else None,
         "title": inq.title,
         "inquiry_type": inq.inquiry_type.value if hasattr(inq.inquiry_type, 'value') else str(inq.inquiry_type),
         "message": inq.message,
@@ -56,8 +63,27 @@ async def submit_inquiry(
     except ValueError:
         inq_type = InquiryType.general
 
+    selected_land_id = None
+    selected_receiver_id = None
+    if inq_type == InquiryType.listing:
+        if not data.land_id:
+            raise HTTPException(status_code=400, detail="Please select a land for listing inquiries")
+
+        try:
+            selected_land_id = PydanticObjectId(data.land_id)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid land ID")
+
+        land = await Land.get(selected_land_id)
+        if not land:
+            raise HTTPException(status_code=404, detail="Selected land not found")
+
+        selected_receiver_id = land.seller_id
+
     inquiry = Inquiry(
         buyer_id=current_user.id,
+        receiver_id=selected_receiver_id,
+        land_id=selected_land_id,
         title=data.title,
         inquiry_type=inq_type,
         message=data.message,
@@ -149,8 +175,27 @@ async def update_inquiry(
     except ValueError:
         inq_type = InquiryType.general
 
+    selected_land_id = None
+    selected_receiver_id = None
+    if inq_type == InquiryType.listing:
+        if not data.land_id:
+            raise HTTPException(status_code=400, detail="Please select a land for listing inquiries")
+
+        try:
+            selected_land_id = PydanticObjectId(data.land_id)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid land ID")
+
+        land = await Land.get(selected_land_id)
+        if not land:
+            raise HTTPException(status_code=404, detail="Selected land not found")
+
+        selected_receiver_id = land.seller_id
+
     inquiry.title = data.title
     inquiry.inquiry_type = inq_type
+    inquiry.land_id = selected_land_id
+    inquiry.receiver_id = selected_receiver_id
     inquiry.message = data.message
 
     await inquiry.save()

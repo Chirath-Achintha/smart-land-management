@@ -8,7 +8,12 @@ uvicorn app.main:app --reload
 
 
  logins-Role	Email	Password
-        Admin	admin@dwello.com	admin123
+
+ 
+        admin@smartland.com = admin123
+
+
+
         Seller	seller@gmail.com	seller123
         Buyer	buyer@gmail.com	buyer123
 

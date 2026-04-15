@@ -36,9 +36,15 @@ class Land(Document):
     verified_by: Optional[PydanticObjectId] = None
     verified_at: Optional[datetime] = None
     verification_note: Optional[str] = None
+    distance_to_town_km: float = 0.0
     image_url: Optional[str] = Field(None, alias="images")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
+
+    # Anomaly detection results
+    is_anomaly: Optional[bool] = None
+    anomaly_score: Optional[float] = None
+    price_status: Optional[str] = None # high | low | normal
 
     # Transient fields for response flattening (populated in routes)
     open_for_bidding: Optional[bool] = None

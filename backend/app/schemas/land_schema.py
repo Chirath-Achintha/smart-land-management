@@ -52,6 +52,7 @@ class LandCreate(BaseModel):
     road_access: Optional[str] = None
     electricity: bool = False
     water: bool = False
+    distance_to_town_km: float = 0.0
     image_url: Optional[str] = None
 
     @field_validator("image_url")
@@ -75,6 +76,7 @@ class LandUpdate(BaseModel):
     road_access: Optional[str] = None
     electricity: Optional[bool] = None
     water: Optional[bool] = None
+    distance_to_town_km: Optional[float] = None
     image_url: Optional[str] = None
 
     @field_validator("image_url")
@@ -108,9 +110,13 @@ class LandResponse(BaseModel):
     road_access: Optional[str]
     electricity: bool
     water: bool
+    distance_to_town_km: float
     image_url: Optional[str]
     is_verified: bool = False
     review_status: str = "pending"
+    is_anomaly: Optional[bool] = None
+    anomaly_score: Optional[float] = None
+    price_status: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[datetime] = None
     verification_note: Optional[str] = None

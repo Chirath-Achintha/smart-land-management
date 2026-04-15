@@ -16,6 +16,7 @@ from app.models.bidding_setup_model import BiddingSetup
 from app.models.notification_model import Notification, NotificationType
 from app.schemas.land_schema import LandCreate, LandUpdate, LandResponse, LandVerificationUpdate, BiddingSetupBase
 from app.routes.auth_routes import get_current_user
+from app.services.ai_service import anomaly_service
 
 router = APIRouter(prefix="/lands", tags=["Lands"])
 UPLOAD_ROOT = os.path.abspath(os.path.join("static", "uploads"))
@@ -142,7 +143,19 @@ async def create_land(
     if current_user.role != "seller":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can create land listings")
 
+    # Run AI Anomaly Detection
+    anomaly_result = anomaly_service.detect_anomaly(
+        district=data.district,
+        land_type=data.land_type,
+        road_access=data.road_access or "no",
+        electricity="available" if data.electricity else "not available",
+        water="available" if data.water else "not available",
+        distance_to_town=data.distance_to_town_km,
+        price_per_perch=data.price_per_perch
+    )
+
     total = data.perches * data.price_per_perch
+
     land = Land(
         seller_id=current_user.id,
         name=data.name,
@@ -156,9 +169,13 @@ async def create_land(
         road_access=data.road_access,
         electricity=data.electricity,
         water=data.water,
+        distance_to_town_km=data.distance_to_town_km,
+        image_url=data.image_url,
         is_verified=False,
         review_status="pending",
-        image_url=data.image_url,
+        is_anomaly=anomaly_result.get("is_anomaly"),
+        anomaly_score=anomaly_result.get("anomaly_score"),
+        price_status=anomaly_result.get("price_status")
     )
     await land.insert()
     
@@ -167,6 +184,31 @@ async def create_land(
     await bidding.insert()
     
     return land
+
+
+@router.post("/analyze")
+async def analyze_land_price(
+    data: LandCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns AI anomaly detection results without saving the land listing.
+    Used for live feedback in the frontend.
+    """
+    if current_user.role != "seller":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can use the AI analysis tool")
+
+    anomaly_result = anomaly_service.detect_anomaly(
+        district=data.district,
+        land_type=data.land_type,
+        road_access=data.road_access or "no",
+        electricity="available" if data.electricity else "not available",
+        water="available" if data.water else "not available",
+        distance_to_town=data.distance_to_town_km,
+        price_per_perch=data.price_per_perch
+    )
+
+    return anomaly_result
 
 
 # ── Get all Available lands (public, for buyers) ──────────────────────────────
@@ -366,6 +408,23 @@ async def update_land(
             land.verification_note = None
 
     land.updated_at = datetime.utcnow()
+
+    # Update AI Anomaly Detection if relevant fields changed
+    trigger_fields = ['district', 'land_type', 'road_access', 'electricity', 'water', 'distance_to_town_km', 'price_per_perch']
+    if any(field in data for field in trigger_fields):
+        # Run AI Anomaly Detection
+        anomaly_result = anomaly_service.detect_anomaly(
+            district=land.district,
+            land_type=land.land_type,
+            road_access=land.road_access or "no",
+            electricity="available" if land.electricity else "not available",
+            water="available" if land.water else "not available",
+            distance_to_town=land.distance_to_town_km,
+            price_per_perch=land.price_per_perch
+        )
+        land.is_anomaly = anomaly_result.get("is_anomaly")
+        land.anomaly_score = anomaly_result.get("anomaly_score")
+        land.price_status = anomaly_result.get("price_status")
 
     await land.save()
     

@@ -195,7 +195,23 @@ const LandDetailPage = () => {
                         }}>
                             Click to enlarge
                         </button>
-                        <div style={S.priceBadge}>Rs. {Number(land.total_price).toLocaleString()}</div>
+                        <div style={S.priceBadge}>
+                            <div>Rs. {Number(land.total_price).toLocaleString()}</div>
+                            {land.is_anomaly && (
+                                <div style={{ 
+                                    fontSize: '0.65rem', 
+                                    color: land.price_status === 'high' ? '#ff4d4d' : '#f39c12',
+                                    fontWeight: '800',
+                                    marginTop: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'flex-end',
+                                    gap: '4px'
+                                }}>
+                                    <span>⚠️</span> {land.price_status.toUpperCase()} ANOMALY
+                                </div>
+                            )}
+                        </div>
                         {imageUrls.length > 1 && (
                             <div style={S.thumbTray}>
                                 {imageUrls.map((url, idx) => (
@@ -255,6 +271,15 @@ const LandDetailPage = () => {
                                         <span style={S.infoLabel}>Status</span>
                                         <span style={{ ...S.infoValue, color: land.status === 'Available' ? '#27ae60' : '#e67e22' }}>
                                             {land.status}
+                                        </span>
+                                    </div>
+                                    <div style={S.infoCard}>
+                                        <span style={S.infoLabel}>AI Price Analysis</span>
+                                        <span style={{ 
+                                            ...S.infoValue, 
+                                            color: land.is_anomaly ? (land.price_status === 'high' ? '#e74c3c' : '#f39c12') : '#27ae60' 
+                                        }}>
+                                            {land.is_anomaly ? `${land.price_status.toUpperCase()} ANOMALY` : 'NORMAL'}
                                         </span>
                                     </div>
                                     <div style={S.infoCard}>

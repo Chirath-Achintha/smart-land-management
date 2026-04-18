@@ -36,6 +36,18 @@ const EMPTY_FORM = {
     open_for_bidding: false, starting_bid: '', bidding_end: '',
 };
 
+const EMPTY_PREDICT_FORM = {
+    district: '',
+    village: '',
+    perches: '',
+    land_type: 'Residential',
+    road_access: '',
+    electricity: false,
+    water: false,
+    distance_to_town_km: '',
+    distance_to_city_km: '',
+};
+
 function calcTotal(perches, ppp) {
     return (parseFloat(perches) || 0) * (parseFloat(ppp) || 0);
 }
@@ -67,8 +79,10 @@ const SellerListingsPage = () => {
     const [fieldErrors, setFieldErrors] = useState({ perches: '', price_per_perch: '', starting_bid: '', bidding_end: '' });
     const [anomalyWarning, setAnomalyWarning] = useState(null); // { is_anomaly, price_status, district_average }
     const [showPredictor, setShowPredictor] = useState(false);
-    const [predictForm, setPredictForm] = useState({ district: '', land_type: 'Residential' });
+    const [predictForm, setPredictForm] = useState(EMPTY_PREDICT_FORM);
+    const [predictFieldErrors, setPredictFieldErrors] = useState({ perches: '', road_access: '', distance_to_town_km: '', distance_to_city_km: '' });
     const [predictionResult, setPredictionResult] = useState(null);
+    const [predicting, setPredicting] = useState(false);
     const totalPrice = calcTotal(form.perches, form.price_per_perch);
     const minBiddingDate = getTodayLocalDate();
 
@@ -283,28 +297,57 @@ const SellerListingsPage = () => {
     };
 
     const handlePredict = async () => {
-        if (!predictForm.district) return;
-        setSubmitting(true);
+        const perchesValue = Number(predictForm.perches);
+        const townDistanceValue = Number(predictForm.distance_to_town_km);
+        const cityDistanceValue = Number(predictForm.distance_to_city_km);
+
+        const nextPredictErrors = {
+            perches: !Number.isFinite(perchesValue) || perchesValue <= 0 ? 'Perches must be greater than zero.' : '',
+            road_access: !predictForm.road_access?.trim() ? 'Road access is required.' : '',
+            distance_to_town_km: predictForm.distance_to_town_km === '' || !Number.isFinite(townDistanceValue) || townDistanceValue < 0
+                ? 'Distance to town must be zero or greater.'
+                : '',
+            distance_to_city_km: predictForm.distance_to_city_km === '' || !Number.isFinite(cityDistanceValue) || cityDistanceValue < 0
+                ? 'Distance to city must be zero or greater.'
+                : '',
+        };
+
+        setPredictFieldErrors(nextPredictErrors);
+
+        if (Object.values(nextPredictErrors).some(Boolean) || !predictForm.district || !predictForm.village) {
+            setError('Please complete valid predictor values before running AI prediction.');
+            return;
+        }
+
+        setPredicting(true);
+        setError('');
         try {
-            // We use the analyze endpoint with a dummy low price to just get the district average
             const payload = {
-                ...EMPTY_FORM,
                 district: predictForm.district,
+                village: predictForm.village,
+                perches: perchesValue,
                 land_type: predictForm.land_type,
-                price_per_perch: 1000, 
-                distance_to_town_km: 0
+                road_access: predictForm.road_access.trim(),
+                electricity: !!predictForm.electricity,
+                water: !!predictForm.water,
+                distance_to_town_km: townDistanceValue,
+                distance_to_city_km: cityDistanceValue,
             };
-            const res = await fetch(`${API}/lands/analyze`, {
+            const res = await fetch(`${API}/lands/predict-price`, {
                 method: 'POST',
                 headers: authHeaders,
                 body: JSON.stringify(payload)
             });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Prediction failed');
+            }
             const result = await res.json();
-            setPredictionResult(result.district_average);
+            setPredictionResult(result);
         } catch {
             setError('Prediction service unavailable');
         } finally {
-            setSubmitting(false);
+            setPredicting(false);
         }
     };
 
@@ -457,7 +500,26 @@ const SellerListingsPage = () => {
                     <p style={S.subtitle}>Manage your properties and bidding settings.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button style={S.aiPredictBtn} onClick={() => { setShowPredictor(true); setPredictionResult(null); }}>
+                    <button
+                        style={S.aiPredictBtn}
+                        onClick={() => {
+                            setShowPredictor(true);
+                            setPredictionResult(null);
+                            setError('');
+                            setPredictFieldErrors({ perches: '', road_access: '', distance_to_town_km: '', distance_to_city_km: '' });
+                            setPredictForm({
+                                district: form.district || '',
+                                village: form.village || '',
+                                perches: form.perches || '',
+                                land_type: form.land_type || 'Residential',
+                                road_access: form.road_access || '',
+                                electricity: !!form.electricity,
+                                water: !!form.water,
+                                distance_to_town_km: form.distance_to_town_km || '',
+                                distance_to_city_km: '',
+                            });
+                        }}
+                    >
                         ✨ AI Price Predictor
                     </button>
                     <button className="btn-dark" style={S.addBtn}
@@ -824,16 +886,16 @@ const SellerListingsPage = () => {
             {/* AI Predictor Modal */}
             {showPredictor && (
                 <div style={S.overlay}>
-                    <div style={{ ...S.dialog, width: '450px' }}>
+                    <div style={{ ...S.dialog, width: '560px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                             <h3 style={{ margin: 0 }}>AI Market Predictor</h3>
                             <button onClick={() => setShowPredictor(false)} style={S.closeBtn}>&times;</button>
                         </div>
                         <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '20px' }}>
-                            Select a location to see the AI-predicted average market value per perch.
+                            Fill the details below to get an AI-estimated market value for this land.
                         </p>
                         
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                             <div style={S.formGroup}>
                                 <label style={S.label}>District</label>
                                 <select 
@@ -846,6 +908,33 @@ const SellerListingsPage = () => {
                                 </select>
                             </div>
                             <div style={S.formGroup}>
+                                <label style={S.label}>Village / Area</label>
+                                <input
+                                    value={predictForm.village}
+                                    onChange={(e) => setPredictForm({ ...predictForm, village: e.target.value })}
+                                    style={S.input}
+                                    placeholder="e.g. Digana"
+                                />
+                            </div>
+                            <div style={S.formGroup}>
+                                <label style={S.label}>Perches</label>
+                                <input
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    value={predictForm.perches}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setPredictForm({ ...predictForm, perches: value });
+                                        if (value !== '' && Number(value) > 0) {
+                                            setPredictFieldErrors((prev) => ({ ...prev, perches: '' }));
+                                        }
+                                    }}
+                                    style={S.input}
+                                />
+                                {predictFieldErrors.perches && <span style={S.fieldError}>{predictFieldErrors.perches}</span>}
+                            </div>
+                            <div style={S.formGroup}>
                                 <label style={S.label}>Land Type</label>
                                 <select 
                                     value={predictForm.land_type} 
@@ -855,17 +944,84 @@ const SellerListingsPage = () => {
                                     {['Residential', 'Agricultural', 'Commercial', 'Mixed'].map(t => <option key={t}>{t}</option>)}
                                 </select>
                             </div>
+                            <div style={S.formGroup}>
+                                <label style={S.label}>Road Access</label>
+                                <input
+                                    value={predictForm.road_access}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setPredictForm({ ...predictForm, road_access: value });
+                                        if (value.trim()) {
+                                            setPredictFieldErrors((prev) => ({ ...prev, road_access: '' }));
+                                        }
+                                    }}
+                                    style={S.input}
+                                    placeholder="e.g. 15ft Carpet Road"
+                                />
+                                {predictFieldErrors.road_access && <span style={S.fieldError}>{predictFieldErrors.road_access}</span>}
+                            </div>
+                            <div style={S.formGroup}>
+                                <label style={S.label}>Distance to Town (km)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={predictForm.distance_to_town_km}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setPredictForm({ ...predictForm, distance_to_town_km: value });
+                                        if (value !== '' && Number(value) >= 0) {
+                                            setPredictFieldErrors((prev) => ({ ...prev, distance_to_town_km: '' }));
+                                        }
+                                    }}
+                                    style={S.input}
+                                />
+                                {predictFieldErrors.distance_to_town_km && <span style={S.fieldError}>{predictFieldErrors.distance_to_town_km}</span>}
+                            </div>
+                            <div style={S.formGroup}>
+                                <label style={S.label}>Distance to City (km)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={predictForm.distance_to_city_km}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setPredictForm({ ...predictForm, distance_to_city_km: value });
+                                        if (value !== '' && Number(value) >= 0) {
+                                            setPredictFieldErrors((prev) => ({ ...prev, distance_to_city_km: '' }));
+                                        }
+                                    }}
+                                    style={S.input}
+                                />
+                                {predictFieldErrors.distance_to_city_km && <span style={S.fieldError}>{predictFieldErrors.distance_to_city_km}</span>}
+                            </div>
+                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '24px' }}>
+                                <label style={S.checkLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={predictForm.electricity}
+                                        onChange={(e) => setPredictForm({ ...predictForm, electricity: e.target.checked })}
+                                    /> Electricity
+                                </label>
+                                <label style={S.checkLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={predictForm.water}
+                                        onChange={(e) => setPredictForm({ ...predictForm, water: e.target.checked })}
+                                    /> Water
+                                </label>
+                            </div>
                             
                             <button 
                                 onClick={handlePredict} 
-                                disabled={!predictForm.district || submitting}
-                                style={{ ...S.saveBtn, background: '#1A52E8', marginTop: '10px' }}
+                                disabled={!predictForm.district || !predictForm.village || !predictForm.perches || !predictForm.road_access || predictForm.distance_to_town_km === '' || predictForm.distance_to_city_km === '' || predicting}
+                                style={{ ...S.saveBtn, background: '#1A52E8', marginTop: '10px', gridColumn: '1 / -1' }}
                             >
-                                {submitting ? 'Analyzing...' : 'Predict Market Value'}
+                                {predicting ? 'Analyzing...' : 'Predict Market Value'}
                             </button>
 
                             {predictionResult && (
                                 <div style={{ 
+                                    gridColumn: '1 / -1',
                                     marginTop: '20px', 
                                     padding: '20px', 
                                     background: '#F0F4FF', 
@@ -877,10 +1033,38 @@ const SellerListingsPage = () => {
                                         AI Predicted Valuation
                                     </div>
                                     <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#1A1A1A' }}>
-                                        Rs. {Number(predictionResult).toLocaleString()}
+                                        Rs. {Number(predictionResult.predicted_total_price || 0).toLocaleString()}
                                     </div>
-                                    <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '4px' }}>
-                                        Average price per perch in {predictForm.district}
+                                    <div style={{ fontSize: '0.85rem', color: '#1A1A1A', marginTop: '6px', fontWeight: '700' }}>
+                                        Rs. {Number(predictionResult.predicted_price_per_perch || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} per perch
+                                    </div>
+                                    {predictionResult.low_total_estimate != null && predictionResult.high_total_estimate != null && (
+                                        <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '6px' }}>
+                                            Estimated range: Rs. {Number(predictionResult.low_total_estimate).toLocaleString()} - Rs. {Number(predictionResult.high_total_estimate).toLocaleString()}
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '14px' }}>
+                                        <button
+                                            type="button"
+                                            style={{ ...S.aiCheckBtnFooter, marginRight: 0 }}
+                                            onClick={() => {
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    district: predictForm.district,
+                                                    village: predictForm.village,
+                                                    perches: predictForm.perches,
+                                                    land_type: predictForm.land_type,
+                                                    road_access: predictForm.road_access,
+                                                    electricity: !!predictForm.electricity,
+                                                    water: !!predictForm.water,
+                                                    distance_to_town_km: predictForm.distance_to_town_km,
+                                                    price_per_perch: Number(predictionResult.predicted_price_per_perch || 0).toFixed(2),
+                                                }));
+                                                setShowPredictor(false);
+                                            }}
+                                        >
+                                            Use This Price In Listing Form
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -893,17 +1077,17 @@ const SellerListingsPage = () => {
 };
 
 const S = {
-    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { background: '#FAF6F1', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     notifPanel: { background: '#FFF5F5', border: '1px solid #FFE4E4', borderRadius: '20px', padding: '20px', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' },
     notifHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
     notifTitle: { fontSize: '1rem', fontWeight: '800', margin: 0 },
     unreadBadge: { fontSize: '0.7rem', background: '#FF4D4D', color: '#FFF', padding: '2px 8px', borderRadius: '10px', marginLeft: '8px' },
     readAllBtn: { background: 'none', border: 'none', color: '#666', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' },
     notifList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-    notifItem: { display: 'flex', gap: '12px', alignItems: 'center', background: '#FFF', padding: '12px', borderRadius: '12px', border: '1px solid var(--color-border)' },
+    notifItem: { display: 'flex', gap: '12px', alignItems: 'center', background: '#FFF', padding: '12px', borderRadius: '12px', border: '1px solid #F0EBE4' },
     notifDot: { width: '8px', height: '8px', background: '#FF4D4D', borderRadius: '50%' },
-    notifText: { fontSize: '0.9rem', color: 'var(--color-dark)' },
-    notifSub: { fontSize: '0.8rem', color: 'var(--color-text-soft)' },
+    notifText: { fontSize: '0.9rem', color: '#1A1A1A' },
+    notifSub: { fontSize: '0.8rem', color: '#666' },
     rejectReason: { marginTop: '6px', fontSize: '0.74rem', color: '#a23a2b', fontWeight: '600' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' },
     title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)' },
@@ -920,11 +1104,11 @@ const S = {
         transition: 'all 0.2s' 
     },
     empty: { textAlign: 'center', color: '#999', marginTop: '80px', fontSize: '1rem' },
-    tableWrap: { background: '#fff', borderRadius: '16px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', overflow: 'auto' },
+    tableWrap: { background: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse' },
-    th: { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#888', borderBottom: '2px solid var(--color-border)' },
+    th: { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#888', borderBottom: '2px solid #f5f0ea' },
     tr: { transition: 'background 0.15s' },
-    td: { padding: '16px 20px', fontSize: '0.875rem', borderBottom: '1px solid var(--color-border)' },
+    td: { padding: '16px 20px', fontSize: '0.875rem', borderBottom: '1px solid #f5f0ea' },
     nameCell: { display: 'flex', alignItems: 'center', gap: '12px' },
     propertyLinkBtn: {
         background: 'none',
@@ -932,7 +1116,7 @@ const S = {
         padding: 0,
         margin: 0,
         fontWeight: '700',
-        color: 'var(--color-dark)',
+        color: '#1A1A1A',
         cursor: 'pointer',
         textAlign: 'left',
         textDecoration: 'underline'
@@ -940,36 +1124,36 @@ const S = {
     thumbnail: { width: '48px', height: '36px', borderRadius: '6px', objectFit: 'cover' },
     badge: { padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '700' },
     badgeOpen: { background: '#eafaf1', color: '#2ecc71' },
-    badgeClosed: { background: 'var(--color-bg)', color: '#aaa', border: '1px solid var(--color-border)' },
+    badgeClosed: { background: '#f5f0ea', color: '#aaa' },
     statusBadge: { padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' },
     actionBtns: { display: 'flex', gap: '8px' },
-    editBtn: { background: 'var(--color-dark)', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' },
-    delBtn: { background: '#fff', color: '#e74c3c', border: '1px solid #e74c3c', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' },
-    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    dialog: { background: '#fff', borderRadius: '16px', padding: '32px', width: '380px', boxShadow: 'var(--shadow-elevated)', border: '1px solid var(--color-border)' },
-    formModal: { background: '#fff', borderRadius: '20px', width: '680px', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-elevated)', border: '1px solid var(--color-border)' },
+    editBtn: { background: '#1A1A1A', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' },
+    delBtn: { background: '#fff', color: '#e74c3c', border: '1px solid #e74c3c', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' },
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+    dialog: { background: '#fff', borderRadius: '16px', padding: '32px', width: '380px' },
+    formModal: { background: '#fff', borderRadius: '20px', width: '680px', maxHeight: '90vh', overflowY: 'auto' },
     formHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 32px' },
-    formTitle: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)' },
+    formTitle: { fontSize: '1.4rem', fontWeight: '800' },
     closeBtn: { background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#999' },
     errorMsg: { color: '#d32f2f', background: '#fdecea', margin: '0 32px 16px', padding: '10px 16px', borderRadius: '8px', fontSize: '0.875rem' },
     form: { padding: '0 32px 32px' },
-    sectionDivider: { fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', color: '#aaa', borderBottom: '1px solid var(--color-border)', marginBottom: '20px', paddingBottom: '8px', marginTop: '24px' },
+    sectionDivider: { fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', color: '#aaa', borderBottom: '1px solid #f0ebe4', marginBottom: '20px', paddingBottom: '8px', marginTop: '24px' },
     formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' },
     formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
     label: { fontSize: '0.78rem', fontWeight: '700', color: '#666' },
-    input: { padding: '12px', border: '1px solid var(--color-border)', borderRadius: '8px', outline: 'none', fontFamily: 'inherit', background: '#fff' },
+    input: { padding: '12px', border: '1px solid #e5e0da', borderRadius: '8px', outline: 'none', fontFamily: 'inherit' },
     totalPriceBox: {
         padding: '12px',
-        border: '1px solid var(--color-border)',
+        border: '1px solid #d8d1c8',
         borderRadius: '8px',
-        background: 'var(--color-bg)',
+        background: '#fdfaf7',
         fontWeight: '800',
-        color: 'var(--color-dark)'
+        color: '#1A1A1A'
     },
     fieldError: { fontSize: '0.76rem', color: '#d32f2f', marginTop: '2px', fontWeight: '600' },
     checkRow: { display: 'flex', gap: '24px', marginBottom: '8px' },
     checkLabel: { display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' },
-    biddingSection: { background: 'var(--color-bg)', padding: '20px', borderRadius: '12px', marginBottom: '16px', border: '1px solid var(--color-border)' },
+    biddingSection: { background: '#fdfaf7', padding: '20px', borderRadius: '12px', marginBottom: '16px' },
     biddingFields: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' },
     currentPriceCard: {
         gridColumn: '1 / -1',
@@ -978,7 +1162,7 @@ const S = {
         justifyContent: 'space-between',
         padding: '10px 12px',
         borderRadius: '8px',
-        border: '1px solid var(--color-border)',
+        border: '1px solid #d8d1c8',
         background: '#fff'
     },
     currentPriceLabel: { fontSize: '0.78rem', fontWeight: '700', color: '#666' },
@@ -1002,11 +1186,11 @@ const S = {
     confirmDelBtn: { padding: '12px 24px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' },
     dropZone: { border: '2px dashed var(--color-border)', borderRadius: '12px', padding: '40px 20px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative' },
     dropContent: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' },
-    browseText: { color: 'var(--color-dark)', textDecoration: 'underline', fontWeight: '700', marginTop: '12px', fontSize: '0.85rem' },
+    browseText: { color: '#1A1A1A', textDecoration: 'underline', fontWeight: '700', marginTop: '12px', fontSize: '0.85rem' },
     previewGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px', marginTop: '14px' },
-    previewItem: { border: '1px solid var(--color-border)', borderRadius: '10px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff' },
+    previewItem: { border: '1px solid #e5e0da', borderRadius: '10px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff' },
     previewImage: { width: '100%', height: '110px', objectFit: 'cover', borderRadius: '8px' },
-    removeImgBtn: { background: '#fff', color: '#c0392b', border: '1px solid #f1b0aa', padding: '8px 10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }
+    removeImgBtn: { background: '#fff', color: '#c0392b', border: '1px solid #f1b0aa', padding: '8px 10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }
 };
 
 export default SellerListingsPage;

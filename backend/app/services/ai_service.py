@@ -6,8 +6,10 @@ from pathlib import Path
 
 class AnomalyDetectionService:
     def __init__(self):
-        # Define paths to model files
-        self.model_dir = Path(__file__).parent.parent / "anomaly_detector_model"
+        # Prefer models under backend/AI Part, with legacy fallback under backend/app.
+        primary_model_dir = Path(__file__).resolve().parents[2] / "AI Part" / "anomaly_detector_model"
+        legacy_model_dir = Path(__file__).parent.parent / "anomaly_detector_model"
+        self.model_dir = primary_model_dir if primary_model_dir.exists() else legacy_model_dir
         
         # Initialize variables
         self.model = None

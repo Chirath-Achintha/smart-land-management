@@ -14,9 +14,18 @@ from app.models.land_model import Land
 from app.models.user_model import User
 from app.models.bidding_setup_model import BiddingSetup
 from app.models.notification_model import Notification, NotificationType
-from app.schemas.land_schema import LandCreate, LandUpdate, LandResponse, LandVerificationUpdate, BiddingSetupBase
+from app.schemas.land_schema import (
+    LandCreate,
+    LandUpdate,
+    LandResponse,
+    LandVerificationUpdate,
+    BiddingSetupBase,
+    LandPricePredictionRequest,
+    LandPricePredictionResponse,
+)
 from app.routes.auth_routes import get_current_user
 from app.services.ai_service import anomaly_service
+from app.services.price_prediction_service import price_prediction_service
 
 router = APIRouter(prefix="/lands", tags=["Lands"])
 UPLOAD_ROOT = os.path.abspath(os.path.join("static", "uploads"))
@@ -209,6 +218,39 @@ async def analyze_land_price(
     )
 
     return anomaly_result
+
+
+@router.post("/predict-price", response_model=LandPricePredictionResponse)
+async def predict_land_price(
+    data: LandPricePredictionRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Predicts an estimated market value based on the trained price model.
+    Sellers can use this before creating or updating a listing.
+    """
+    if current_user.role != "seller":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can use the AI price predictor")
+
+    prediction = price_prediction_service.predict_price(
+        district=data.district,
+        village=data.village,
+        perches=data.perches,
+        land_type=data.land_type,
+        road_access=data.road_access or "",
+        electricity=data.electricity,
+        water=data.water,
+        distance_to_town_km=data.distance_to_town_km,
+        distance_to_city_km=data.distance_to_city_km,
+        days_since_published=0,
+        random_feature=data.random_feature,
+        listed_price_per_perch=data.listed_price_per_perch,
+    )
+
+    if prediction.get("error"):
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=prediction["error"])
+
+    return prediction
 
 
 # ── Get all Available lands (public, for buyers) ──────────────────────────────

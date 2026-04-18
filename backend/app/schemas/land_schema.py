@@ -94,6 +94,52 @@ class LandVerificationUpdate(BaseModel):
     is_verified: bool
     verification_note: Optional[str] = None
 
+
+class LandPricePredictionRequest(BaseModel):
+    district: str
+    village: str
+    perches: float
+    land_type: LandType = LandType.Residential
+    road_access: Optional[str] = None
+    electricity: bool = False
+    water: bool = False
+    distance_to_town_km: float = 0.0
+    distance_to_city_km: float = 0.0
+    random_feature: float = 0.5
+    listed_price_per_perch: Optional[float] = None
+
+    @field_validator("perches")
+    @classmethod
+    def validate_perches(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("Perches must be greater than zero")
+        return v
+
+    @field_validator("road_access")
+    @classmethod
+    def validate_road_access(cls, v: Optional[str]) -> str:
+        if not v or not v.strip():
+            raise ValueError("Road access is required")
+        return v.strip()
+
+    @field_validator("distance_to_town_km", "distance_to_city_km")
+    @classmethod
+    def validate_distances(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("Distance values must be zero or greater")
+        return v
+
+
+class LandPricePredictionResponse(BaseModel):
+    predicted_total_price: float
+    predicted_price_per_perch: float
+    input_perches: float
+    low_total_estimate: Optional[float] = None
+    high_total_estimate: Optional[float] = None
+    listed_price_per_perch: Optional[float] = None
+    listed_total_price: Optional[float] = None
+    per_perch_difference: Optional[float] = None
+
 # ── Response Schema ───────────────────────────────────────────────────────────
 
 class LandResponse(BaseModel):

@@ -205,17 +205,15 @@ const SellerListingsPage = () => {
     const [editingId, setEditingId] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [error, setError] = useState('');
-<<<<<<< Updated upstream
     const [fieldErrors, setFieldErrors] = useState({ 
         perches: '', 
         price_per_perch: '', 
+        distance_to_town_km: '',
+        mobile_number_1: '',
+        mobile_number_2: '',
         starting_bid: '', 
-        bidding_end: '',
-        distance_to_town_km: '' 
+        bidding_end: '' 
     });
-=======
-    const [fieldErrors, setFieldErrors] = useState({ perches: '', price_per_perch: '', distance_to_town_km: '', mobile_number_1: '', mobile_number_2: '', starting_bid: '', bidding_end: '' });
->>>>>>> Stashed changes
     const [anomalyWarning, setAnomalyWarning] = useState(null); // { is_anomaly, price_status, district_average }
     const [showPredictor, setShowPredictor] = useState(false);
     const [predictForm, setPredictForm] = useState(EMPTY_PREDICT_FORM);
@@ -964,19 +962,6 @@ const SellerListingsPage = () => {
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Distance To Town (Km) *</label>
-<<<<<<< Updated upstream
-                                    <input
-                                        name="distance_to_town_km"
-                                        type="number"
-                                        step="0.1"
-                                        value={form.distance_to_town_km}
-                                        onChange={handleFormChange}
-                                        required
-                                        style={S.input}
-                                        placeholder="Distance for AI analysis"
-                                    />
-                                    {fieldErrors.distance_to_town_km && <span style={S.fieldError}>{fieldErrors.distance_to_town_km}</span>}
-=======
                                     <input 
                                         name="distance_to_town_km" 
                                         className="no-number-spinner"
@@ -1016,7 +1001,6 @@ const SellerListingsPage = () => {
                                         placeholder="e.g. +94781234567"
                                     />
                                     {fieldErrors.mobile_number_2 && <span style={S.fieldError}>{fieldErrors.mobile_number_2}</span>}
->>>>>>> Stashed changes
                                 </div>
                             </div>
 
@@ -1177,11 +1161,6 @@ const SellerListingsPage = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                             <div style={S.formGroup}>
                                 <label style={S.label}>District</label>
-<<<<<<< Updated upstream
-                                <select
-                                    value={predictForm.district}
-                                    onChange={(e) => setPredictForm({ ...predictForm, district: e.target.value })}
-=======
                                 <select 
                                     value={predictForm.district} 
                                     onChange={(e) => {
@@ -1190,7 +1169,6 @@ const SellerListingsPage = () => {
                                         setPredictForm({ ...predictForm, district: value, village: '' });
                                         setPredictFieldErrors((prev) => ({ ...prev, district: value ? '' : 'District is required.', village: '' }));
                                     }}
->>>>>>> Stashed changes
                                     style={S.input}
                                 >
                                     <option value="">Select District</option>
@@ -1335,17 +1313,9 @@ const SellerListingsPage = () => {
                                     /> Water
                                 </label>
                             </div>
-<<<<<<< Updated upstream
-
-                            <button
-                                onClick={handlePredict}
-                                disabled={!predictForm.district || !predictForm.village || !predictForm.perches || !predictForm.road_access || predictForm.distance_to_town_km === '' || predictForm.distance_to_city_km === '' || predicting}
-=======
-                            
                             <button 
                                 onClick={handlePredict} 
                                 disabled={!predictForm.district || !predictForm.village || !predictForm.perches || predictForm.distance_to_town_km === '' || predictForm.distance_to_city_km === '' || predicting}
->>>>>>> Stashed changes
                                 style={{ ...S.saveBtn, background: '#1A52E8', marginTop: '10px', gridColumn: '1 / -1' }}
                             >
                                 {predicting ? 'Analyzing...' : 'Predict Market Value'}

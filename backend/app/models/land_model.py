@@ -27,6 +27,8 @@ class Land(Document):
     land_type: LandType = Field(default=LandType.Residential)
     status: LandStatus = Field(default=LandStatus.Available)
     road_access: Optional[str] = None
+    mobile_number_1: Optional[str] = None
+    mobile_number_2: Optional[str] = None
     electricity: bool = False
     water: bool = False
     description: Optional[str] = None

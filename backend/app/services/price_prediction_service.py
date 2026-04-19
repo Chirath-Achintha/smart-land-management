@@ -7,6 +7,8 @@ import pandas as pd
 
 
 class PricePredictionService:
+    ROAD_ACCESS_MIN_UPLIFT = 0.02
+
     def __init__(self):
         self.model = None
         self.model_path = Path(__file__).resolve().parents[2] / "AI Part" / "Price_Prediction_Model.pkl"
@@ -122,6 +124,16 @@ class PricePredictionService:
 
         pred_total = float(self.model.predict(features)[0])
         pred_total = max(pred_total, 0.0)
+
+        road_access_binary = self._road_access_to_binary(road_access)
+        if road_access_binary == 1:
+            # Business guardrail: road access must not reduce estimated value.
+            without_road_features = features.copy()
+            without_road_features["Road_Access"] = 0
+            without_road_total = max(float(self.model.predict(without_road_features)[0]), 0.0)
+            required_min_total = without_road_total * (1 + self.ROAD_ACCESS_MIN_UPLIFT)
+            pred_total = max(pred_total, required_min_total)
+
         pred_per_perch = pred_total / safe_perches
 
         low_total = None
@@ -131,6 +143,8 @@ class PricePredictionService:
             tree_preds = np.array([est.predict(feature_matrix)[0] for est in self.model.estimators_], dtype=float)
             low_total = float(np.percentile(tree_preds, 10))
             high_total = float(np.percentile(tree_preds, 90))
+            if road_access_binary == 1:
+                high_total = max(high_total, pred_total)
 
         response = {
             "predicted_total_price": pred_total,

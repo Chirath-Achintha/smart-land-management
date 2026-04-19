@@ -107,6 +107,31 @@ const LandListingPage = () => {
                                         🔨 Open for Bidding
                                     </span>
                                 )}
+                                
+                                {/* AI Validation Badge */}
+                                {land.is_anomaly ? (
+                                    <span style={{
+                                        position: 'absolute', top: '10px', right: '10px',
+                                        background: '#FFF1F0', color: '#C53030',
+                                        fontSize: '0.6rem', fontWeight: '800',
+                                        padding: '4px 10px', borderRadius: '20px',
+                                        zIndex: 2, border: '1px solid #F1B0AA',
+                                        display: 'flex', alignItems: 'center', gap: '4px'
+                                    }}>
+                                        ⚠️ {land.price_status === 'high' ? 'High Price Anomaly' : 'Low Price Anomaly'}
+                                    </span>
+                                ) : (
+                                    <span style={{
+                                        position: 'absolute', top: '10px', right: '10px',
+                                        background: '#E6FFFA', color: '#2F855A',
+                                        fontSize: '0.6rem', fontWeight: '800',
+                                        padding: '4px 10px', borderRadius: '20px',
+                                        zIndex: 2, border: '1px solid #B2F5EA',
+                                        display: 'flex', alignItems: 'center', gap: '4px'
+                                    }}>
+                                        ✅ Price is Market Aligned
+                                    </span>
+                                )}
                             </div>
 
                             {/* Body */}

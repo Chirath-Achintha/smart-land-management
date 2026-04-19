@@ -197,18 +197,33 @@ const LandDetailPage = () => {
                         </button>
                         <div style={S.priceBadge}>
                             <div>Rs. {Number(land.total_price).toLocaleString()}</div>
-                            {land.is_anomaly && (
+                            {land.is_anomaly ? (
                                 <div style={{ 
                                     fontSize: '0.65rem', 
-                                    color: land.price_status === 'high' ? '#ff4d4d' : '#f39c12',
+                                    color: '#ff4d4d',
                                     fontWeight: '800',
                                     marginTop: '4px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'flex-end',
-                                    gap: '4px'
+                                    gap: '4px',
+                                    textTransform: 'uppercase'
                                 }}>
-                                    <span>⚠️</span> {land.price_status.toUpperCase()} ANOMALY
+                                    <span>⚠️</span> {land.price_status} Anomaly
+                                </div>
+                            ) : (
+                                <div style={{ 
+                                    fontSize: '0.65rem', 
+                                    color: '#2ecc71',
+                                    fontWeight: '800',
+                                    marginTop: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'flex-end',
+                                    gap: '4px',
+                                    textTransform: 'uppercase'
+                                }}>
+                                    <span>✅</span> Market Aligned
                                 </div>
                             )}
                         </div>
@@ -277,9 +292,9 @@ const LandDetailPage = () => {
                                         <span style={S.infoLabel}>AI Price Analysis</span>
                                         <span style={{ 
                                             ...S.infoValue, 
-                                            color: land.is_anomaly ? (land.price_status === 'high' ? '#e74c3c' : '#f39c12') : '#27ae60' 
+                                            color: land.is_anomaly ? '#e74c3c' : '#27ae60' 
                                         }}>
-                                            {land.is_anomaly ? `${land.price_status.toUpperCase()} ANOMALY` : 'NORMAL'}
+                                            {land.is_anomaly ? `${land.price_status.toUpperCase()} PRICE` : 'MARKET ALIGNED'}
                                         </span>
                                     </div>
                                     <div style={S.infoCard}>
@@ -288,6 +303,34 @@ const LandDetailPage = () => {
                                             {land.open_for_bidding ? 'Open' : 'Closed'}
                                         </span>
                                     </div>
+                                </div>
+
+                                {/* AI Market Insight Section */}
+                                <div style={{ 
+                                    marginTop: '24px', 
+                                    marginBottom: '32px',
+                                    padding: '20px',
+                                    background: land.is_anomaly ? '#FFF5F5' : '#F5FFF5',
+                                    border: `1px solid ${land.is_anomaly ? '#FFC1C1' : '#C1FFC1'}`,
+                                    borderRadius: '16px'
+                                }}>
+                                    <h4 style={{ 
+                                        margin: '0 0 8px 0', 
+                                        fontSize: '0.9rem', 
+                                        fontWeight: '800', 
+                                        color: land.is_anomaly ? '#C53030' : '#2F855A',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        {land.is_anomaly ? '⚠️ AI Market Warning' : '✨ AI Pricing Insight'}
+                                    </h4>
+                                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#1A1A1A', lineHeight: '1.6', fontWeight: '500' }}>
+                                        {land.is_anomaly 
+                                            ? `Our analysis indicates this price is significantly ${land.price_status} compared to the current market average in ${land.district}. Buyers are advised to investigate property details and negotiate accordingly.`
+                                            : `This property is priced effectively! The current valuation aligns closely with the market average for ${land.district}, making it a stable investment opportunity.`
+                                        }
+                                    </p>
                                 </div>
 
                                 {/* Amenities */}

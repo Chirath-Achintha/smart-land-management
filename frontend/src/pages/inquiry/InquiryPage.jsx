@@ -259,14 +259,23 @@ const InquiryPage = () => {
                     <div style={S.formCard}>
                         <h2 style={S.sectionTitle}>Submit New Inquiry</h2>
 
-                        {!user && (
+                        {!user ? (
                             <div style={S.loginNoticeBox}>
                                 <p style={S.loginNotice}>Please log in to submit an inquiry.</p>
                                 <a href="/login" style={S.loginBtn}>Login Now</a>
                             </div>
-                        )}
-
-                        {user && (
+                        ) : user.role === 'admin' ? (
+                            <div style={S.loginNoticeBox}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🛡️</div>
+                                <p style={S.loginNotice}>Admins cannot submit inquiries through this public form.</p>
+                                <button 
+                                    onClick={() => navigate('/dashboard/admin/complaints')} 
+                                    style={S.loginBtn}
+                                >
+                                    Go to Inquiry Management
+                                </button>
+                            </div>
+                        ) : (
                             <form onSubmit={handleSubmit} style={S.form}>
                                 {submitError && <div style={S.errorBox}>{submitError}</div>}
                                 {submitMsg && <div style={S.successBox}>{submitMsg}</div>}
@@ -367,6 +376,12 @@ const InquiryPage = () => {
                             <div style={S.loginNoticeBox}>
                                 <p style={S.loginNotice}>Please log in to view your inquiries and admin replies.</p>
                                 <a href="/login" style={S.loginBtn}>Login Now</a>
+                            </div>
+                        ) : user.role === 'admin' ? (
+                            <div style={S.emptyState}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📊</div>
+                                <div style={{ fontWeight: '700', color: '#555', marginBottom: '6px' }}>Administrative View</div>
+                                <div style={{ color: '#aaa', fontSize: '0.875rem' }}>Personal inquiry history is disabled for admins. Please use the management dashboard to view all user inquiries.</div>
                             </div>
                         ) : loadingList ? (
                             <p style={S.empty}>Loading your inquiries…</p>

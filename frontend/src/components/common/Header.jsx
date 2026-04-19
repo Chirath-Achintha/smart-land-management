@@ -72,15 +72,21 @@ const Header = () => {
             </div>
             <ul className="landing-nav-links">
                 {NAV.filter((n) => !(n === 'Service' && user && user.role !== 'buyer')).map((n) => {
+                    const isLockedForAdmin = n === 'Inquiry' && user?.role === 'admin';
                     const isProtected = n === 'Service' || n === 'Inquiry';
                     const linkProps = isProtected ? {
-                        style: { cursor: 'pointer' }
+                        style: { cursor: isLockedForAdmin ? 'not-allowed' : 'pointer' }
                     } : {
                         href: location.pathname === '/' ? `#${n.toLowerCase()}` : `/#${n.toLowerCase()}`,
                         style: { cursor: 'pointer' }
                     };
 
                     const handleClick = (e) => {
+                        if (isLockedForAdmin) {
+                            e.preventDefault();
+                            return;
+                        }
+
                         if (isProtected) {
                             e.preventDefault();
                             if (!user) {
@@ -99,10 +105,10 @@ const Header = () => {
                         <li key={n}>
                             <a
                                 {...linkProps}
-                                className={`landing-nav-link ${activeNav === n ? 'active' : ''}`}
+                                className={`landing-nav-link ${activeNav === n ? 'active' : ''} ${isLockedForAdmin ? 'locked' : ''}`}
                                 onClick={handleClick}
                             >
-                                {isProtected && !user && <LockIcon />}
+                                {(isProtected && !user || isLockedForAdmin) && <LockIcon />}
                                 {n}
                             </a>
                         </li>

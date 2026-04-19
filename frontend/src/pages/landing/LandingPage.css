@@ -137,6 +137,21 @@
     border-radius: 2px;
 }
 
+.landing-nav-link.locked {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+}
+
+.landing-nav-link.locked:hover {
+    color: rgba(234, 248, 234, 0.88);
+    transform: none;
+}
+
+.landing-nav-link.locked svg {
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
 .landing-nav.is-scrolled .nav-logo,
 .landing-nav.is-scrolled .nav-logo-text,
 .landing-nav.is-scrolled .landing-nav-link {

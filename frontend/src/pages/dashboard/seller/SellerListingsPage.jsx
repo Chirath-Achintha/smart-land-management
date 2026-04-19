@@ -437,17 +437,28 @@ const SellerListingsPage = () => {
     };
 
     const handleCheckAnomaly = async () => {
-        if (!form.district || !form.price_per_perch || !form.distance_to_town_km || !form.mobile_number_1 || !form.mobile_number_2) {
-            setError('Please fill name, district, price, distance, and both mobile numbers to use AI Check.');
+        if (!form.name || !form.perches || !form.district || !form.village || !form.price_per_perch || !form.mobile_number_1 || !form.mobile_number_2) {
+            setError('Please fill Name, Perches, Location, Price, and Mobile Numbers before using AI Check.');
+            return;
+        }
+        
+        // Ensure numeric fields are actually valid numbers
+        const p = parseFloat(form.perches);
+        const ppp = parseFloat(form.price_per_perch);
+        const dist = parseFloat(form.distance_to_town_km) || 0;
+
+        if (isNaN(p) || p <= 0 || isNaN(ppp) || ppp <= 0) {
+            setError('Please enter valid positive numbers for Perches and Price.');
             return;
         }
         setSubmitting(true);
         try {
             const payload = {
                 ...form,
-                perches: parseFloat(form.perches),
-                price_per_perch: parseFloat(form.price_per_perch),
-                distance_to_town_km: parseFloat(form.distance_to_town_km) || 0,
+                perches: p,
+                price_per_perch: ppp,
+                distance_to_town_km: dist,
+                road_access: form.road_access ? 'available' : 'not available',
             };
             const res = await fetch(`${API}/lands/analyze`, {
                 method: 'POST',

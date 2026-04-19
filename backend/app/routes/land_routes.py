@@ -263,7 +263,8 @@ async def get_all_lands():
     # Public view: Fetch all lands from DB with status Available or Reserved.
     # Only real DB records are returned — no hardcoded or fake data.
     lands = await Land.find(
-        In(Land.status, ["Available", "Reserved"])
+        In(Land.status, ["Available", "Reserved"]),
+        Land.review_status == "approved"
     ).sort("-created_at").to_list()
     # Attach bidding setup to each land for the response
     for land in lands:
@@ -380,7 +381,8 @@ async def get_land(land_id: PydanticObjectId):
     # Fetch any land from DB by ID — no verification filter so all real DB lands are accessible.
     land = await Land.find_one(
         Land.id == land_id,
-        In(Land.status, ["Available", "Reserved"])
+        In(Land.status, ["Available", "Reserved"]),
+        Land.review_status == "approved"
     )
     if not land:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found")

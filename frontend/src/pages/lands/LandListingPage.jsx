@@ -64,6 +64,25 @@ const LandListingPage = () => {
                 </select>
             </div>
 
+            <div className="ai-banner">
+                <div className="ai-banner-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <path d="M12 8v4"></path>
+                        <path d="M12 16h.01"></path>
+                    </svg>
+                </div>
+                <div className="ai-banner-content">
+                    <div className="ai-banner-title">
+                        AI-Driven Market Verification
+                        <span className="ai-status-pill">Active</span>
+                    </div>
+                    <div className="ai-banner-text">
+                        Every listing on this platform is automatically analyzed against real-time regional market data. Our proprietary engine verifies price alignment to ensure you make informed investment decisions based on verified data, not just listings.
+                    </div>
+                </div>
+            </div>
+
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '80px', color: '#999' }}>Loading listings…</div>
             ) : filtered.length === 0 ? (
@@ -110,25 +129,33 @@ const LandListingPage = () => {
                                 
                                 {/* AI Validation Badge */}
                                 {land.is_anomaly ? (
-                                    <span style={{
-                                        position: 'absolute', top: '10px', right: '10px',
-                                        background: '#FFF1F0', color: '#C53030',
-                                        fontSize: '0.6rem', fontWeight: '800',
-                                        padding: '4px 10px', borderRadius: '20px',
-                                        zIndex: 2, border: '1px solid #F1B0AA',
-                                        display: 'flex', alignItems: 'center', gap: '4px'
-                                    }}>
+                                    <span 
+                                        className="market-badge"
+                                        title={`Our AI detected that this land's price is significantly ${land.price_status} compared to the average in ${land.district}.`}
+                                        style={{
+                                            position: 'absolute', top: '10px', right: '10px',
+                                            background: '#FFF1F0', color: '#C53030',
+                                            fontSize: '0.6rem', fontWeight: '800',
+                                            padding: '4px 10px', borderRadius: '20px',
+                                            zIndex: 2, border: '1px solid #F1B0AA',
+                                            display: 'flex', alignItems: 'center', gap: '4px'
+                                        }}
+                                    >
                                         ⚠️ {land.price_status === 'high' ? 'High Price Anomaly' : 'Low Price Anomaly'}
                                     </span>
                                 ) : (
-                                    <span style={{
-                                        position: 'absolute', top: '10px', right: '10px',
-                                        background: '#E6FFFA', color: '#2F855A',
-                                        fontSize: '0.6rem', fontWeight: '800',
-                                        padding: '4px 10px', borderRadius: '20px',
-                                        zIndex: 2, border: '1px solid #B2F5EA',
-                                        display: 'flex', alignItems: 'center', gap: '4px'
-                                    }}>
+                                    <span 
+                                        className="market-badge"
+                                        title={`Good valuation! This price matches the typical market trends for ${land.district}.`}
+                                        style={{
+                                            position: 'absolute', top: '10px', right: '10px',
+                                            background: '#E6FFFA', color: '#2F855A',
+                                            fontSize: '0.6rem', fontWeight: '800',
+                                            padding: '4px 10px', borderRadius: '20px',
+                                            zIndex: 2, border: '1px solid #B2F5EA',
+                                            display: 'flex', alignItems: 'center', gap: '4px'
+                                        }}
+                                    >
                                         ✅ Price is Market Aligned
                                     </span>
                                 )}

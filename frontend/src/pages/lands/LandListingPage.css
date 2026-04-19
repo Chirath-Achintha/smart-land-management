@@ -158,6 +158,89 @@
     font-weight: 800;
 }
 
+
+/* Theme-Aligned AI Info Banner */
+.ai-banner {
+    max-width: 1200px;
+    margin: 0 auto 40px auto;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 24px 32px;
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    box-shadow: var(--shadow-soft);
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-banner::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--color-primary);
+}
+
+.ai-banner-icon {
+    flex-shrink: 0;
+    background: rgba(76, 175, 80, 0.1);
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    color: var(--color-primary);
+}
+
+.ai-banner-content {
+    flex: 1;
+}
+
+.ai-banner-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ai-banner-text {
+    font-size: 0.9rem;
+    color: var(--color-text-soft);
+    line-height: 1.6;
+    font-weight: 400;
+    max-width: 800px;
+}
+
+.ai-status-pill {
+    background: #E8F5E9;
+    color: #2E7D32;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid #C8E6C9;
+}
+
+.market-badge {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: help;
+}
+
+.market-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
 @media (max-width: 768px) {
     .lands-root {
         padding: 40px 24px;
@@ -165,5 +248,11 @@
 
     .filter-input {
         width: 100%;
+    }
+
+    .ai-banner {
+        flex-direction: column;
+        padding: 24px;
+        gap: 16px;
     }
 }

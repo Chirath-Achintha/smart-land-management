@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     # Email configurations
     EMAIL_HOST: str = "smtp.gmail.com"
     EMAIL_PORT: int = 587
-    EMAIL_USER: str = ""
-    EMAIL_PASSWORD: str = ""
+    EMAIL_USER: str = "managementsmartland@gmail.com"
+    EMAIL_PASSWORD: str = "bqzc ngom xknv mucq"
 
     class Config:
         env_file = str(ENV_FILE)

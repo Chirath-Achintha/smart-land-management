@@ -48,10 +48,16 @@ class AnomalyDetectionService:
         type_mean = self.landtype_map.get(land_type, self.global_price_mean)
         
         # 2. Convert Binary Features
-        # Match mapping used in notebook: Yes/Available = 1, No/Not Available = 0
-        road_acc = 1 if road_access.lower() in ["yes", "available"] else 0
-        electr = 1 if electricity.lower() in ["yes", "available"] else 0
-        wat = 1 if water.lower() in ["yes", "available"] else 0
+        # More flexible mapping: Check for negative tokens. If not found, assume 1 if field not empty.
+        def to_binary(val: str) -> int:
+            cleaned = (val or "").strip().lower()
+            if not cleaned or any(token in cleaned for token in ["no", "none", "not available", "without"]):
+                return 0
+            return 1
+
+        road_acc = to_binary(road_access)
+        electr = to_binary(electricity)
+        wat = to_binary(water)
         
         # 3. Feature Engineering: Price Ratio
         price_ratio = price_per_perch / (dist_mean + 1e-6)

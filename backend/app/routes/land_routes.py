@@ -24,7 +24,7 @@ from app.schemas.land_schema import (
     LandPricePredictionResponse,
 )
 from app.routes.auth_routes import get_current_user
-from app.services.ai_service import anomaly_service
+from app.services.anomaly_detection_service import anomaly_service
 from app.services.price_prediction_service import price_prediction_service
 
 router = APIRouter(prefix="/lands", tags=["Lands"])

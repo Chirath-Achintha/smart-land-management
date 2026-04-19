@@ -21,6 +21,7 @@ const REVIEW_COLORS = {
 
 const SIZE_ERROR = 'Size (Perches) must be greater than zero.';
 const PRICE_ERROR = 'Price Per Perch must be greater than zero.';
+const TOWN_DISTANCE_ERROR = 'Distance to town must be zero or greater.';
 const STARTING_BID_ERROR = 'Starting Bid must be greater than zero.';
 const STARTING_BID_MIN_CURRENT_PRICE_ERROR = (currentPrice) =>
     `Starting Bid cannot be lower than Current Price (Rs. ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}).`;
@@ -76,7 +77,13 @@ const SellerListingsPage = () => {
     const [editingId, setEditingId] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [error, setError] = useState('');
-    const [fieldErrors, setFieldErrors] = useState({ perches: '', price_per_perch: '', starting_bid: '', bidding_end: '' });
+    const [fieldErrors, setFieldErrors] = useState({ 
+        perches: '', 
+        price_per_perch: '', 
+        starting_bid: '', 
+        bidding_end: '',
+        distance_to_town_km: '' 
+    });
     const [anomalyWarning, setAnomalyWarning] = useState(null); // { is_anomaly, price_status, district_average }
     const [showPredictor, setShowPredictor] = useState(false);
     const [predictForm, setPredictForm] = useState(EMPTY_PREDICT_FORM);
@@ -161,6 +168,14 @@ const SellerListingsPage = () => {
                 setFieldErrors((prev) => ({ ...prev, [name]: message }));
             } else {
                 setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+            }
+        }
+
+        if (name === 'distance_to_town_km') {
+            if (value !== '' && Number(value) < 0) {
+                setFieldErrors((prev) => ({ ...prev, distance_to_town_km: TOWN_DISTANCE_ERROR }));
+            } else {
+                setFieldErrors((prev) => ({ ...prev, distance_to_town_km: '' }));
             }
         }
 
@@ -377,6 +392,12 @@ const SellerListingsPage = () => {
             return;
         }
 
+        if (payload.distance_to_town_km < 0) {
+            setFieldErrors((prev) => ({ ...prev, distance_to_town_km: TOWN_DISTANCE_ERROR }));
+            setSubmitting(false);
+            return;
+        }
+
         if (form.open_for_bidding) {
             const startingBidValue = Number(form.starting_bid);
             if (!Number.isFinite(startingBidValue) || startingBidValue <= 0) {
@@ -572,29 +593,29 @@ const SellerListingsPage = () => {
                                         <td style={{ ...S.td, fontWeight: '700' }}>
                                             <div>Rs. {Number(l.total_price).toLocaleString()}</div>
                                             {l.is_anomaly ? (
-                                                <div style={{ 
-                                                    marginTop: '4px', 
-                                                    fontSize: '0.65rem', 
+                                                <div style={{
+                                                    marginTop: '4px',
+                                                    fontSize: '0.65rem',
                                                     color: '#e74c3c',
                                                     fontWeight: '700',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     gap: '4px'
                                                 }}>
-                                                    <span>⚠️</span> 
+                                                    <span>⚠️</span>
                                                     {l.price_status === 'high' ? 'High Price Anomaly' : 'Low Price Anomaly'}
                                                 </div>
                                             ) : (
-                                                <div style={{ 
-                                                    marginTop: '4px', 
-                                                    fontSize: '0.65rem', 
+                                                <div style={{
+                                                    marginTop: '4px',
+                                                    fontSize: '0.65rem',
                                                     color: '#2ecc71',
                                                     fontWeight: '700',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     gap: '4px'
                                                 }}>
-                                                    <span>✅</span> AI Market Aligned
+                                                    <span>✅</span> The Price is Market Aligned
                                                 </div>
                                             )}
                                         </td>
@@ -728,16 +749,17 @@ const SellerListingsPage = () => {
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Distance To Town (Km) *</label>
-                                    <input 
-                                        name="distance_to_town_km" 
-                                        type="number" 
-                                        step="0.1" 
-                                        value={form.distance_to_town_km} 
-                                        onChange={handleFormChange} 
-                                        required 
-                                        style={S.input} 
+                                    <input
+                                        name="distance_to_town_km"
+                                        type="number"
+                                        step="0.1"
+                                        value={form.distance_to_town_km}
+                                        onChange={handleFormChange}
+                                        required
+                                        style={S.input}
                                         placeholder="Distance for AI analysis"
                                     />
+                                    {fieldErrors.distance_to_town_km && <span style={S.fieldError}>{fieldErrors.distance_to_town_km}</span>}
                                 </div>
                             </div>
 
@@ -830,18 +852,18 @@ const SellerListingsPage = () => {
 
 
                             {anomalyWarning && (
-                                <div style={{ 
-                                    background: anomalyWarning.is_anomaly ? '#FFF5F5' : '#F5FFF5', 
+                                <div style={{
+                                    background: anomalyWarning.is_anomaly ? '#FFF5F5' : '#F5FFF5',
                                     border: `1px solid ${anomalyWarning.is_anomaly ? '#FFC1C1' : '#C1FFC1'}`,
-                                    padding: '16px', 
-                                    borderRadius: '12px', 
-                                    marginTop: '20px' 
+                                    padding: '16px',
+                                    borderRadius: '12px',
+                                    marginTop: '20px'
                                 }}>
                                     <h4 style={{ margin: '0 0 8px 0', fontSize: '1rem', fontWeight: '800', color: anomalyWarning.is_anomaly ? '#C53030' : '#2F855A' }}>
                                         {anomalyWarning.is_anomaly ? 'AI Market Validation: Pricing Deviation Detected' : 'AI Market Validation: Optimal Pricing'}
                                     </h4>
                                     <p style={{ margin: 0, fontSize: '0.88rem', color: '#1a1a1a', lineHeight: '1.5', fontWeight: '700' }}>
-                                        {anomalyWarning.is_anomaly 
+                                        {anomalyWarning.is_anomaly
                                             ? `Our analysis indicates the price per perch (Rs. ${Number(form.price_per_perch).toLocaleString()}) is significantly ${anomalyWarning.price_status} for ${form.district}.`
                                             : `The specified price aligns effectively with the current market valuation trends for ${form.district}.`
                                         }
@@ -858,8 +880,8 @@ const SellerListingsPage = () => {
                                         <button type="button" style={{ ...S.cancelBtn, flex: 1, padding: '8px' }} onClick={() => setAnomalyWarning(null)}>Adjust Price</button>
                                         <button type="button" style={{ ...S.confirmBtn, flex: 1, padding: '8px', background: anomalyWarning.is_anomaly ? '#E53E3E' : '#38A169', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }} onClick={() => {
                                             const warning = anomalyWarning;
-                                            setAnomalyWarning(null); 
-                                            handleSubmit({ preventDefault: () => {}, target: { form: {} }, forceSubmit: true });
+                                            setAnomalyWarning(null);
+                                            handleSubmit({ preventDefault: () => { }, target: { form: {} }, forceSubmit: true });
                                         }}>
                                             {anomalyWarning.is_anomaly ? 'Proceed anyway' : 'Continue'}
                                         </button>
@@ -894,12 +916,12 @@ const SellerListingsPage = () => {
                         <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '20px' }}>
                             Fill the details below to get an AI-estimated market value for this land.
                         </p>
-                        
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                             <div style={S.formGroup}>
                                 <label style={S.label}>District</label>
-                                <select 
-                                    value={predictForm.district} 
+                                <select
+                                    value={predictForm.district}
                                     onChange={(e) => setPredictForm({ ...predictForm, district: e.target.value })}
                                     style={S.input}
                                 >
@@ -936,8 +958,8 @@ const SellerListingsPage = () => {
                             </div>
                             <div style={S.formGroup}>
                                 <label style={S.label}>Land Type</label>
-                                <select 
-                                    value={predictForm.land_type} 
+                                <select
+                                    value={predictForm.land_type}
                                     onChange={(e) => setPredictForm({ ...predictForm, land_type: e.target.value })}
                                     style={S.input}
                                 >
@@ -1010,9 +1032,9 @@ const SellerListingsPage = () => {
                                     /> Water
                                 </label>
                             </div>
-                            
-                            <button 
-                                onClick={handlePredict} 
+
+                            <button
+                                onClick={handlePredict}
                                 disabled={!predictForm.district || !predictForm.village || !predictForm.perches || !predictForm.road_access || predictForm.distance_to_town_km === '' || predictForm.distance_to_city_km === '' || predicting}
                                 style={{ ...S.saveBtn, background: '#1A52E8', marginTop: '10px', gridColumn: '1 / -1' }}
                             >
@@ -1020,12 +1042,12 @@ const SellerListingsPage = () => {
                             </button>
 
                             {predictionResult && (
-                                <div style={{ 
+                                <div style={{
                                     gridColumn: '1 / -1',
-                                    marginTop: '20px', 
-                                    padding: '20px', 
-                                    background: '#F0F4FF', 
-                                    borderRadius: '12px', 
+                                    marginTop: '20px',
+                                    padding: '20px',
+                                    background: '#F0F4FF',
+                                    borderRadius: '12px',
                                     textAlign: 'center',
                                     border: '1px solid #D0DBFF'
                                 }}>
@@ -1093,15 +1115,15 @@ const S = {
     title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)' },
     subtitle: { color: 'var(--color-text-soft)', fontSize: '0.95rem' },
     addBtn: { padding: '12px 24px', borderRadius: '10px', fontWeight: '700', background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all 0.2s' },
-    aiPredictBtn: { 
-        padding: '12px 24px', 
-        borderRadius: '10px', 
-        fontWeight: '700', 
-        background: '#fff', 
-        color: '#1A52E8', 
-        border: '1.5px solid #1A52E8', 
-        cursor: 'pointer', 
-        transition: 'all 0.2s' 
+    aiPredictBtn: {
+        padding: '12px 24px',
+        borderRadius: '10px',
+        fontWeight: '700',
+        background: '#fff',
+        color: '#1A52E8',
+        border: '1.5px solid #1A52E8',
+        cursor: 'pointer',
+        transition: 'all 0.2s'
     },
     empty: { textAlign: 'center', color: '#999', marginTop: '80px', fontSize: '1rem' },
     tableWrap: { background: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'auto' },
@@ -1170,15 +1192,15 @@ const S = {
     formFooter: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', marginTop: '32px' },
     cancelBtn: { padding: '12px 24px', borderRadius: '8px', border: '1px solid var(--color-border)', background: '#fff', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' },
     saveBtn: { padding: '12px 32px', borderRadius: '8px', fontWeight: '700', background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all 0.2s' },
-    aiCheckBtnFooter: { 
-        padding: '12px 20px', 
-        borderRadius: '8px', 
-        fontWeight: '700', 
-        background: '#fff', 
-        color: '#1A52E8', 
-        border: '1.5px solid #1A52E8', 
-        cursor: 'pointer', 
-        transition: 'all 0.2s', 
+    aiCheckBtnFooter: {
+        padding: '12px 20px',
+        borderRadius: '8px',
+        fontWeight: '700',
+        background: '#fff',
+        color: '#1A52E8',
+        border: '1.5px solid #1A52E8',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
         fontSize: '0.88rem',
         marginRight: 'auto' // Pulls it to the left side of footer
     },

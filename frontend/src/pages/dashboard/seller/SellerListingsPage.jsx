@@ -13,6 +13,108 @@ const ALL_DISTRICTS = [
     'Trincomalee', 'Vavuniya',
 ];
 
+const DISTRICT_VILLAGE_AREAS = {
+    Colombo: [
+        'Colombo 01-15', 'Borella', 'Dehiwala', 'Mount Lavinia', 'Moratuwa',
+        'Maharagama', 'Nugegoda', 'Rajagiriya', 'Battaramulla', 'Kotte',
+        'Wellawatte', 'Kollupitiya', 'Bambalapitiya', 'Dematagoda', 'Kotahena'
+    ],
+
+    Gampaha: [
+        'Gampaha', 'Negombo', 'Katunayake', 'Ja-Ela', 'Wattala',
+        'Kadawatha', 'Kiribathgoda', 'Ragama', 'Minuwangoda', 'Divulapitiya',
+        'Mirigama', 'Nittambuwa', 'Kelaniya'
+    ],
+
+    Kalutara: [
+        'Kalutara', 'Panadura', 'Beruwala', 'Aluthgama',
+        'Bandaragama', 'Horana', 'Matugama', 'Agalawatta', 'Bulathsinhala'
+    ],
+
+    Kandy: [
+        'Kandy Town', 'Peradeniya', 'Katugastota', 'Akurana',
+        'Digana', 'Pilimathalawa', 'Gampola', 'Nawalapitiya', 'Galagedara'
+    ],
+
+    Galle: [
+        'Galle Town', 'Hikkaduwa', 'Ambalangoda', 'Elpitiya',
+        'Karapitiya', 'Unawatuna', 'Baddegama', 'Bentota'
+    ],
+
+    Matara: [
+        'Matara Town', 'Weligama', 'Dikwella', 'Akuressa',
+        'Deniyaya', 'Hakmana', 'Kamburupitiya'
+    ],
+
+    Kurunegala: [
+        'Kurunegala Town', 'Kuliyapitiya', 'Narammala',
+        'Pannala', 'Wariyapola', 'Mawathagama', 'Nikaweratiya', 'Polgahawela'
+    ],
+
+    Kegalle: [
+        'Kegalle Town', 'Mawanella', 'Rambukkana',
+        'Warakapola', 'Dehiowita', 'Galigamuwa', 'Ruwanwella'
+    ],
+
+    Ratnapura: [
+        'Ratnapura Town', 'Balangoda', 'Embilipitiya',
+        'Eheliyagoda', 'Pelmadulla', 'Kuruwita', 'Godakawela'
+    ],
+
+    'Nuwara Eliya': [
+        'Nuwara Eliya Town', 'Hatton', 'Talawakele',
+        'Nanu Oya', 'Maskeliya', 'Kotagala', 'Ragala'
+    ],
+
+    Anuradhapura: [
+        'Anuradhapura Town', 'Kekirawa', 'Eppawala',
+        'Thambuttegama', 'Mihintale', 'Medawachchiya', 'Horowpothana'
+    ],
+
+    Polonnaruwa: [
+        'Polonnaruwa Town', 'Kaduruwela', 'Hingurakgoda',
+        'Medirigiriya', 'Dimbulagala', 'Welikanda'
+    ],
+
+    Puttalam: [
+        'Puttalam Town', 'Chilaw', 'Wennappuwa',
+        'Dankotuwa', 'Marawila', 'Anamaduwa', 'Nattandiya'
+    ],
+
+    Badulla: [
+        'Badulla Town', 'Bandarawela', 'Ella',
+        'Welimada', 'Hali-Ela', 'Passara', 'Mahiyanganaya'
+    ],
+
+    Hambantota: [
+        'Hambantota Town', 'Tangalle', 'Beliatta',
+        'Ambalantota', 'Tissamaharama', 'Kataragama'
+    ],
+
+    Jaffna: [
+        'Jaffna Town', 'Nallur', 'Chavakachcheri',
+        'Point Pedro', 'Kopay', 'Karainagar', 'Kilinochchi Road'
+    ],
+
+    Trincomalee: [
+        'Trincomalee Town', 'Kinniya', 'Nilaveli',
+        'Kuchchaveli', 'Mutur', 'Kantale'
+    ],
+
+    Batticaloa: [
+        'Batticaloa Town', 'Kattankudy', 'Eravur',
+        'Kallady', 'Valaichenai', 'Oddamavadi'
+    ]
+};
+
+function getVillageOptions(district, currentVillage = '') {
+    const villages = DISTRICT_VILLAGE_AREAS[district] || [];
+    if (currentVillage && !villages.includes(currentVillage)) {
+        return [currentVillage, ...villages];
+    }
+    return villages;
+}
+
 const REVIEW_COLORS = {
     approved: { bg: '#eafaf1', color: '#2ecc71', border: '#2ecc71', label: 'Approved' },
     pending: { bg: '#fff8e6', color: '#b7791f', border: '#f2c86b', label: 'Pending Review' },
@@ -27,12 +129,37 @@ const STARTING_BID_MIN_CURRENT_PRICE_ERROR = (currentPrice) =>
     `Starting Bid cannot be lower than Current Price (Rs. ${currentPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}).`;
 const BIDDING_END_REQUIRED_ERROR = 'Bidding End Date is required when bidding is open.';
 const BIDDING_END_FUTURE_ERROR = 'Bidding End Date must be today or a future date.';
+const DISTANCE_TO_TOWN_ERROR = 'Distance to town must be zero or greater.';
+const MOBILE_NUMBER_ERROR = 'Enter a valid mobile number (10 to 15 digits, optional + prefix).';
+
+function isRoadAccessAvailable(value) {
+    if (typeof value === 'boolean') return value;
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (!normalized) return false;
+    if (normalized === 'available' || normalized === 'yes' || normalized === 'true') return true;
+    if (normalized === 'not available' || normalized === 'no' || normalized === 'false') return false;
+    const numericValue = Number(normalized);
+    return Number.isFinite(numericValue) ? numericValue > 0 : false;
+}
+
+function getDistanceToTownError(value) {
+    if (value === '') return 'Distance to town is required.';
+    const parsedValue = Number(value);
+    return Number.isFinite(parsedValue) && parsedValue >= 0 ? '' : DISTANCE_TO_TOWN_ERROR;
+}
+
+function getMobileNumberError(value, label) {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return `${label} is required.`;
+    return /^\+?\d{10,15}$/.test(trimmed) ? '' : MOBILE_NUMBER_ERROR;
+}
 
 const EMPTY_FORM = {
     name: '', district: '', village: '', perches: '', price_per_perch: '',
-    land_type: 'Residential', road_access: '',
+    land_type: 'Residential', road_access: false,
     electricity: false, water: false,
     distance_to_town_km: '',
+    mobile_number_1: '', mobile_number_2: '',
     image_url: '',           // stored as URL string
     open_for_bidding: false, starting_bid: '', bidding_end: '',
 };
@@ -42,7 +169,7 @@ const EMPTY_PREDICT_FORM = {
     village: '',
     perches: '',
     land_type: 'Residential',
-    road_access: '',
+    road_access: false,
     electricity: false,
     water: false,
     distance_to_town_km: '',
@@ -74,9 +201,11 @@ const SellerListingsPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState(EMPTY_FORM);
+    const [isVillageCustomInput, setIsVillageCustomInput] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [error, setError] = useState('');
+<<<<<<< Updated upstream
     const [fieldErrors, setFieldErrors] = useState({ 
         perches: '', 
         price_per_perch: '', 
@@ -84,13 +213,21 @@ const SellerListingsPage = () => {
         bidding_end: '',
         distance_to_town_km: '' 
     });
+=======
+    const [fieldErrors, setFieldErrors] = useState({ perches: '', price_per_perch: '', distance_to_town_km: '', mobile_number_1: '', mobile_number_2: '', starting_bid: '', bidding_end: '' });
+>>>>>>> Stashed changes
     const [anomalyWarning, setAnomalyWarning] = useState(null); // { is_anomaly, price_status, district_average }
     const [showPredictor, setShowPredictor] = useState(false);
     const [predictForm, setPredictForm] = useState(EMPTY_PREDICT_FORM);
-    const [predictFieldErrors, setPredictFieldErrors] = useState({ perches: '', road_access: '', distance_to_town_km: '', distance_to_city_km: '' });
+    const [isPredictVillageCustomInput, setIsPredictVillageCustomInput] = useState(false);
+    const [predictFieldErrors, setPredictFieldErrors] = useState({ district: '', village: '', perches: '', distance_to_town_km: '', distance_to_city_km: '' });
     const [predictionResult, setPredictionResult] = useState(null);
     const [predicting, setPredicting] = useState(false);
     const totalPrice = calcTotal(form.perches, form.price_per_perch);
+    const villageOptions = DISTRICT_VILLAGE_AREAS[form.district] || [];
+    const isCustomVillage = isVillageCustomInput || (!!form.village && !villageOptions.includes(form.village));
+    const predictVillageOptions = DISTRICT_VILLAGE_AREAS[predictForm.district] || [];
+    const isPredictCustomVillage = isPredictVillageCustomInput || (!!predictForm.village && !predictVillageOptions.includes(predictForm.village));
     const minBiddingDate = getTodayLocalDate();
 
     const token = localStorage.getItem('access_token');
@@ -190,6 +327,18 @@ const SellerListingsPage = () => {
             }
         }
 
+        if (name === 'distance_to_town_km') {
+            setFieldErrors((prev) => ({ ...prev, distance_to_town_km: getDistanceToTownError(value) }));
+        }
+
+        if (name === 'mobile_number_1') {
+            setFieldErrors((prev) => ({ ...prev, mobile_number_1: getMobileNumberError(value, 'Mobile Number 1') }));
+        }
+
+        if (name === 'mobile_number_2') {
+            setFieldErrors((prev) => ({ ...prev, mobile_number_2: getMobileNumberError(value, 'Mobile Number 2') }));
+        }
+
         if (name === 'bidding_end') {
             if (!value) {
                 setFieldErrors((prev) => ({ ...prev, bidding_end: BIDDING_END_REQUIRED_ERROR }));
@@ -208,6 +357,11 @@ const SellerListingsPage = () => {
         }
 
         setAnomalyWarning(null); // Reset warning if anything changes
+        if (name === 'district') {
+            setIsVillageCustomInput(false);
+            setForm((f) => ({ ...f, district: nextValue, village: '' }));
+            return;
+        }
         setForm(f => ({ ...f, [name]: nextValue }));
     };
 
@@ -285,8 +439,8 @@ const SellerListingsPage = () => {
     };
 
     const handleCheckAnomaly = async () => {
-        if (!form.district || !form.price_per_perch || !form.distance_to_town_km) {
-            setError('Please fill name, district, price and distance to use AI Check.');
+        if (!form.district || !form.price_per_perch || !form.distance_to_town_km || !form.mobile_number_1 || !form.mobile_number_2) {
+            setError('Please fill name, district, price, distance, and both mobile numbers to use AI Check.');
             return;
         }
         setSubmitting(true);
@@ -317,8 +471,9 @@ const SellerListingsPage = () => {
         const cityDistanceValue = Number(predictForm.distance_to_city_km);
 
         const nextPredictErrors = {
+            district: !predictForm.district ? 'District is required.' : '',
+            village: !predictForm.village ? 'Village / Area is required.' : '',
             perches: !Number.isFinite(perchesValue) || perchesValue <= 0 ? 'Perches must be greater than zero.' : '',
-            road_access: !predictForm.road_access?.trim() ? 'Road access is required.' : '',
             distance_to_town_km: predictForm.distance_to_town_km === '' || !Number.isFinite(townDistanceValue) || townDistanceValue < 0
                 ? 'Distance to town must be zero or greater.'
                 : '',
@@ -342,7 +497,7 @@ const SellerListingsPage = () => {
                 village: predictForm.village,
                 perches: perchesValue,
                 land_type: predictForm.land_type,
-                road_access: predictForm.road_access.trim(),
+                road_access: predictForm.road_access ? 'available' : 'not available',
                 electricity: !!predictForm.electricity,
                 water: !!predictForm.water,
                 distance_to_town_km: townDistanceValue,
@@ -369,11 +524,26 @@ const SellerListingsPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        setFieldErrors({ perches: '', price_per_perch: '', starting_bid: '', bidding_end: '' });
+        setFieldErrors({ perches: '', price_per_perch: '', distance_to_town_km: '', mobile_number_1: '', mobile_number_2: '', starting_bid: '', bidding_end: '' });
         setSubmitting(true);
+
+        const distanceToTownError = getDistanceToTownError(form.distance_to_town_km);
+        const mobileNumber1Error = getMobileNumberError(form.mobile_number_1, 'Mobile Number 1');
+        const mobileNumber2Error = getMobileNumberError(form.mobile_number_2, 'Mobile Number 2');
+        if (distanceToTownError || mobileNumber1Error || mobileNumber2Error) {
+            setFieldErrors((prev) => ({
+                ...prev,
+                distance_to_town_km: distanceToTownError,
+                mobile_number_1: mobileNumber1Error,
+                mobile_number_2: mobileNumber2Error,
+            }));
+            setSubmitting(false);
+            return;
+        }
 
         const payload = {
             ...form,
+            road_access: form.road_access ? 'available' : 'not available',
             perches: parseFloat(form.perches),
             price_per_perch: parseFloat(form.price_per_perch),
             distance_to_town_km: parseFloat(form.distance_to_town_km) || 0,
@@ -473,6 +643,7 @@ const SellerListingsPage = () => {
 
             setShowForm(false);
             setForm(EMPTY_FORM);
+            setIsVillageCustomInput(false);
             fetchListings();
         } catch {
             setError('Server error. Make sure the backend is running.');
@@ -527,13 +698,14 @@ const SellerListingsPage = () => {
                             setShowPredictor(true);
                             setPredictionResult(null);
                             setError('');
-                            setPredictFieldErrors({ perches: '', road_access: '', distance_to_town_km: '', distance_to_city_km: '' });
+                            setPredictFieldErrors({ district: '', village: '', perches: '', distance_to_town_km: '', distance_to_city_km: '' });
+                            setIsPredictVillageCustomInput(!!(form.village && !((DISTRICT_VILLAGE_AREAS[form.district] || []).includes(form.village))));
                             setPredictForm({
                                 district: form.district || '',
                                 village: form.village || '',
                                 perches: form.perches || '',
                                 land_type: form.land_type || 'Residential',
-                                road_access: form.road_access || '',
+                                road_access: isRoadAccessAvailable(form.road_access),
                                 electricity: !!form.electricity,
                                 water: !!form.water,
                                 distance_to_town_km: form.distance_to_town_km || '',
@@ -544,7 +716,7 @@ const SellerListingsPage = () => {
                         ✨ AI Price Predictor
                     </button>
                     <button className="btn-dark" style={S.addBtn}
-                        onClick={() => { setForm(EMPTY_FORM); setEditingId(null); setError(''); setShowForm(true); }}>
+                        onClick={() => { setForm(EMPTY_FORM); setIsVillageCustomInput(false); setEditingId(null); setError(''); setShowForm(true); }}>
                         + Add New Listing
                     </button>
                 </div>
@@ -639,14 +811,17 @@ const SellerListingsPage = () => {
                                                         name: l.name, district: l.district, village: l.village,
                                                         perches: l.perches, price_per_perch: l.price_per_perch,
                                                         land_type: l.land_type,
-                                                        road_access: l.road_access || '',
+                                                        road_access: isRoadAccessAvailable(l.road_access),
                                                         electricity: l.electricity, water: l.water,
                                                         distance_to_town_km: l.distance_to_town_km || '',
+                                                        mobile_number_1: l.mobile_number_1 || '',
+                                                        mobile_number_2: l.mobile_number_2 || '',
                                                         image_url: l.image_url || '',
                                                         open_for_bidding: l.open_for_bidding,
                                                         starting_bid: l.starting_bid || '',
                                                         bidding_end: l.bidding_end || '',
                                                     });
+                                                    setIsVillageCustomInput(!!(l.village && !((DISTRICT_VILLAGE_AREAS[l.district] || []).includes(l.village))));
                                                     setEditingId(lid);
                                                     setError('');
                                                     setShowForm(true);
@@ -703,7 +878,39 @@ const SellerListingsPage = () => {
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Village / Area *</label>
-                                    <input name="village" value={form.village} onChange={handleFormChange} required style={S.input} />
+                                    <select
+                                        name="village"
+                                        value={isCustomVillage ? '__custom__' : form.village}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            if (value === '__custom__') {
+                                                setIsVillageCustomInput(true);
+                                                setForm((f) => ({ ...f, village: '' }));
+                                                return;
+                                            }
+                                            setIsVillageCustomInput(false);
+                                            setForm((f) => ({ ...f, village: value }));
+                                        }}
+                                        required
+                                        style={S.input}
+                                        disabled={!form.district}
+                                    >
+                                        <option value="">{form.district ? 'Select Village / Area' : 'Select District First'}</option>
+                                        {villageOptions.map((village) => (
+                                            <option key={village} value={village}>{village}</option>
+                                        ))}
+                                        <option value="__custom__">Other (Type area manually)</option>
+                                    </select>
+                                    {isCustomVillage && (
+                                        <input
+                                            name="village"
+                                            value={form.village}
+                                            onChange={handleFormChange}
+                                            required
+                                            style={S.input}
+                                            placeholder="Type your land area"
+                                        />
+                                    )}
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Size (Perches) *</label>
@@ -745,10 +952,19 @@ const SellerListingsPage = () => {
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Road Access</label>
-                                    <input name="road_access" value={form.road_access} onChange={handleFormChange} style={S.input} placeholder="e.g. 15ft Carpet Road" />
+                                    <label style={{ ...S.checkLabel, minHeight: '44px' }}>
+                                        <input
+                                            name="road_access"
+                                            type="checkbox"
+                                            checked={!!form.road_access}
+                                            onChange={handleFormChange}
+                                        />
+                                        Available
+                                    </label>
                                 </div>
                                 <div style={S.formGroup}>
                                     <label style={S.label}>Distance To Town (Km) *</label>
+<<<<<<< Updated upstream
                                     <input
                                         name="distance_to_town_km"
                                         type="number"
@@ -760,6 +976,47 @@ const SellerListingsPage = () => {
                                         placeholder="Distance for AI analysis"
                                     />
                                     {fieldErrors.distance_to_town_km && <span style={S.fieldError}>{fieldErrors.distance_to_town_km}</span>}
+=======
+                                    <input 
+                                        name="distance_to_town_km" 
+                                        className="no-number-spinner"
+                                        type="number" 
+                                        min="0"
+                                        step="0.1" 
+                                        value={form.distance_to_town_km} 
+                                        onChange={handleFormChange} 
+                                        required 
+                                        style={S.input} 
+                                        placeholder="Distance for AI analysis"
+                                    />
+                                    {fieldErrors.distance_to_town_km && <span style={S.fieldError}>{fieldErrors.distance_to_town_km}</span>}
+                                </div>
+                                <div style={S.formGroup}>
+                                    <label style={S.label}>Mobile Number 1 *</label>
+                                    <input
+                                        name="mobile_number_1"
+                                        type="tel"
+                                        value={form.mobile_number_1}
+                                        onChange={handleFormChange}
+                                        required
+                                        style={S.input}
+                                        placeholder="e.g. +94771234567"
+                                    />
+                                    {fieldErrors.mobile_number_1 && <span style={S.fieldError}>{fieldErrors.mobile_number_1}</span>}
+                                </div>
+                                <div style={S.formGroup}>
+                                    <label style={S.label}>Mobile Number 2 *</label>
+                                    <input
+                                        name="mobile_number_2"
+                                        type="tel"
+                                        value={form.mobile_number_2}
+                                        onChange={handleFormChange}
+                                        required
+                                        style={S.input}
+                                        placeholder="e.g. +94781234567"
+                                    />
+                                    {fieldErrors.mobile_number_2 && <span style={S.fieldError}>{fieldErrors.mobile_number_2}</span>}
+>>>>>>> Stashed changes
                                 </div>
                             </div>
 
@@ -920,23 +1177,68 @@ const SellerListingsPage = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                             <div style={S.formGroup}>
                                 <label style={S.label}>District</label>
+<<<<<<< Updated upstream
                                 <select
                                     value={predictForm.district}
                                     onChange={(e) => setPredictForm({ ...predictForm, district: e.target.value })}
+=======
+                                <select 
+                                    value={predictForm.district} 
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setIsPredictVillageCustomInput(false);
+                                        setPredictForm({ ...predictForm, district: value, village: '' });
+                                        setPredictFieldErrors((prev) => ({ ...prev, district: value ? '' : 'District is required.', village: '' }));
+                                    }}
+>>>>>>> Stashed changes
                                     style={S.input}
                                 >
                                     <option value="">Select District</option>
                                     {ALL_DISTRICTS.map(d => <option key={d}>{d}</option>)}
                                 </select>
+                                {predictFieldErrors.district && <span style={S.fieldError}>{predictFieldErrors.district}</span>}
                             </div>
                             <div style={S.formGroup}>
                                 <label style={S.label}>Village / Area</label>
-                                <input
-                                    value={predictForm.village}
-                                    onChange={(e) => setPredictForm({ ...predictForm, village: e.target.value })}
+                                <select
+                                    value={isPredictCustomVillage ? '__custom__' : predictForm.village}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === '__custom__') {
+                                            setIsPredictVillageCustomInput(true);
+                                            setPredictForm({ ...predictForm, village: '' });
+                                            return;
+                                        }
+                                        setIsPredictVillageCustomInput(false);
+                                        setPredictForm({ ...predictForm, village: value });
+                                        if (value) {
+                                            setPredictFieldErrors((prev) => ({ ...prev, village: '' }));
+                                        }
+                                    }}
                                     style={S.input}
-                                    placeholder="e.g. Digana"
-                                />
+                                    disabled={!predictForm.district}
+                                >
+                                    <option value="">{predictForm.district ? 'Select Village / Area' : 'Select District First'}</option>
+                                    {predictVillageOptions.map((village) => (
+                                        <option key={village} value={village}>{village}</option>
+                                    ))}
+                                    <option value="__custom__">Other (Type area manually)</option>
+                                </select>
+                                {isPredictCustomVillage && (
+                                    <input
+                                        value={predictForm.village}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setPredictForm({ ...predictForm, village: value });
+                                            if (value.trim()) {
+                                                setPredictFieldErrors((prev) => ({ ...prev, village: '' }));
+                                            }
+                                        }}
+                                        style={S.input}
+                                        placeholder="Type your village / area"
+                                    />
+                                )}
+                                {predictFieldErrors.village && <span style={S.fieldError}>{predictFieldErrors.village}</span>}
                             </div>
                             <div style={S.formGroup}>
                                 <label style={S.label}>Perches</label>
@@ -968,24 +1270,23 @@ const SellerListingsPage = () => {
                             </div>
                             <div style={S.formGroup}>
                                 <label style={S.label}>Road Access</label>
-                                <input
-                                    value={predictForm.road_access}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        setPredictForm({ ...predictForm, road_access: value });
-                                        if (value.trim()) {
-                                            setPredictFieldErrors((prev) => ({ ...prev, road_access: '' }));
-                                        }
-                                    }}
-                                    style={S.input}
-                                    placeholder="e.g. 15ft Carpet Road"
-                                />
-                                {predictFieldErrors.road_access && <span style={S.fieldError}>{predictFieldErrors.road_access}</span>}
+                                <label style={{ ...S.checkLabel, minHeight: '44px' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={!!predictForm.road_access}
+                                        onChange={(e) => {
+                                            setPredictForm({ ...predictForm, road_access: e.target.checked });
+                                        }}
+                                    />
+                                    Available
+                                </label>
                             </div>
                             <div style={S.formGroup}>
                                 <label style={S.label}>Distance to Town (km)</label>
                                 <input
+                                    className="no-number-spinner"
                                     type="number"
+                                    min="0"
                                     step="0.1"
                                     value={predictForm.distance_to_town_km}
                                     onChange={(e) => {
@@ -1002,7 +1303,9 @@ const SellerListingsPage = () => {
                             <div style={S.formGroup}>
                                 <label style={S.label}>Distance to City (km)</label>
                                 <input
+                                    className="no-number-spinner"
                                     type="number"
+                                    min="0"
                                     step="0.1"
                                     value={predictForm.distance_to_city_km}
                                     onChange={(e) => {
@@ -1032,10 +1335,17 @@ const SellerListingsPage = () => {
                                     /> Water
                                 </label>
                             </div>
+<<<<<<< Updated upstream
 
                             <button
                                 onClick={handlePredict}
                                 disabled={!predictForm.district || !predictForm.village || !predictForm.perches || !predictForm.road_access || predictForm.distance_to_town_km === '' || predictForm.distance_to_city_km === '' || predicting}
+=======
+                            
+                            <button 
+                                onClick={handlePredict} 
+                                disabled={!predictForm.district || !predictForm.village || !predictForm.perches || predictForm.distance_to_town_km === '' || predictForm.distance_to_city_km === '' || predicting}
+>>>>>>> Stashed changes
                                 style={{ ...S.saveBtn, background: '#1A52E8', marginTop: '10px', gridColumn: '1 / -1' }}
                             >
                                 {predicting ? 'Analyzing...' : 'Predict Market Value'}

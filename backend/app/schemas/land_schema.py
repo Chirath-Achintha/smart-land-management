@@ -3,6 +3,10 @@ from enum import Enum
 from typing import Optional, List, Any
 from datetime import datetime
 from beanie import PydanticObjectId
+import re
+
+ROAD_ACCESS_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9\s.,/()-]{1,99}$")
+MOBILE_NUMBER_PATTERN = re.compile(r"^\+?\d{10,15}$")
 
 class LandStatus(str, Enum):
     Available = "Available"
@@ -50,6 +54,8 @@ class LandCreate(BaseModel):
     land_type: LandType = LandType.Residential
     status: LandStatus = LandStatus.Available
     road_access: Optional[str] = None
+    mobile_number_1: str
+    mobile_number_2: str
     electricity: bool = False
     water: bool = False
     distance_to_town_km: float = 0.0
@@ -65,6 +71,35 @@ class LandCreate(BaseModel):
             raise ValueError("A maximum of 5 images is allowed")
         return ",".join(urls)
 
+    @field_validator("road_access")
+    @classmethod
+    def validate_road_access(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if not trimmed:
+            return None
+        if not ROAD_ACCESS_PATTERN.fullmatch(trimmed):
+            raise ValueError("Road access can only contain letters, numbers, spaces, and . , / ( ) - and must start with a letter or number")
+        return trimmed
+
+    @field_validator("distance_to_town_km")
+    @classmethod
+    def validate_distance_to_town(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("Distance to town must be zero or greater")
+        return v
+
+    @field_validator("mobile_number_1", "mobile_number_2")
+    @classmethod
+    def validate_mobile_numbers(cls, v: str) -> str:
+        trimmed = (v or "").strip()
+        if not trimmed:
+            raise ValueError("Mobile number is required")
+        if not MOBILE_NUMBER_PATTERN.fullmatch(trimmed):
+            raise ValueError("Mobile number must be 10 to 15 digits and may start with +")
+        return trimmed
+
 class LandUpdate(BaseModel):
     name: Optional[str] = None
     district: Optional[str] = None
@@ -74,6 +109,8 @@ class LandUpdate(BaseModel):
     land_type: Optional[LandType] = None
     status: Optional[LandStatus] = None
     road_access: Optional[str] = None
+    mobile_number_1: Optional[str] = None
+    mobile_number_2: Optional[str] = None
     electricity: Optional[bool] = None
     water: Optional[bool] = None
     distance_to_town_km: Optional[float] = None
@@ -88,6 +125,39 @@ class LandUpdate(BaseModel):
         if len(urls) > 5:
             raise ValueError("A maximum of 5 images is allowed")
         return ",".join(urls)
+
+    @field_validator("road_access")
+    @classmethod
+    def validate_road_access(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if not trimmed:
+            return None
+        if not ROAD_ACCESS_PATTERN.fullmatch(trimmed):
+            raise ValueError("Road access can only contain letters, numbers, spaces, and . , / ( ) - and must start with a letter or number")
+        return trimmed
+
+    @field_validator("distance_to_town_km")
+    @classmethod
+    def validate_distance_to_town(cls, v: Optional[float]) -> Optional[float]:
+        if v is None:
+            return v
+        if v < 0:
+            raise ValueError("Distance to town must be zero or greater")
+        return v
+
+    @field_validator("mobile_number_1", "mobile_number_2")
+    @classmethod
+    def validate_mobile_numbers(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if not trimmed:
+            raise ValueError("Mobile number is required")
+        if not MOBILE_NUMBER_PATTERN.fullmatch(trimmed):
+            raise ValueError("Mobile number must be 10 to 15 digits and may start with +")
+        return trimmed
 
 
 class LandVerificationUpdate(BaseModel):
@@ -120,7 +190,10 @@ class LandPricePredictionRequest(BaseModel):
     def validate_road_access(cls, v: Optional[str]) -> str:
         if not v or not v.strip():
             raise ValueError("Road access is required")
-        return v.strip()
+        trimmed = v.strip()
+        if not ROAD_ACCESS_PATTERN.fullmatch(trimmed):
+            raise ValueError("Road access can only contain letters, numbers, spaces, and . , / ( ) - and must start with a letter or number")
+        return trimmed
 
     @field_validator("distance_to_town_km", "distance_to_city_km")
     @classmethod
@@ -154,6 +227,8 @@ class LandResponse(BaseModel):
     land_type: str
     status: str
     road_access: Optional[str]
+    mobile_number_1: Optional[str] = None
+    mobile_number_2: Optional[str] = None
     electricity: bool
     water: bool
     distance_to_town_km: float

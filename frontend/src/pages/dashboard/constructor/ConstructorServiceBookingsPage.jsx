@@ -157,15 +157,7 @@ const ConstructorServiceBookingsPage = () => {
                                 </div>
                                 <div style={S.infoGroup}>
                                     <span style={S.infoLabel}>Land Details</span>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={S.infoValue}>{b.land_name || 'N/A'} {b.land_district ? `(${b.land_district})` : ''}</span>
-                                        <button 
-                                            style={S.tinyLink} 
-                                            onClick={(e) => { e.stopPropagation(); navigate(`/lands/${b.land_id}`); }}
-                                        >
-                                            View Land →
-                                        </button>
-                                    </div>
+                                    <span style={S.infoValue}>{b.land_name || 'N/A'} {b.land_district ? `(${b.land_district})` : ''}</span>
                                 </div>
                                 {b.status === 'Quote Submitted' && (
                                     <div style={S.quoteBadge}>
@@ -175,7 +167,7 @@ const ConstructorServiceBookingsPage = () => {
                             </div>
                             
                             <div style={S.cardActions}>
-                                <button style={S.viewBtn} onClick={() => setActive(b)}>View Details</button>
+                                <button style={S.viewBtn} onClick={() => setActive(b)}>Review Request Details</button>
                                 {b.status === 'Pending' ? (
                                     <div style={{display: 'flex', gap: '8px', flex: 1}}>
                                         <button style={S.acceptBtn} disabled={updating === b.id}

@@ -9,6 +9,8 @@ const ComplaintsManagement = () => {
     const [submitting, setSubmitting] = useState({});
     const [replyError, setReplyError] = useState({});
 
+    const [typeFilter, setTypeFilter] = useState('All');
+
     const token = localStorage.getItem('access_token');
 
     const fetchInquiries = async () => {
@@ -83,10 +85,15 @@ const ComplaintsManagement = () => {
         }
     };
 
-    // Filter inquiries by active tab
+    // Get unique inquiry types for the filter
+    const inquiryTypes = ['All', ...new Set(inquiries.map(i => i.inquiry_type).filter(Boolean))];
+
+    // Filter inquiries by active tab and type filter
     const filteredInquiries = inquiries.filter(inq => {
         const role = inq.buyer_role || 'buyer';
-        return role.toLowerCase() === activeTab;
+        const roleMatch = role.toLowerCase() === activeTab;
+        const typeMatch = typeFilter === 'All' || inq.inquiry_type === typeFilter;
+        return roleMatch && typeMatch;
     });
 
     const getInquiryId = (item) => item.id || item._id;
@@ -98,20 +105,37 @@ const ComplaintsManagement = () => {
                 <p style={styles.subtitle}>Review and resolve issues submitted by consumers and property owners.</p>
             </header>
 
-            {/* Tab navigation */}
-            <div style={styles.tabs}>
-                <button
-                    style={activeTab === 'buyer' ? styles.activeTab : styles.tab}
-                    onClick={() => setActiveTab('buyer')}
-                >
-                    Buyer Inquiries ({inquiries.filter(i => (i.buyer_role || 'buyer') === 'buyer').length})
-                </button>
-                <button
-                    style={activeTab === 'seller' ? styles.activeTab : styles.tab}
-                    onClick={() => setActiveTab('seller')}
-                >
-                    Seller Inquiries ({inquiries.filter(i => i.buyer_role === 'seller').length})
-                </button>
+            {/* Filter and Tab Section */}
+            <div style={styles.controlsRow}>
+                {/* Tab navigation */}
+                <div style={styles.tabs}>
+                    <button
+                        style={activeTab === 'buyer' ? styles.activeTab : styles.tab}
+                        onClick={() => setActiveTab('buyer')}
+                    >
+                        Buyer ({inquiries.filter(i => (i.buyer_role || 'buyer') === 'buyer').length})
+                    </button>
+                    <button
+                        style={activeTab === 'seller' ? styles.activeTab : styles.tab}
+                        onClick={() => setActiveTab('seller')}
+                    >
+                        Seller ({inquiries.filter(i => i.buyer_role === 'seller').length})
+                    </button>
+                </div>
+
+                {/* Type Filter */}
+                <div style={styles.filterGroup}>
+                    <label style={styles.filterLabel}>Filter by Type:</label>
+                    <select 
+                        style={styles.filterSelect}
+                        value={typeFilter}
+                        onChange={(e) => setTypeFilter(e.target.value)}
+                    >
+                        {inquiryTypes.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {loading ? (
@@ -208,9 +232,14 @@ const styles = {
     title: { fontSize: '1.75rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
     subtitle: { color: 'var(--color-text-soft)', fontSize: '0.95rem' },
 
-    tabs: { display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--color-border)', paddingBottom: '1px' },
+    controlsRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '20px', marginBottom: '24px', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap' },
+    tabs: { display: 'flex', gap: '8px' },
     tab: { padding: '10px 20px', backgroundColor: 'transparent', border: 'none', color: 'var(--color-text-soft)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600' },
-    activeTab: { padding: '10px 20px', backgroundColor: '#fff', border: '1px solid var(--color-border)', borderBottom: '2px solid var(--color-primary)', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '700' },
+    activeTab: { padding: '10px 20px', backgroundColor: '#fff', border: '1px solid var(--color-border)', borderBottom: '2px solid var(--color-primary)', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '700', marginBottom: '-1px', position: 'relative', zIndex: 1 },
+
+    filterGroup: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' },
+    filterLabel: { color: 'var(--color-text-soft)', fontSize: '0.85rem', fontWeight: '600' },
+    filterSelect: { padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--color-border)', color: 'var(--color-dark)', fontSize: '0.85rem', fontWeight: '700', outline: 'none', cursor: 'pointer', backgroundColor: '#fff' },
 
     list: { display: 'flex', flexDirection: 'column', gap: '24px' },
     card: { backgroundColor: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '24px', boxShadow: 'var(--shadow-soft)' },

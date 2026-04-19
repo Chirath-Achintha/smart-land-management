@@ -12,6 +12,7 @@ const InquiryPage = () => {
     const [useCustomType, setUseCustomType] = useState(false);
     const [customType, setCustomType] = useState('');
     const [message, setMessage] = useState('');
+    const [selectedDistrict, setSelectedDistrict] = useState('');
     const [selectedLandId, setSelectedLandId] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitMsg, setSubmitMsg] = useState('');
@@ -28,6 +29,7 @@ const InquiryPage = () => {
     const [editType, setEditType] = useState('General');
     const [editMessage, setEditMessage] = useState('');
     const [editLandId, setEditLandId] = useState('');
+    const [editDistrict, setEditDistrict] = useState('');
 
     const token = localStorage.getItem('access_token');
     const allowedInquiryTypes = ['Listing', 'Service', 'General'];
@@ -95,14 +97,23 @@ const InquiryPage = () => {
     const handleEditClick = (inq) => {
         setEditingId(inq._id);
         setEditTitle(inq.title);
-        setEditType(normalizeInquiryType(inq.inquiry_type));
+        const normType = normalizeInquiryType(inq.inquiry_type);
+        setEditType(normType);
         setEditMessage(inq.message);
         setEditLandId(inq.land_id || '');
+        
+        if (normType === 'Listing' && inq.land_id) {
+            const land = lands.find(l => (l._id || l.id) === inq.land_id);
+            if (land) setEditDistrict(land.district || '');
+        } else {
+            setEditDistrict('');
+        }
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
         setEditLandId('');
+        setEditDistrict('');
     };
 
     const handleUpdate = async (e) => {
@@ -135,6 +146,7 @@ const InquiryPage = () => {
             } else {
                 setSubmitMsg('✅ Your inquiry has been updated.');
                 setEditingId(null);
+                setEditDistrict('');
                 fetchInquiries();
                 setTimeout(() => setSubmitMsg(''), 5000);
             }
@@ -219,6 +231,7 @@ const InquiryPage = () => {
                 setType('General');
                 setUseCustomType(false);
                 setCustomType('');
+                setSelectedDistrict('');
                 setSelectedLandId('');
                 setMessage('');
                 fetchInquiries();
@@ -246,6 +259,16 @@ const InquiryPage = () => {
         return `${land.name} - ${land.district} (${land.village})`;
     };
 
+    // Derived lists
+    const uniqueDistricts = [...new Set(lands.map(l => l.district).filter(Boolean))].sort();
+    const filteredLands = selectedDistrict 
+        ? lands.filter(l => l.district === selectedDistrict)
+        : [];
+    
+    const editFilteredLands = editDistrict
+        ? lands.filter(l => l.district === editDistrict)
+        : [];
+
     return (
         <div style={S.root}>
             <div style={S.container}>
@@ -259,14 +282,23 @@ const InquiryPage = () => {
                     <div style={S.formCard}>
                         <h2 style={S.sectionTitle}>Submit New Inquiry</h2>
 
-                        {!user && (
+                        {!user ? (
                             <div style={S.loginNoticeBox}>
                                 <p style={S.loginNotice}>Please log in to submit an inquiry.</p>
                                 <a href="/login" style={S.loginBtn}>Login Now</a>
                             </div>
-                        )}
-
-                        {user && (
+                        ) : user.role === 'admin' ? (
+                            <div style={S.loginNoticeBox}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🛡️</div>
+                                <p style={S.loginNotice}>Admins cannot submit inquiries through this public form.</p>
+                                <button 
+                                    onClick={() => navigate('/dashboard/admin/complaints')} 
+                                    style={S.loginBtn}
+                                >
+                                    Go to Inquiry Management
+                                </button>
+                            </div>
+                        ) : (
                             <form onSubmit={handleSubmit} style={S.form}>
                                 {submitError && <div style={S.errorBox}>{submitError}</div>}
                                 {submitMsg && <div style={S.successBox}>{submitMsg}</div>}
@@ -287,7 +319,11 @@ const InquiryPage = () => {
                                     <select
                                         style={S.input}
                                         value={type}
-                                        onChange={e => setType(e.target.value)}
+                                        onChange={e => {
+                                            setType(e.target.value);
+                                            setSelectedDistrict('');
+                                            setSelectedLandId('');
+                                        }}
                                         disabled={useCustomType}
                                     >
                                         <option value="Listing">About a Listing</option>
@@ -319,26 +355,48 @@ const InquiryPage = () => {
                                 </div>
 
                                 {!useCustomType && type === 'Listing' && (
-                                    <div style={S.inputGroup}>
-                                        <label style={S.label}>Select Land</label>
-                                        <select
-                                            style={S.input}
-                                            value={selectedLandId}
-                                            onChange={e => setSelectedLandId(e.target.value)}
-                                            required
-                                        >
-                                            <option value="">Choose a listing...</option>
-                                            {lands.map((land) => (
-                                                <option key={land._id || land.id} value={land._id || land.id}>
-                                                    {land.name} - {land.district} ({land.village})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {loadingLands && <p style={S.hintText}>Loading available listings...</p>}
-                                        {!loadingLands && lands.length === 0 && (
-                                            <p style={S.hintText}>No available listings found right now.</p>
+                                    <>
+                                        <div style={S.inputGroup}>
+                                            <label style={S.label}>Select District</label>
+                                            <select
+                                                style={S.input}
+                                                value={selectedDistrict}
+                                                onChange={e => {
+                                                    setSelectedDistrict(e.target.value);
+                                                    setSelectedLandId('');
+                                                }}
+                                                required
+                                            >
+                                                <option value="">Choose a district...</option>
+                                                {uniqueDistricts.map(d => (
+                                                    <option key={d} value={d}>{d}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {selectedDistrict && (
+                                            <div style={S.inputGroup}>
+                                                <label style={S.label}>Select Land</label>
+                                                <select
+                                                    style={S.input}
+                                                    value={selectedLandId}
+                                                    onChange={e => setSelectedLandId(e.target.value)}
+                                                    required
+                                                >
+                                                    <option value="">Choose a listing in {selectedDistrict}...</option>
+                                                    {filteredLands.map((land) => (
+                                                        <option key={land._id || land.id} value={land._id || land.id}>
+                                                            {land.name} ({land.village})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {loadingLands && <p style={S.hintText}>Loading available listings...</p>}
+                                                {!loadingLands && filteredLands.length === 0 && (
+                                                    <p style={S.hintText}>No available listings found in this district.</p>
+                                                )}
+                                            </div>
                                         )}
-                                    </div>
+                                    </>
                                 )}
 
                                 <div style={S.inputGroup}>
@@ -367,6 +425,12 @@ const InquiryPage = () => {
                             <div style={S.loginNoticeBox}>
                                 <p style={S.loginNotice}>Please log in to view your inquiries and admin replies.</p>
                                 <a href="/login" style={S.loginBtn}>Login Now</a>
+                            </div>
+                        ) : user.role === 'admin' ? (
+                            <div style={S.emptyState}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📊</div>
+                                <div style={{ fontWeight: '700', color: '#555', marginBottom: '6px' }}>Administrative View</div>
+                                <div style={{ color: '#aaa', fontSize: '0.875rem' }}>Personal inquiry history is disabled for admins. Please use the management dashboard to view all user inquiries.</div>
                             </div>
                         ) : loadingList ? (
                             <p style={S.empty}>Loading your inquiries…</p>
@@ -398,7 +462,11 @@ const InquiryPage = () => {
                                                     <select
                                                         style={S.input}
                                                         value={editType}
-                                                        onChange={e => setEditType(e.target.value)}
+                                                        onChange={e => {
+                                                            setEditType(e.target.value);
+                                                            setEditDistrict('');
+                                                            setEditLandId('');
+                                                        }}
                                                     >
                                                         <option value="Listing">About a Listing</option>
                                                         <option value="Service">About a Service</option>
@@ -407,6 +475,25 @@ const InquiryPage = () => {
                                                 </div>
                                                 {normalizeInquiryType(editType) === 'Listing' && (
                                                     <div style={S.inputGroup}>
+                                                        <label style={S.label}>Select District</label>
+                                                        <select
+                                                            style={S.input}
+                                                            value={editDistrict}
+                                                            onChange={e => {
+                                                                setEditDistrict(e.target.value);
+                                                                setEditLandId('');
+                                                            }}
+                                                            required
+                                                        >
+                                                            <option value="">Choose a district...</option>
+                                                            {uniqueDistricts.map(d => (
+                                                                <option key={d} value={d}>{d}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                                {normalizeInquiryType(editType) === 'Listing' && editDistrict && (
+                                                    <div style={S.inputGroup}>
                                                         <label style={S.label}>Select Land</label>
                                                         <select
                                                             style={S.input}
@@ -414,10 +501,10 @@ const InquiryPage = () => {
                                                             onChange={e => setEditLandId(e.target.value)}
                                                             required
                                                         >
-                                                            <option value="">Choose a listing...</option>
-                                                            {lands.map((land) => (
+                                                            <option value="">Choose a listing in {editDistrict}...</option>
+                                                            {editFilteredLands.map((land) => (
                                                                 <option key={land._id || land.id} value={land._id || land.id}>
-                                                                    {land.name} - {land.district} ({land.village})
+                                                                    {land.name} ({land.village})
                                                                 </option>
                                                             ))}
                                                         </select>

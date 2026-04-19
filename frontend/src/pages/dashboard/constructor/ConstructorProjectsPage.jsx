@@ -198,33 +198,40 @@ const ConstructorProjectsPage = () => {
                     return (
                     <div key={p.id} style={S.projectCard}>
                         <div style={S.cardHeader}>
-                            <span style={S.projectId}>{toProjectCode(p.id)}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={S.projectId}>{toProjectCode(p.id)}</span>
+                                <span style={S.serviceTypeLabel}>{p.service_type}</span>
+                            </div>
                             <span style={{ ...S.statusBadge, ...getStatusStyle(displayStatus) }}>{displayStatus}</span>
                         </div>
-                        <h3 style={S.projectName}>{p.land_name || p.service_type || 'Project'}</h3>
+                        <h3 style={S.projectName}>{p.land_name || 'Project Site'}</h3>
                         <div style={S.infoSummary}>
                             <div style={S.infoItem}>
-                                <span style={S.label}>Client</span>
+                                <span style={S.label}>👤 Client</span>
                                 <span style={S.value}>{p.buyer_name || `Buyer #${p.buyer_id}`}</span>
                             </div>
                             <div style={S.infoItem}>
-                                <span style={S.label}>Budget</span>
+                                <span style={S.label}>💰 Budget</span>
                                 <span style={S.value}>{formatBudget(p.land_price)}</span>
                             </div>
                         </div>
 
                         <div style={S.progressWrapper}>
                             <div style={S.progressHeader}>
-                                <span style={S.label}>Progress</span>
+                                <span style={S.label}>Construction Progress</span>
                                 <span style={S.progressVal}>{progress}%</span>
                             </div>
                             <div style={S.progressBg}>
-                                <div style={{ ...S.progressFill, width: `${progress}%` }}></div>
+                                <div style={{ 
+                                    ...S.progressFill, 
+                                    width: `${progress}%`,
+                                    background: progress === 100 ? '#10B981' : 'var(--color-primary)'
+                                }}></div>
                             </div>
                         </div>
 
                         <button style={S.viewDetailsBtn} onClick={() => { setActiveProject(p); setShowModal(true); }}>
-                            Manage Project
+                            Manage Project →
                         </button>
                     </div>
                 );
@@ -341,26 +348,26 @@ const S = {
     activeFilter: { background: 'var(--color-dark)', color: '#fff' },
     refreshBtn: { padding: '12px 24px', borderRadius: '14px', border: '1.5px solid var(--color-border)', background: '#fff', color: 'var(--color-dark)', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s' },
 
-    projectGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' },
-    projectCard: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative', overflow: 'hidden' },
+    projectGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '32px' },
+    projectCard: { background: '#fff', borderRadius: '32px', padding: '32px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative', overflow: 'hidden', transition: 'transform 0.3s ease, box-shadow 0.3s ease' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--color-border)', paddingBottom: '20px' },
+    projectId: { fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', letterSpacing: '0.1em', textTransform: 'uppercase' },
+    serviceTypeLabel: { fontSize: '0.9rem', fontWeight: '800', color: 'var(--color-dark)', marginTop: '4px' },
+    statusBadge: { padding: '8px 16px', borderRadius: '10px', fontSize: '0.72rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    projectName: { margin: 0, fontSize: '1.6rem', fontWeight: '800', color: 'var(--color-dark)', letterSpacing: '-0.02em' },
 
-    cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: '16px' },
-    projectId: { fontSize: '0.7rem', fontWeight: '800', color: 'var(--color-primary)', letterSpacing: '0.08em', textTransform: 'uppercase' },
-    statusBadge: { padding: '6px 14px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' },
-    projectName: { margin: 0, fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)' },
+    infoSummary: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', background: '#F8FAFC', padding: '24px', borderRadius: '24px' },
+    infoItem: { display: 'flex', flexDirection: 'column', gap: '6px' },
+    label: { fontSize: '0.65rem', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em' },
+    value: { fontSize: '1rem', fontWeight: '700', color: 'var(--color-dark)' },
 
-    infoSummary: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--color-bg)', padding: '20px', borderRadius: '16px' },
-    infoItem: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    label: { fontSize: '0.65rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase', letterSpacing: '0.08em' },
-    value: { fontSize: '0.92rem', fontWeight: '700', color: 'var(--color-dark)' },
-
-    progressWrapper: { display: 'flex', flexDirection: 'column', gap: '10px' },
+    progressWrapper: { display: 'flex', flexDirection: 'column', gap: '12px' },
     progressHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    progressVal: { fontSize: '0.85rem', fontWeight: '900', color: 'var(--color-primary)' },
-    progressBg: { width: '100%', height: '10px', background: 'var(--color-bg)', borderRadius: '5px', overflow: 'hidden' },
-    progressFill: { height: '100%', background: 'var(--color-primary)', borderRadius: '5px', transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' },
+    progressVal: { fontSize: '0.9rem', fontWeight: '900', color: 'var(--color-primary)' },
+    progressBg: { width: '100%', height: '12px', background: '#E2E8F0', borderRadius: '10px', overflow: 'hidden' },
+    progressFill: { height: '100%', borderRadius: '10px', transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)' },
 
-    viewDetailsBtn: { padding: '14px', borderRadius: '14px', background: 'var(--color-dark)', color: '#fff', border: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' },
+    viewDetailsBtn: { padding: '16px', borderRadius: '18px', background: 'var(--color-dark)', color: '#fff', border: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '0.95rem', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' },
     emptyBox: { textAlign: 'center', color: 'var(--color-text-soft)', padding: '100px 40px', background: '#fff', borderRadius: '32px', border: '1px dashed var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
     empty: { textAlign: 'center', color: '#BBB', padding: '100px 40px', background: '#fff', borderRadius: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
     error: { textAlign: 'center', color: '#e74c3c', padding: '40px', borderRadius: '24px', background: '#FEF2F2', border: '1px solid #ffccbc', fontWeight: '700' },

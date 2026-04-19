@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../../../apiConfig';
 import toast from 'react-hot-toast';
 
@@ -29,6 +30,7 @@ const normalizeBooking = (booking) => ({
 
 const ConstructorServiceBookingsPage = () => {
     const token = localStorage.getItem('access_token');
+    const navigate = useNavigate();
     const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
     const [bookings, setBookings] = useState([]);
@@ -165,7 +167,7 @@ const ConstructorServiceBookingsPage = () => {
                             </div>
                             
                             <div style={S.cardActions}>
-                                <button style={S.viewBtn} onClick={() => setActive(b)}>View Details</button>
+                                <button style={S.viewBtn} onClick={() => setActive(b)}>Review Request Details</button>
                                 {b.status === 'Pending' ? (
                                     <div style={{display: 'flex', gap: '8px', flex: 1}}>
                                         <button style={S.acceptBtn} disabled={updating === b.id}
@@ -199,7 +201,18 @@ const ConstructorServiceBookingsPage = () => {
                                 <div><span style={S.mLabel}>Service</span><p style={S.mVal}>{active.service_type}</p></div>
                                 <div><span style={S.mLabel}>Status</span><p style={S.mVal}>{active.status}</p></div>
                                 <div><span style={S.mLabel}>Buyer</span><p style={S.mVal}>{active.buyer_name || `#${active.buyer_id}`}</p></div>
-                                <div><span style={S.mLabel}>Land</span><p style={S.mVal}>{active.land_name || 'N/A'}</p></div>
+                                <div>
+                                    <span style={S.mLabel}>Land</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <p style={S.mVal}>{active.land_name || 'N/A'}</p>
+                                        <button 
+                                            style={S.modalTinyBtn} 
+                                            onClick={() => navigate(`/lands/${active.land_id}`)}
+                                        >
+                                            View Full Details
+                                        </button>
+                                    </div>
+                                </div>
                                 <div><span style={S.mLabel}>Date</span><p style={S.mVal}>{active.preferred_date}</p></div>
                                 <div><span style={S.mLabel}>Time</span><p style={S.mVal}>{active.preferred_time}</p></div>
                             </div>
@@ -236,9 +249,17 @@ const ConstructorServiceBookingsPage = () => {
                             <button style={S.closeX} onClick={() => setQuoteModal(null)}>✕</button>
                         </div>
                         <div style={S.modalBody}>
-                            <p style={{ margin: '0 0 20px', fontSize: '0.9rem', color: '#666' }}>
-                                Proposal for <strong>{quoteModal.service_type}</strong>
-                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>
+                                    Proposal for <strong>{quoteModal.service_type}</strong>
+                                </p>
+                                <button 
+                                    style={S.tinyLink} 
+                                    onClick={() => navigate(`/lands/${quoteModal.land_id}`)}
+                                >
+                                    Review Land Info →
+                                </button>
+                            </div>
                             <div style={S.formGroup}>
                                 <label style={S.label}>Quote Amount (Rs.)</label>
                                 <input 
@@ -320,6 +341,9 @@ const S = {
     label: { fontSize: '0.72rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase', letterSpacing: '0.08em' },
     input: { width: '100%', padding: '16px', borderRadius: '16px', border: '1.5px solid var(--color-border)', boxSizing: 'border-box', fontSize: '1rem', outline: 'none' },
     textarea: { width: '100%', padding: '16px', borderRadius: '16px', border: '1.5px solid var(--color-border)', boxSizing: 'border-box', height: '120px', resize: 'none', fontSize: '1rem', outline: 'none' },
+    
+    tinyLink: { background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: 0, textDecoration: 'underline' },
+    modalTinyBtn: { background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '4px 10px', fontSize: '0.7rem', fontWeight: '700', color: '#666', cursor: 'pointer' }
 };
 
 export default ConstructorServiceBookingsPage;

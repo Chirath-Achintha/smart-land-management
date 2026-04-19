@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import API_BASE_URL from '../../apiConfig';
+import toast from 'react-hot-toast';
 
 const API = API_BASE_URL;
 
@@ -53,11 +54,12 @@ const ServiceBookingPage = () => {
             const res = await fetch(`${API}/service-bookings/${editTarget.id}`, {
                 method: 'PUT', headers: authH, body: JSON.stringify(editForm),
             });
-            if (!res.ok) { const e = await res.json(); alert(e.detail || 'Failed'); setSubmitting(false); return; }
+            if (!res.ok) { const e = await res.json(); toast.error(e.detail || 'Failed to save changes'); setSubmitting(false); return; }
             const updated = await res.json();
             setBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
             setEditTarget(null);
-        } catch { alert('Server error'); }
+            toast.success('Service request updated');
+        } catch { toast.error('Server error'); }
         setSubmitting(false);
     };
 
@@ -73,9 +75,10 @@ const ServiceBookingPage = () => {
             const updated = await res.json();
             const normalized = { ...updated, id: updated.id || updated._id };
             setBookings(prev => prev.map(b => b.id === normalized.id ? normalized : b));
+            toast.success('Quote approved! Construction starting.');
         } catch (e) {
             console.error('Approve failed:', e);
-            alert(`Approve failed: ${e.message}`);
+            toast.error(`Approve failed: ${e.message}`);
         } finally {
             setSubmitting(false);
         }
@@ -84,9 +87,11 @@ const ServiceBookingPage = () => {
     /* ── delete (cancel) booking ── */
     const confirmDelete = async () => {
         try {
-            await fetch(`${API}/service-bookings/${deleteId}`, { method: 'DELETE', headers: authH });
+            const res = await fetch(`${API}/service-bookings/${deleteId}`, { method: 'DELETE', headers: authH });
+            if (!res.ok) throw new Error('Delete failed');
             setBookings(prev => prev.filter(b => b.id !== deleteId));
-        } catch { alert('Delete failed'); }
+            toast.success('Request cancelled successfully');
+        } catch { toast.error('Failed to cancel request'); }
         setDeleteId(null);
     };
 
@@ -280,55 +285,53 @@ const S = {
     container: { maxWidth: '1000px', margin: '0 auto' },
     header: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '40px' },
     pageTitle: { fontSize: '2.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0, letterSpacing: '-0.02em' },
-    subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem', fontWeight: '500', maxWidth: '700px', lineHeight: '1.6' },
+        bookingList: { display: 'flex', flexDirection: 'column', gap: '32px' },
+    bookingCard: { background: '#fff', borderRadius: '32px', padding: '40px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid var(--color-border)', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' },
+    bCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', borderBottom: '1px solid #F1F5F9', paddingBottom: '24px' },
+    bService: { fontSize: '1.6rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0, letterSpacing: '-0.02em' },
+    bId: { fontSize: '0.7rem', color: '#94A3B8', margin: '6px 0 0', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em' },
+    badge: { padding: '8px 16px', borderRadius: '10px', fontWeight: '900', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    
+    bGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' },
+    bCell: { background: '#F8FAFC', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid #F1F5F9' },
+    bLabel: { fontSize: '0.65rem', color: '#94A3B8', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' },
+    bVal: { fontSize: '1rem', fontWeight: '700', color: 'var(--color-dark)' },
+    
+    teamInfo: { backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '20px', padding: '24px', color: '#0369A1', marginBottom: '24px', fontSize: '0.92rem', fontWeight: '500' },
+    bNotes: { fontStyle: 'normal', color: '#64748B', fontSize: '0.95rem', backgroundColor: '#F8FAFC', padding: '24px', borderRadius: '24px', marginBottom: '24px', borderLeft: '4px solid var(--color-primary)', lineHeight: '1.6' },
+    bDate: { fontSize: '0.8rem', color: '#94A3B8', fontWeight: '600' },
+    
+    bActions: { display: 'flex', gap: '12px' },
+    editBtn: { padding: '10px 20px', background: 'var(--color-dark)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
+    deleteBtn: { padding: '10px 20px', background: 'transparent', color: '#EF4444', border: '1.5px solid #FEE2E2', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
 
-    bookingList: { display: 'flex', flexDirection: 'column', gap: '24px' },
-    bookingCard: { background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', position: 'relative', overflow: 'hidden' },
-    bCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' },
-    bService: { fontSize: '1.4rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
-    bId: { fontSize: '0.75rem', color: '#BBB', margin: '4px 0 0', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' },
-    badge: { padding: '6px 14px', borderRadius: '8px', fontWeight: '800', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' },
-    
-    bGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' },
-    bCell: { background: 'var(--color-bg)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' },
-    bLabel: { fontSize: '0.68rem', color: '#AAA', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em' },
-    bVal: { fontSize: '0.92rem', fontWeight: '700', color: 'var(--color-dark)' },
-    
-    teamInfo: { backgroundColor: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: '16px', padding: '20px', color: '#3730A3', marginBottom: '20px', fontSize: '0.9rem' },
-    bNotes: { fontStyle: 'italic', color: '#666', fontSize: '0.9rem', backgroundColor: 'var(--color-bg)', padding: '16px', borderRadius: '16px', marginBottom: '20px', borderLeft: '4px solid var(--color-border)' },
-    bDate: { fontSize: '0.72rem', color: '#BBB', fontWeight: '600', marginBottom: '24px', display: 'block' },
-    
-    bActions: { display: 'flex', gap: '12px', borderTop: '1px solid var(--color-border)', paddingTop: '24px', marginTop: 'auto' },
-    editBtn: { padding: '10px 24px', background: 'var(--color-dark)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.88rem', transition: 'all 0.2s' },
-    deleteBtn: { padding: '10px 24px', background: 'transparent', color: '#e74c3c', border: '1.5px solid #ffccbc', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '0.88rem', transition: 'all 0.2s' },
+    empty: { textAlign: 'center', padding: '120px 40px', background: '#fff', borderRadius: '40px', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-soft)' },
 
-    empty: { textAlign: 'center', padding: '100px 40px', background: '#fff', borderRadius: '32px', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-soft)' },
-
-    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modal: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '500px', boxShadow: 'var(--shadow-elevated)', position: 'relative', display: 'flex', flexDirection: 'column', gap: '24px' },
-    closeX: { position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#AAA' },
-    modalTitle: { fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
-    formGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
-    lbl: { fontSize: '0.72rem', fontWeight: '800', color: '#AAA', textTransform: 'uppercase', letterSpacing: '0.08em' },
-    inp: { padding: '16px', borderRadius: '16px', border: '1.5px solid var(--color-border)', background: '#fff', fontSize: '0.95rem', outline: 'none', width: '100%', boxSizing: 'border-box' },
-    modalBtns: { display: 'flex', gap: '12px', marginTop: '8px' },
-    backBtn: { flex: 1, padding: '16px', background: 'var(--color-bg)', color: '#666', border: 'none', borderRadius: '16px', fontWeight: '800', cursor: 'pointer' },
-    nextBtn: { flex: 2, padding: '16px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '16px', fontWeight: '800', cursor: 'pointer' },
+    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' },
+    modal: { background: '#fff', borderRadius: '40px', padding: '48px', width: '100%', maxWidth: '540px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', position: 'relative', display: 'flex', flexDirection: 'column', gap: '32px' },
+    closeX: { position: 'absolute', top: '32px', right: '32px', background: '#F1F5F9', border: 'none', fontSize: '1rem', cursor: 'pointer', color: '#64748B', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' },
+    modalTitle: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0, letterSpacing: '-0.02em' },
+    formGroup: { display: 'flex', flexDirection: 'column', gap: '10px' },
+    lbl: { fontSize: '0.72rem', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em' },
+    inp: { padding: '18px', borderRadius: '20px', border: '1.5px solid #E2E8F0', background: '#F8FAFC', fontSize: '1rem', outline: 'none', width: '100%', boxSizing: 'border-box', transition: 'all 0.2s' },
+    modalBtns: { display: 'flex', gap: '16px', marginTop: '12px' },
+    backBtn: { flex: 1, padding: '18px', background: '#F1F5F9', color: '#64748B', border: 'none', borderRadius: '20px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' },
+    nextBtn: { flex: 2, padding: '18px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '20px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 10px 15px -3px rgba(76, 175, 80, 0.3)' },
     
-    quoteBox: { marginTop: '20px', padding: '24px', borderRadius: '20px', background: '#F8F9FA', border: '1px solid var(--color-border)' },
-    quoteTitle: { fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' },
-    quoteAmount: { fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '12px' },
-    quoteNotes: { fontSize: '0.92rem', color: '#64748B', fontStyle: 'italic', marginBottom: '20px', padding: '12px', background: '#fff', borderRadius: '12px' },
-    approveBtn: { width: '100%', padding: '14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '14px', fontWeight: '800', cursor: 'pointer', fontSize: '0.95rem' },
+    quoteBox: { marginTop: '32px', padding: '32px', borderRadius: '28px', background: '#fff', border: '1px solid var(--color-border)', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' },
+    quoteTitle: { fontSize: '0.7rem', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '16px' },
+    quoteAmount: { fontSize: '2.4rem', fontWeight: '900', color: 'var(--color-dark)', marginBottom: '16px', letterSpacing: '-0.02em' },
+    quoteNotes: { fontSize: '1rem', color: '#64748B', fontStyle: 'italic', marginBottom: '28px', padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1px dashed #E2E8F0', lineHeight: '1.5' },
+    approveBtn: { width: '100%', padding: '20px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '20px', fontWeight: '800', cursor: 'pointer', fontSize: '1.05rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 10px 15px -3px rgba(76, 175, 80, 0.4)' },
     
-    progressSection: { marginTop: '24px', padding: '24px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '20px' },
-    progressTop: { display: 'flex', justifyContent: 'space-between', marginBottom: '12px' },
-    progressLabel: { fontSize: '0.85rem', fontWeight: '800', color: 'var(--color-dark)' },
-    progressPct: { fontSize: '0.85rem', fontWeight: '900', color: 'var(--color-primary)' },
-    progressBarBg: { height: '10px', background: 'var(--color-bg)', borderRadius: '5px', overflow: 'hidden', marginBottom: '20px' },
-    progressBarFill: { height: '100%', background: 'var(--color-primary)', borderRadius: '5px', transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' },
-    milestoneList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-    milestoneItem: { display: 'flex', alignItems: 'center', gap: '10px' },
+    progressSection: { marginTop: '32px', padding: '32px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '28px' },
+    progressTop: { display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'baseline' },
+    progressLabel: { fontSize: '1rem', fontWeight: '800', color: 'var(--color-dark)' },
+    progressPct: { fontSize: '1.1rem', fontWeight: '900', color: 'var(--color-primary)' },
+    progressBarBg: { height: '12px', background: '#E2E8F0', borderRadius: '10px', overflow: 'hidden', marginBottom: '32px' },
+    progressBarFill: { height: '100%', background: 'var(--color-primary)', borderRadius: '10px', transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' },
+    milestoneList: { display: 'flex', flexDirection: 'column', gap: '16px', paddingLeft: '4px' },
+    milestoneItem: { display: 'flex', alignItems: 'center', gap: '16px', position: 'relative', zIndex: 1 },
 };
 
 export default ServiceBookingPage;

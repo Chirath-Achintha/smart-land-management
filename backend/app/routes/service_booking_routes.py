@@ -4,6 +4,7 @@ from beanie import PydanticObjectId
 from datetime import datetime
 
 from app.models.service_booking_model import ServiceBooking
+from beanie.operators import In
 
 from app.models.land_model import Land
 from app.models.user_model import User
@@ -139,7 +140,7 @@ async def list_constructors(
     constructor_ids = [u.id for u in constructors]
 
     active_bookings = await ServiceBooking.find(
-        ServiceBooking.constructor_id.in_(constructor_ids),
+        In(ServiceBooking.constructor_id, constructor_ids),
         ServiceBooking.status == "Accepted"
     ).to_list() if constructor_ids else []
 

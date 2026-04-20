@@ -55,7 +55,7 @@ class LandCreate(BaseModel):
     status: LandStatus = LandStatus.Available
     road_access: Optional[str] = None
     mobile_number_1: str
-    mobile_number_2: str
+    mobile_number_2: Optional[str] = None
     electricity: bool = False
     water: bool = False
     distance_to_town_km: float = 0.0
@@ -92,8 +92,10 @@ class LandCreate(BaseModel):
 
     @field_validator("mobile_number_1", "mobile_number_2")
     @classmethod
-    def validate_mobile_numbers(cls, v: str) -> str:
+    def validate_mobile_numbers(cls, v: Optional[str], info) -> Optional[str]:
         trimmed = (v or "").strip()
+        if info.field_name == "mobile_number_2" and not trimmed:
+            return None
         if not trimmed:
             raise ValueError("Mobile number is required")
         if not MOBILE_NUMBER_PATTERN.fullmatch(trimmed):
@@ -149,10 +151,12 @@ class LandUpdate(BaseModel):
 
     @field_validator("mobile_number_1", "mobile_number_2")
     @classmethod
-    def validate_mobile_numbers(cls, v: Optional[str]) -> Optional[str]:
+    def validate_mobile_numbers(cls, v: Optional[str], info) -> Optional[str]:
         if v is None:
             return v
         trimmed = v.strip()
+        if info.field_name == "mobile_number_2" and not trimmed:
+            return None
         if not trimmed:
             raise ValueError("Mobile number is required")
         if not MOBILE_NUMBER_PATTERN.fullmatch(trimmed):
@@ -218,6 +222,7 @@ class LandPricePredictionResponse(BaseModel):
 class LandResponse(BaseModel):
     id: str = Field(validation_alias="_id")
     seller_id: str
+    seller_name: Optional[str] = None
     name: str
     district: str
     village: str

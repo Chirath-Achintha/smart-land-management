@@ -106,12 +106,55 @@ const LandDetailPage = () => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        fetch(`${API}/lands/${id}`)
-            .then(r => r.json())
-            .then(data => { setLand(data); setLoading(false); })
-            .catch(() => setLoading(false));
+
+        const fetchLandDetail = async () => {
+            try {
+                if (currentUser?.role === 'seller') {
+                    const token = localStorage.getItem('access_token');
+                    if (!token) {
+                        setLand(null);
+                        setLoading(false);
+                        return;
+                    }
+
+                    const res = await fetch(`${API}/lands/my`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+
+                    if (!res.ok) {
+                        setLand(null);
+                        setLoading(false);
+                        return;
+                    }
+
+                    const lands = await res.json();
+                    const matchedLand = Array.isArray(lands)
+                        ? lands.find((item) => String(item.id || item._id) === String(id))
+                        : null;
+                    setLand(matchedLand || null);
+                    setLoading(false);
+                    return;
+                }
+
+                const res = await fetch(`${API}/lands/${id}`);
+                if (!res.ok) {
+                    setLand(null);
+                    setLoading(false);
+                    return;
+                }
+
+                const data = await res.json();
+                setLand(data);
+                setLoading(false);
+            } catch {
+                setLand(null);
+                setLoading(false);
+            }
+        };
+
+        fetchLandDetail();
         fetchBids();
-    }, [id]);
+    }, [id, currentUser?.role]);
 
     useEffect(() => {
         const imageUrls = getImageUrls(land?.image_url);
@@ -406,6 +449,23 @@ const LandDetailPage = () => {
                             <p style={{ fontSize: '0.85rem', color: '#555', lineHeight: 1.6, marginBottom: '20px' }}>
                                 Contact our dedicated agent for a site visit or more information regarding the property title and registration process.
                             </p>
+                            <div style={S.contactCard}>
+                                <div style={S.contactTitle}>Seller Contact</div>
+                                <div style={S.contactRow}>
+                                    <span style={S.contactLabel}>Name</span>
+                                    <span style={S.contactValue}>{land.seller_name || 'Not available'}</span>
+                                </div>
+                                <div style={S.contactRow}>
+                                    <span style={S.contactLabel}>Mobile 1</span>
+                                    <span style={S.contactValue}>{land.mobile_number_1 || 'Not available'}</span>
+                                </div>
+                                {land.mobile_number_2 && (
+                                    <div style={S.contactRow}>
+                                        <span style={S.contactLabel}>Mobile 2</span>
+                                        <span style={S.contactValue}>{land.mobile_number_2}</span>
+                                    </div>
+                                )}
+                            </div>
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button className="btn-dark"
                                     style={{
@@ -717,6 +777,11 @@ const S = {
     subTitle: { fontSize: '1rem', fontWeight: '800', marginBottom: '14px', color: '#1A1A1A' },
     amenityRow: { display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', borderBottom: '1px solid #EEE', marginBottom: '10px' },
     actionBox: { background: '#FAF6F1', padding: '28px', borderRadius: '18px' },
+    contactCard: { background: '#fff', border: '1px solid #eee', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' },
+    contactTitle: { fontSize: '0.82rem', fontWeight: '800', color: '#666', textTransform: 'uppercase', marginBottom: '10px' },
+    contactRow: { display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '6px 0' },
+    contactLabel: { color: '#666', fontSize: '0.86rem', fontWeight: '700' },
+    contactValue: { color: '#1A1A1A', fontSize: '0.9rem', fontWeight: '700' },
     bidsSection: { background: '#fff', borderRadius: '24px', padding: '40px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' },
 };
 

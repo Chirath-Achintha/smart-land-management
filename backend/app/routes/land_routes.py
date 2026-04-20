@@ -3,7 +3,7 @@ import os
 import uuid
 import shutil
 import re
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from urllib.parse import urlparse
 from beanie import PydanticObjectId
@@ -85,10 +85,23 @@ async def attach_bidding_data(land: Land) -> Land:
     return land
 
 
+async def build_land_response(land: Land, seller_name: Optional[str] = None) -> LandResponse:
+    await attach_bidding_data(land)
+    response = LandResponse.model_validate(land, from_attributes=True)
+    if seller_name is not None:
+        response.seller_name = seller_name
+        return response
+
+    seller = await User.get(land.seller_id)
+    response.seller_name = seller.full_name if seller else None
+    return response
+
+
 def serialize_land_for_admin(land: Land) -> dict:
     return {
         "id": str(land.id),
         "seller_id": str(land.seller_id),
+        "seller_name": None,
         "name": land.name,
         "district": land.district,
         "village": land.village,
@@ -196,7 +209,7 @@ async def create_land(
     bidding = BiddingSetup(land_id=land.id)
     await bidding.insert()
     
-    return land
+    return await build_land_response(land, seller_name=current_user.full_name)
 
 
 @router.post("/analyze")
@@ -266,10 +279,7 @@ async def get_all_lands():
         In(Land.status, ["Available", "Reserved"]),
         Land.review_status == "approved"
     ).sort("-created_at").to_list()
-    # Attach bidding setup to each land for the response
-    for land in lands:
-        await attach_bidding_data(land)
-    return lands
+    return [await build_land_response(land) for land in lands]
 
 
 # ── Get the current seller's own listings ─────────────────────────────────────
@@ -281,9 +291,7 @@ async def get_my_lands(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can view seller listings")
 
     lands = await Land.find(Land.seller_id == current_user.id).sort("-created_at").to_list()
-    for land in lands:
-        await attach_bidding_data(land)
-    return lands
+    return [await build_land_response(land, seller_name=current_user.full_name) for land in lands]
 
 
 # ── Admin: Get all lands (verified and unverified) ──────────────────────────
@@ -293,9 +301,7 @@ async def admin_get_all_lands(
 ):
     ensure_admin(current_user)
     lands = await Land.find_all().sort("-created_at").to_list()
-    for land in lands:
-        await attach_bidding_data(land)
-    return lands
+    return [await build_land_response(land) for land in lands]
 
 
 # ── Admin: Get lands grouped by seller ───────────────────────────────────────
@@ -387,9 +393,7 @@ async def get_land(land_id: PydanticObjectId):
     if not land:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found")
 
-    await attach_bidding_data(land)
-        
-    return land
+    return await build_land_response(land)
 
 
 # ── Update a land listing (seller only, must own it) ─────────────────────────
@@ -476,11 +480,8 @@ async def update_land(
 
     await land.save()
     
-    # Attach bidding to response
-    if bidding:
-        await attach_bidding_data(land)
-        
-    return land
+    seller_name = current_user.full_name if current_user.role == "seller" else None
+    return await build_land_response(land, seller_name=seller_name)
 
 
 # ── Delete a land listing (seller only, must own it) ─────────────────────────

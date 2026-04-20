@@ -8,6 +8,7 @@ import pandas as pd
 
 class PricePredictionService:
     ROAD_ACCESS_MIN_UPLIFT = 0.02
+    ELECTRICITY_MIN_UPLIFT = 0.01
 
     def __init__(self):
         self.model = None
@@ -134,6 +135,15 @@ class PricePredictionService:
             required_min_total = without_road_total * (1 + self.ROAD_ACCESS_MIN_UPLIFT)
             pred_total = max(pred_total, required_min_total)
 
+        electricity_binary = int(bool(electricity))
+        if electricity_binary == 1:
+            # Business guardrail: electricity availability must not reduce estimated value.
+            without_electricity_features = features.copy()
+            without_electricity_features["Electricity"] = 0
+            without_electricity_total = max(float(self.model.predict(without_electricity_features)[0]), 0.0)
+            required_min_total = without_electricity_total * (1 + self.ELECTRICITY_MIN_UPLIFT)
+            pred_total = max(pred_total, required_min_total)
+
         pred_per_perch = pred_total / safe_perches
 
         low_total = None
@@ -144,6 +154,8 @@ class PricePredictionService:
             low_total = float(np.percentile(tree_preds, 10))
             high_total = float(np.percentile(tree_preds, 90))
             if road_access_binary == 1:
+                high_total = max(high_total, pred_total)
+            if electricity_binary == 1:
                 high_total = max(high_total, pred_total)
 
         response = {

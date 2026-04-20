@@ -102,13 +102,13 @@ const ConstructorManagerDashboard = () => {
             <div style={S.topSection}>
                 <div style={S.statsGrid}>
                     {stats.map((s) => (
-                        <div key={s.label} className="ui-card" style={S.statCard}>
+                        <div key={s.label} className="ui-card" style={{ ...S.statCard, borderTop: `4px solid ${s.color}` }}>
                             <span style={S.statLabel}>{s.label}</span>
                             <span style={{ ...S.statValue, color: s.color }}>{s.value}</span>
                         </div>
                     ))}
                     
-                    <div className="ui-card page-fade" style={{ ...S.statCard, gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                    <div className="ui-card page-fade" style={{ ...S.statCard, gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', borderTop: '4px solid #2196F3' }}>
                          <div style={{ flex: 1 }}>
                              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 10px 0', color: 'var(--color-dark)' }}>Lifetime Request Analytics</h3>
                              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-soft)', margin: 0 }}>A quick snapshot of your entire assignment footprint.</p>

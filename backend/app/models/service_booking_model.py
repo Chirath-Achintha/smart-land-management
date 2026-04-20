@@ -24,7 +24,7 @@ class ServiceBooking(Document):
     buyer_id: PydanticObjectId
     land_id: Optional[PydanticObjectId] = None
     constructor_id: Optional[PydanticObjectId] = None
-    service_type: str # "Full Construction" | "Land Development"
+    service_type: str # "Full Construction" , "Land Development"
     preferred_date: str = Field(alias="date")
     preferred_time: str = Field(alias="time")
     notes: Optional[str] = Field(None, alias="request")

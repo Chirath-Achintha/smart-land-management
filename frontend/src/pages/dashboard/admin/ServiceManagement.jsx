@@ -305,7 +305,7 @@ const ServiceManagement = () => {
 
     return (
         <div style={styles.container}>
-            <header style={styles.header}>
+            <header className="page-fade" style={styles.header}>
                 <h2 style={styles.title}>Construction Service Assignments</h2>
                 <p style={styles.subtitle}>
                     Assign constructor teams by district and availability. Once assigned, buyers and constructor teams will see the same booking details.
@@ -314,7 +314,7 @@ const ServiceManagement = () => {
 
     {/* Card removed */}
 
-            <div style={styles.card}>
+            <div className="ui-card page-fade" style={styles.card}>
                 <div style={styles.toolbar}>
                     {rejectedCount > 0 && (
                         <div style={styles.attentionBadge}>
@@ -352,15 +352,16 @@ const ServiceManagement = () => {
 
                                     return (
                                         <tr key={booking.id} style={styles.tr}>
-                                            <td style={styles.td}>
-                                                <div style={{ fontWeight: 700 }}>{booking.service_type}</div>
-                                                <div style={styles.metaText}>{booking.buyer_name || `Buyer #${booking.buyer_id}`}</div>
-                                                <div style={styles.metaText}>{booking.land_name || 'No linked land'}</div>
-                                                <div style={styles.metaText}>#{booking.id}</div>
+                                            <td style={{ ...styles.td, borderRadius: '16px 0 0 16px' }}>
+                                                <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--color-dark)', marginBottom: '8px' }}>{booking.service_type}</div>
+                                                <div style={styles.metaText}><strong>Buyer:</strong> {booking.buyer_name || `User #${booking.buyer_id}`}</div>
+                                                <div style={styles.metaText}><strong>Land:</strong> {booking.land_name || 'No linked land'}</div>
+                                                <div style={{ ...styles.metaText, fontSize: '0.75rem', opacity: 0.6 }}>#{booking.id}</div>
                                             </td>
                                             <td style={styles.td}>
-                                                <div>{booking.land_district || 'District unavailable'}</div>
-                                                <div style={styles.metaText}>{booking.preferred_date} at {booking.preferred_time}</div>
+                                                <div style={{ fontWeight: 700, color: 'var(--color-dark)' }}>{booking.land_district || 'District unavailable'}</div>
+                                                <div style={styles.metaText}>{booking.preferred_date}</div>
+                                                <div style={styles.metaText}>{booking.preferred_time}</div>
                                             </td>
                                             <td style={styles.td}>
                                                 {alreadyAssigned ? (
@@ -398,12 +399,12 @@ const ServiceManagement = () => {
                                                     <div style={styles.statusMention}>Mention: Rejected by assigned constructor</div>
                                                 )}
                                             </td>
-                                            <td style={styles.td}>
+                                            <td style={{ ...styles.td, borderRadius: '0 16px 16px 0', textAlign: 'right' }}>
                                                 {alreadyAssigned ? (
-                                                    <span style={styles.doneTag}>Assigned</span>
+                                                    <span style={styles.doneTag}>✓ Assigned</span>
                                                 ) : (
                                                     <button
-                                                        style={styles.assignBtn}
+                                                        style={{...styles.assignBtn, background: (assigningId === booking.id || !selectedId) ? '#ccc' : 'var(--color-primary)'}}
                                                         disabled={assigningId === booking.id || !selectedId}
                                                         onClick={() => handleAssign(booking.id)}
                                                     >
@@ -427,10 +428,10 @@ const ServiceManagement = () => {
 const styles = {
     container: { padding: '32px', background: 'var(--color-bg)', minHeight: '100%' },
     header: { marginBottom: '20px' },
-    title: { margin: 0, fontSize: '1.7rem', color: 'var(--color-dark)' },
-    subtitle: { marginTop: '8px', color: 'var(--color-text-soft)', maxWidth: '760px' },
-    card: { background: '#fff', borderRadius: '14px', border: '1px solid var(--color-border)', padding: '20px', marginBottom: '20px', boxShadow: 'var(--shadow-soft)' },
-    sectionTitle: { margin: '0 0 14px', fontSize: '1.1rem', color: 'var(--color-dark)' },
+    title: { margin: 0, fontSize: '2rem', fontWeight: 800, color: 'var(--color-dark)' },
+    subtitle: { margin: '8px 0 32px 0', fontSize: '1rem', color: 'var(--color-text-soft)', maxWidth: '760px' },
+    card: { padding: '32px', marginBottom: '24px' },
+    sectionTitle: { margin: '0 0 14px', fontSize: '1.2rem', color: 'var(--color-dark)' },
     formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' },
     input: { border: '1px solid var(--color-border)', borderRadius: '8px', padding: '10px 12px', fontSize: '0.9rem' },
     primaryBtn: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontWeight: 700, width: '220px' },
@@ -442,22 +443,22 @@ const styles = {
     toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' },
     attentionBadge: { marginRight: 'auto', background: '#fff7ed', color: '#9a3412', border: '1px solid #fdba74', padding: '8px 12px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700 },
     refreshBtn: { border: '1px solid var(--color-border)', background: '#fff', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontWeight: 600 },
-    tableWrap: { overflowX: 'auto' },
-    table: { width: '100%', borderCollapse: 'collapse' },
-    thRow: { borderBottom: '1px solid var(--color-border)' },
-    th: { textAlign: 'left', color: '#7a7a7a', fontSize: '0.76rem', textTransform: 'uppercase', padding: '12px' },
-    tr: { borderBottom: '1px solid var(--color-border)' },
-    td: { padding: '14px 12px', verticalAlign: 'top', fontSize: '0.9rem', color: '#1d1d1d' },
-    metaText: { fontSize: '0.78rem', color: '#777', marginTop: '4px' },
-    assignedName: { fontWeight: 700, color: 'var(--color-dark)' },
-    select: { width: '100%', minWidth: '280px', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '8px 10px' },
-    status: { borderRadius: '999px', padding: '6px 12px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-block' },
-    assignBtn: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontWeight: 700 },
-    warnText: { fontSize: '0.76rem', color: '#b45309', marginTop: '6px' },
+    tableWrap: { overflowX: 'auto', padding: '10px 0' },
+    table: { width: '100%', borderCollapse: 'separate', borderSpacing: '0 16px' },
+    thRow: { },
+    th: { textAlign: 'left', color: '#7a7a7a', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', padding: '0 24px 8px 24px', letterSpacing: '0.05em' },
+    tr: { background: 'var(--color-bg)', transition: 'all 0.3s ease', cursor: 'default' },
+    td: { padding: '24px', verticalAlign: 'middle', fontSize: '0.95rem', color: '#1d1d1d' },
+    metaText: { fontSize: '0.85rem', color: 'var(--color-text-soft)', marginTop: '6px' },
+    assignedName: { fontWeight: 800, color: 'var(--color-dark)', fontSize: '1.05rem' },
+    select: { width: '100%', minWidth: '280px', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '12px 16px', background: '#fff', fontSize: '0.95rem', cursor: 'pointer', outline: 'none', transition: 'border-color 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' },
+    status: { borderRadius: '999px', padding: '8px 16px', fontSize: '0.8rem', fontWeight: 800, display: 'inline-block', border: '1px solid rgba(0,0,0,0.05)' },
+    assignBtn: { border: 'none', color: '#fff', borderRadius: '12px', padding: '12px 24px', cursor: 'pointer', fontWeight: 800, transition: 'all 0.3s ease', boxShadow: '0 4px 6px rgba(85,107,47,0.2)' },
+    warnText: { fontSize: '0.8rem', color: '#b45309', marginTop: '8px', fontWeight: 600 },
     rejectedText: { fontSize: '0.76rem', color: '#991b1b', marginTop: '6px', fontWeight: 700 },
-    statusMention: { fontSize: '0.72rem', color: '#991b1b', marginTop: '6px', fontWeight: 700 },
-    doneTag: { fontSize: '0.78rem', color: '#166534', fontWeight: 700 },
-    empty: { textAlign: 'center', color: '#8a8a8a', padding: '42px' },
+    statusMention: { fontSize: '0.75rem', color: '#991b1b', marginTop: '8px', fontWeight: 700 },
+    doneTag: { fontSize: '0.9rem', color: '#166534', fontWeight: 800, background: '#dcfce7', padding: '10px 16px', borderRadius: '12px', display: 'inline-block' },
+    empty: { textAlign: 'center', color: '#8a8a8a', padding: '60px', fontSize: '1.1rem', fontWeight: 600 },
     error: { border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', padding: '12px 14px', borderRadius: '10px' },
     overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200 },
     modal: { width: 'min(980px, 92vw)', maxHeight: '82vh', overflow: 'auto', background: '#fff', borderRadius: '14px', padding: '18px', border: '1px solid var(--color-border)' },

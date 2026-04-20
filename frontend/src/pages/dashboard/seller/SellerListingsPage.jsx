@@ -1122,7 +1122,7 @@ const SellerListingsPage = () => {
                                         }
                                     </p>
                                     <div style={{ marginTop: '10px', fontSize: '0.94rem', fontWeight: '900', color: '#1A52E8' }}>
-                                        District Market Average: Rs. {Number(anomalyWarning.district_average).toLocaleString()}
+                                        District Market Average Price Per Perch: Rs. {Number(anomalyWarning.district_average).toLocaleString()}
                                     </div>
                                     {anomalyWarning.is_anomaly && (
                                         <p style={{ margin: '12px 0 0 0', fontSize: '0.8rem', fontWeight: '800', fontStyle: 'italic', color: '#C53030' }}>

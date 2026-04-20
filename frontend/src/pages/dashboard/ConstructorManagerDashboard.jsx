@@ -93,7 +93,7 @@ const ConstructorManagerDashboard = () => {
     const recentActivity = bookings.slice(0, 5);
 
     return (
-        <div style={S.root}>
+        <div className="page-fade" style={S.root}>
             <div style={S.header}>
                 <h1 style={S.title}>Overview Dashboard</h1>
                 <p style={S.subtitle}>High-level business performance and urgent alerts.</p>
@@ -102,13 +102,13 @@ const ConstructorManagerDashboard = () => {
             <div style={S.topSection}>
                 <div style={S.statsGrid}>
                     {stats.map((s) => (
-                        <div key={s.label} style={S.statCard}>
+                        <div key={s.label} className="ui-card" style={{ ...S.statCard, borderTop: `4px solid ${s.color}` }}>
                             <span style={S.statLabel}>{s.label}</span>
                             <span style={{ ...S.statValue, color: s.color }}>{s.value}</span>
                         </div>
                     ))}
                     
-                    <div style={{ ...S.statCard, gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', background: '#fff' }}>
+                    <div className="ui-card page-fade" style={{ ...S.statCard, gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', borderTop: '4px solid #2196F3' }}>
                          <div style={{ flex: 1 }}>
                              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 10px 0', color: 'var(--color-dark)' }}>Lifetime Request Analytics</h3>
                              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-soft)', margin: 0 }}>A quick snapshot of your entire assignment footprint.</p>
@@ -137,7 +137,7 @@ const ConstructorManagerDashboard = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                     <h2 style={S.sectionTitle}>Recent Inbox Activity</h2>
                     <div style={{display:'flex', gap:'10px'}}>
-                        <button style={S.actionBtnOutline} onClick={() => navigate('/dashboard/service-requests')}>Go to Inbox</button>
+                        <button className="ui-btn-secondary" style={S.actionBtnOutline} onClick={() => navigate('/dashboard/service-requests')}>Go to Inbox</button>
                     </div>
                 </div>
                 
@@ -148,7 +148,7 @@ const ConstructorManagerDashboard = () => {
                 ) : recentActivity.length === 0 ? (
                     <div style={S.empty}>No recent activity found.</div>
                 ) : (
-                    <div style={S.tableCard}>
+                    <div className="ui-card page-fade" style={S.tableCard}>
                         <table style={S.table}>
                             <thead>
                                 <tr style={S.tableHeaderTr}>
@@ -214,14 +214,14 @@ const SafeConstructorManagerDashboard = (props) => (
 );
 
 const S = {
-    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '26px' },
     title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
     subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem' },
 
     topSection: { marginBottom: '32px' },
     statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' },
-    statCard: { background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+    statCard: { padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
     statLabel: { fontSize: '0.7rem', fontWeight: '800', color: '#7C8B91', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' },
     statValue: { fontSize: '2.4rem', fontWeight: '800' },
 
@@ -229,7 +229,7 @@ const S = {
 
     section: { marginTop: '10px' },
     sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
-    tableCard: { background: '#fff', borderRadius: '20px', overflow: 'hidden', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
+    tableCard: { overflow: 'hidden' },
     table: { width: '100%', borderCollapse: 'collapse' },
     tableHeaderTr: { background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' },
     th: { textAlign: 'left', padding: '16px 20px', fontSize: '0.75rem', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' },

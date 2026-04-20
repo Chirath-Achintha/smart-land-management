@@ -383,6 +383,15 @@ const AdminDashboard = () => {
                         <div style={S.landMeta}>
                             Status: {land.status} | Verification: {land.is_verified ? 'Verified' : 'Pending'}
                         </div>
+                        <div style={S.landMeta}>
+                            AI Price Analysis: {land.is_anomaly ? (
+                                <span style={{ color: land.price_status === 'high' ? '#e74c3c' : '#f39c12', fontWeight: '800' }}>
+                                    ⚠️ {land.price_status.toUpperCase()}
+                                </span>
+                            ) : (
+                                <span style={{ color: '#27ae60', fontWeight: '800' }}>✅ NORMAL</span>
+                            )}
+                        </div>
                         {extraMeta && <div style={S.landMeta}>{extraMeta}</div>}
                         {land.verification_note && (
                             <div style={S.noteText}>Note: {land.verification_note}</div>
@@ -524,6 +533,15 @@ const AdminDashboard = () => {
                                         <div style={S.previewDetailItem}><span style={S.previewLabel}>Verification</span><span style={S.previewValue}>{previewLand.is_verified ? 'Verified' : 'Pending'}</span></div>
                                         <div style={S.previewDetailItem}><span style={S.previewLabel}>Electricity</span><span style={S.previewValue}>{previewLand.electricity ? 'Yes' : 'No'}</span></div>
                                         <div style={S.previewDetailItem}><span style={S.previewLabel}>Water</span><span style={S.previewValue}>{previewLand.water ? 'Yes' : 'No'}</span></div>
+                                        <div style={S.previewDetailItem}>
+                                            <span style={S.previewLabel}>AI Price Status</span>
+                                            <span style={{ 
+                                                ...S.previewValue, 
+                                                color: previewLand.is_anomaly ? (previewLand.price_status === 'high' ? '#e74c3c' : '#f39c12') : '#27ae60' 
+                                            }}>
+                                                {previewLand.is_anomaly ? previewLand.price_status.toUpperCase() : 'NORMAL'}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {previewLand.verification_note && (

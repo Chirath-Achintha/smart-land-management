@@ -148,9 +148,11 @@ function getDistanceToTownError(value) {
     return Number.isFinite(parsedValue) && parsedValue >= 0 ? '' : DISTANCE_TO_TOWN_ERROR;
 }
 
-function getMobileNumberError(value, label) {
+function getMobileNumberError(value, label, isOptional = false) {
     const trimmed = (value || '').trim();
-    if (!trimmed) return `${label} is required.`;
+    if (!trimmed) {
+        return isOptional ? '' : `${label} is required.`;
+    }
     return /^\+?\d{10,15}$/.test(trimmed) ? '' : MOBILE_NUMBER_ERROR;
 }
 
@@ -334,7 +336,7 @@ const SellerListingsPage = () => {
         }
 
         if (name === 'mobile_number_2') {
-            setFieldErrors((prev) => ({ ...prev, mobile_number_2: getMobileNumberError(value, 'Mobile Number 2') }));
+            setFieldErrors((prev) => ({ ...prev, mobile_number_2: getMobileNumberError(value, 'Mobile Number 2', true) }));
         }
 
         if (name === 'bidding_end') {
@@ -437,8 +439,8 @@ const SellerListingsPage = () => {
     };
 
     const handleCheckAnomaly = async () => {
-        if (!form.name || !form.perches || !form.district || !form.village || !form.price_per_perch || !form.mobile_number_1 || !form.mobile_number_2) {
-            setError('Please fill Name, Perches, Location, Price, and Mobile Numbers before using AI Check.');
+        if (!form.name || !form.perches || !form.district || !form.village || !form.price_per_perch || !form.mobile_number_1) {
+            setError('Please fill Name, Perches, Location, Price, and Mobile Number 1 before using AI Check.');
             return;
         }
         
@@ -538,7 +540,7 @@ const SellerListingsPage = () => {
 
         const distanceToTownError = getDistanceToTownError(form.distance_to_town_km);
         const mobileNumber1Error = getMobileNumberError(form.mobile_number_1, 'Mobile Number 1');
-        const mobileNumber2Error = getMobileNumberError(form.mobile_number_2, 'Mobile Number 2');
+        const mobileNumber2Error = getMobileNumberError(form.mobile_number_2, 'Mobile Number 2', true);
         if (distanceToTownError || mobileNumber1Error || mobileNumber2Error) {
             setFieldErrors((prev) => ({
                 ...prev,
@@ -1001,13 +1003,12 @@ const SellerListingsPage = () => {
                                     {fieldErrors.mobile_number_1 && <span style={S.fieldError}>{fieldErrors.mobile_number_1}</span>}
                                 </div>
                                 <div style={S.formGroup}>
-                                    <label style={S.label}>Mobile Number 2 *</label>
+                                    <label style={S.label}>Mobile Number 2 (Optional)</label>
                                     <input
                                         name="mobile_number_2"
                                         type="tel"
                                         value={form.mobile_number_2}
                                         onChange={handleFormChange}
-                                        required
                                         style={S.input}
                                         placeholder="e.g. +94781234567"
                                     />

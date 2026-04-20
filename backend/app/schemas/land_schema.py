@@ -55,7 +55,7 @@ class LandCreate(BaseModel):
     status: LandStatus = LandStatus.Available
     road_access: Optional[str] = None
     mobile_number_1: str
-    mobile_number_2: str
+    mobile_number_2: Optional[str] = None
     electricity: bool = False
     water: bool = False
     distance_to_town_km: float = 0.0
@@ -90,12 +90,24 @@ class LandCreate(BaseModel):
             raise ValueError("Distance to town must be zero or greater")
         return v
 
-    @field_validator("mobile_number_1", "mobile_number_2")
+    @field_validator("mobile_number_1")
     @classmethod
-    def validate_mobile_numbers(cls, v: str) -> str:
+    def validate_mobile_1(cls, v: str) -> str:
         trimmed = (v or "").strip()
         if not trimmed:
-            raise ValueError("Mobile number is required")
+            raise ValueError("Mobile number 1 is required")
+        if not MOBILE_NUMBER_PATTERN.fullmatch(trimmed):
+            raise ValueError("Mobile number must be 10 to 15 digits and may start with +")
+        return trimmed
+
+    @field_validator("mobile_number_2")
+    @classmethod
+    def validate_mobile_2(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return None
+        trimmed = v.strip()
+        if not trimmed:
+            return None
         if not MOBILE_NUMBER_PATTERN.fullmatch(trimmed):
             raise ValueError("Mobile number must be 10 to 15 digits and may start with +")
         return trimmed
@@ -147,14 +159,26 @@ class LandUpdate(BaseModel):
             raise ValueError("Distance to town must be zero or greater")
         return v
 
-    @field_validator("mobile_number_1", "mobile_number_2")
+    @field_validator("mobile_number_1")
     @classmethod
-    def validate_mobile_numbers(cls, v: Optional[str]) -> Optional[str]:
+    def validate_mobile_1(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
         trimmed = v.strip()
         if not trimmed:
-            raise ValueError("Mobile number is required")
+            raise ValueError("Mobile number 1 is required")
+        if not MOBILE_NUMBER_PATTERN.fullmatch(trimmed):
+            raise ValueError("Mobile number must be 10 to 15 digits and may start with +")
+        return trimmed
+
+    @field_validator("mobile_number_2")
+    @classmethod
+    def validate_mobile_2(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if not trimmed:
+            return None
         if not MOBILE_NUMBER_PATTERN.fullmatch(trimmed):
             raise ValueError("Mobile number must be 10 to 15 digits and may start with +")
         return trimmed

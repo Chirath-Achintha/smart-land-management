@@ -31,11 +31,12 @@ const ForgotPassword = () => {
             }
 
             setMsg(data.message);
-            
-            // Navigate to verify OTP page after short delay
+            setLoading(false);
+
+            // Navigate to verify OTP page only when email is valid and OTP was sent
             setTimeout(() => {
                 navigate('/verify-otp', { state: { email } });
-            }, 1000);
+            }, 1500);
             
         } catch (err) {
             setError('Server error. Make sure the backend is running.');

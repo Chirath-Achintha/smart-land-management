@@ -29,8 +29,8 @@ const NAV = {
         { to: '/dashboard/users', label: 'Manage Users' },
         { to: '/dashboard/admin/agents', label: 'Agent Assignment' },
         { to: '/dashboard/admin/agent-visits', label: 'Agent Site Requests' },
-        { to: '/dashboard/admin/services', label: 'Constructor Service Requests' },
         { to: '/dashboard/admin/constructor-teams', label: 'Constructor Teams' },
+        { to: '/dashboard/admin/services', label: 'Constructor Service Requests' },
     ],
     constructor_manager: [
         { to: '/dashboard', label: 'Overview' },

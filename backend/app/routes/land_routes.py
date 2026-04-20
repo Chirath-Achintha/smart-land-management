@@ -113,6 +113,9 @@ def serialize_land_for_admin(land: Land) -> dict:
         "starting_bid": land.starting_bid,
         "bidding_start": land.bidding_start,
         "bidding_end": land.bidding_end,
+        "is_anomaly": getattr(land, 'is_anomaly', False),
+        "anomaly_score": getattr(land, 'anomaly_score', 0.0),
+        "price_status": getattr(land, 'price_status', 'normal'),
     }
 
 

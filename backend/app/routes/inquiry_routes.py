@@ -51,7 +51,7 @@ async def _to_response_full(inq: Inquiry) -> dict:
         "updated_at": inq.updated_at,
     }
 
-# ── Buyer: Submit a new inquiry ───────────────────────────────────────────────
+# ── Buyer : Submit a new inquiry ───────────────────────────────────────────────
 @router.post("/", response_model=InquiryResponse, status_code=status.HTTP_201_CREATED)
 async def submit_inquiry(
     data: InquiryCreate,

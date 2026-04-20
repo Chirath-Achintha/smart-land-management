@@ -624,7 +624,7 @@ const S = {
     hintText: { margin: 0, color: '#777', fontSize: '0.78rem' },
     label: { fontSize: '0.85rem', fontWeight: '700', color: '#1A1A1A' },
     input: { padding: '12px 16px', borderRadius: '12px', border: '1px solid #EEE', fontSize: '0.95rem', background: '#F9F9F9', outline: 'none', fontFamily: "'DM Sans', sans-serif", transition: 'border 0.2s' },
-    submitBtn: { padding: '14px', background: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', cursor: 'pointer', marginTop: '6px', fontFamily: "'DM Sans', sans-serif" },
+    submitBtn: { padding: '14px', background: '#22A455', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', fontSize: '1rem', cursor: 'pointer', marginTop: '6px', fontFamily: "'DM Sans', sans-serif" },
 
     errorBox: { background: '#fdecea', color: '#d32f2f', padding: '10px 14px', borderRadius: '8px', fontSize: '0.875rem' },
     successBox: { background: '#eafaf1', color: '#27ae60', padding: '10px 14px', borderRadius: '8px', fontWeight: '700', fontSize: '0.875rem' },

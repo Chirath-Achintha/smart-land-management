@@ -326,8 +326,9 @@ async def cancel_visit(
 
     is_buyer = visit.buyer_id == current_user.id
     is_seller = land.seller_id == current_user.id
+    is_agent = visit.agent_id == current_user.id
     
-    if not is_buyer and not is_seller:
+    if not (is_buyer or is_seller or is_agent):
         raise HTTPException(status_code=403, detail="Not authorized to cancel this visit")
     
     if visit.status in [VisitStatus.Completed, VisitStatus.Cancelled]:
@@ -338,7 +339,11 @@ async def cancel_visit(
 
     visit.status = VisitStatus.Cancelled
     visit.cancel_reason = reason if reason else None
-    visit.cancelled_by = "buyer" if is_buyer else "seller"
+    
+    if is_buyer: visit.cancelled_by = "buyer"
+    elif is_seller: visit.cancelled_by = "seller"
+    else: visit.cancelled_by = "agent"
+    
     await visit.save()
     
     if is_buyer:
@@ -362,7 +367,7 @@ async def cancel_visit(
                     message=msg_agent,
                     link=f"/dashboard/agent/assignments?visit_id={visit.id}"
                 ).insert()
-    else:
+    elif is_seller:
         # Seller cancelled
         # Notify Buyer
         await Notification(
@@ -384,6 +389,25 @@ async def cancel_visit(
                     message=msg_agent,
                     link=f"/dashboard/agent/assignments?visit_id={visit.id}"
                 ).insert()
+    else:
+        # Agent cancelled
+        # Notify Buyer
+        await Notification(
+            user_id=visit.buyer_id,
+            title="Update: Visit Facilitation Interrupted",
+            message=f"The assigned agent for '{land.name}' on {visit.visit_date} has cancelled the facilitation request.{reason_suffix}. Please contact support or re-book.",
+            link=f"/dashboard/visits?visit_id={visit.id}"
+        ).insert()
+        # Notify Seller
+        await Notification(
+            user_id=land.seller_id,
+            title="Update: Agent Assignment Cancelled",
+            message=f"Agent {current_user.full_name} has cancelled the site visit facilitation for '{land.name}' on {visit.visit_date}.{reason_suffix}.",
+            link=f"/dashboard/seller/visits?visit_id={visit.id}"
+        ).insert()
+        # Notify Admin
+        msg_admin = f"Agent {current_user.full_name} has cancelled their assignment for '{land.name}' on {visit.visit_date}.{reason_suffix}."
+        await _notify_admins("Action Required: Agent Cancelled Assignment", msg_admin, f"/dashboard/admin/agent-visits?visit_id={visit.id}")
     
     return await _build_response(visit)
 

@@ -40,6 +40,11 @@ const AgentDashboard = () => {
     const [showDeclineModal, setShowDeclineModal] = useState(false);
     const [declineReason, setDeclineReason] = useState('');
     const [activeDeclineVisit, setActiveDeclineVisit] = useState(null);
+    
+    // Agent Cancel Modal State
+    const [showAgentCancelModal, setShowAgentCancelModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [activeCancelVisit, setActiveCancelVisit] = useState(null);
 
     useEffect(() => {
         const fetchAssignments = async () => {
@@ -115,12 +120,50 @@ const AgentDashboard = () => {
         setIsUpdating(false);
     };
 
+    const openAgentCancelModal = (visit) => {
+        setActiveCancelVisit(visit);
+        setCancelReason('');
+        setShowAgentCancelModal(true);
+    };
+
+    const handleAgentCancelSubmit = async () => {
+        if (!cancelReason.trim()) return toast.error('Please provide a reason for cancelling.');
+        setIsUpdating(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/visits/${activeCancelVisit._id || activeCancelVisit.id}/cancel`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}` 
+                },
+                body: JSON.stringify({ 
+                    reason: cancelReason 
+                })
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setBookings(prev => prev.map(b => (b._id || b.id) === (activeCancelVisit._id || activeCancelVisit.id) ? updated : b));
+                setShowAgentCancelModal(false);
+                toast.success('Assignment cancelled successfully.');
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || 'Failed to cancel.');
+            }
+        } catch (err) { toast.error('Cancellation failed.'); }
+        setIsUpdating(false);
+    };
+
     const handleCancel = (id) => updateStatus(id, 'Rejected');
     const handleReschedule = (id) => toast('Please contact the seller or admin to reschedule the date.');
     const handleSubmitReport = (id) => updateStatus(id, 'Completed');
 
-    const filteredBookings = bookings.filter(b => b.status === activeTab);
+    const filteredBookings = bookings.filter(b => {
+        if (activeTab === 'Cancelled') return ['Cancelled', 'Rejected', 'AgentDeclined'].includes(b.status);
+        return b.status === activeTab;
+    });
+
     const assignedCount = bookings.filter(b => b.status === 'Assigned').length;
+    const cancelledCount = bookings.filter(b => ['Cancelled', 'Rejected', 'AgentDeclined'].includes(b.status)).length;
 
 
     return (
@@ -142,13 +185,14 @@ const AgentDashboard = () => {
                 <div style={S.mainColumn}>
                     {/* Filtering Tabs */}
                     <div style={S.tabBar}>
-                        {['Assigned', 'Accepted', 'Completed'].map(t => (
+                        {['Assigned', 'Accepted', 'Completed', 'Cancelled'].map(t => (
                             <button
                                 key={t}
                                 onClick={() => setActiveTab(t)}
                                 style={{ ...S.tab, ...(activeTab === t ? S.activeTab : {}) }}
                             >
-                                {t === 'Assigned' ? 'Pending Action' : t} {t === 'Assigned' && assignedCount > 0 && <span style={S.count}>{assignedCount}</span>}
+                                {t === 'Assigned' ? 'Pending Action' : t} 
+                                {t === 'Assigned' && assignedCount > 0 && <span style={S.count}>{assignedCount}</span>}
                             </button>
                         ))}
                     </div>
@@ -202,16 +246,14 @@ const AgentDashboard = () => {
                                                         {b.status === 'Accepted' && (
                                                             <>
                                                                 <button style={S.reportBtn} onClick={() => handleSubmitReport(b._id || b.id)}>Mark as Completed</button>
+                                                                <button style={S.cancelBtnSmall} onClick={() => openAgentCancelModal(b)}>Cancel Visit</button>
                                                             </>
                                                         )}
                                                         {b.status === 'Completed' && (
                                                             <span style={S.reportBadge}>Visit Fully Completed ✅</span>
                                                         )}
-                                                        {b.status === 'Rejected' && (
-                                                            <span style={{ color: '#e74c3c', fontWeight: 'bold' }}>Rejected</span>
-                                                        )}
-                                                        {b.status === 'AgentDeclined' && (
-                                                            <span style={{ color: '#f39c12', fontWeight: 'bold' }}>Declined (Pending Re-assignment)</span>
+                                                        {['Cancelled', 'Rejected', 'AgentDeclined'].includes(b.status) && (
+                                                            <span style={{ ...S.reportBadge, color: '#e74c3c', background: '#fdedec' }}>Visit is Cancelled</span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -346,6 +388,37 @@ const AgentDashboard = () => {
                     </div>
                 </div>
             )}
+
+            {/* Agent Cancel Modal */}
+            {showAgentCancelModal && (
+                <div style={S.modalOverlay}>
+                    <div style={S.modalLarge}>
+                        <h2 style={S.modalTitle}>Cancel Confirmed Visit</h2>
+                        <p style={S.modalSubtitle}>Both Buyer and Seller will be notified of this cancellation. Please provide a clear reason.</p>
+
+                        <div style={S.formGroup}>
+                            <label style={S.formLabel}>Reason for Cancellation</label>
+                            <textarea
+                                style={S.textarea}
+                                placeholder="Sudden emergency, property no longer accessible, etc."
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                            ></textarea>
+                        </div>
+
+                        <div style={S.modalActionsRow}>
+                            <button 
+                                style={{ ...S.submitBtn, background: '#e74c3c' }} 
+                                onClick={handleAgentCancelSubmit}
+                                disabled={isUpdating}
+                            >
+                                {isUpdating ? 'Cancelling...' : 'Confirm Cancellation'}
+                            </button>
+                            <button style={S.cancelBtn} onClick={() => setShowAgentCancelModal(false)}>Go Back</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -397,7 +470,7 @@ const S = {
     confirmBtn: { padding: '6px 14px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
     reportBtn: { padding: '6px 14px', background: 'var(--color-blue)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
     outlineMiniBtn: { padding: '6px 12px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', color: '#666' },
-    cancelBtnSmall: { padding: '6px 14px', background: '#fdedec', color: '#e74c3c', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' },
+    cancelBtnSmall: { padding: '6px 14px', background: '#fdedec', color: '#e74c3c', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', marginLeft: '8px' },
     reportBadge: { color: 'var(--color-primary)', fontWeight: '700', fontSize: '0.85rem' },
 
     emptyState: { textAlign: 'center', padding: '40px 0' },

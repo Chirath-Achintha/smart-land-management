@@ -12,6 +12,7 @@ const STATUS_COLORS = {
     Completed: { bg: '#E8F5E9', color: '#1B5E20', border: '#C8E6C9' },
     Rejected: { bg: '#fdecea', color: '#c62828', border: '#ef9a9a' },
     AgentDeclined: { bg: '#fff3e0', color: '#f57c00', border: '#ffe0b2' },
+    Cancelled: { bg: '#f5f5f5', color: '#616161', border: '#e0e0e0' },
 };
 
 const AgentVisitsPage = () => {
@@ -118,7 +119,9 @@ const AgentVisitsPage = () => {
         ? visits 
         : filter === 'To Assign' 
             ? visits.filter(v => v.status === 'Pending' || v.status === 'SellerAccepted' || v.status === 'AgentDeclined')
-            : visits.filter(v => v.status === filter);
+            : filter === 'Agent Cancelled'
+                ? visits.filter(v => v.status === 'Cancelled' && v.cancelled_by === 'agent')
+                : visits.filter(v => v.status === filter);
 
     return (
         <div style={S.root}>
@@ -133,7 +136,7 @@ const AgentVisitsPage = () => {
             {error && <div style={S.errBox}>{error}</div>}
 
             <div style={S.filterRow}>
-                {['All', 'To Assign', 'Assigned', 'Accepted', 'Completed', 'Rejected', 'AgentDeclined'].map(f => (
+                {['All', 'To Assign', 'Assigned', 'Accepted', 'Completed', 'Rejected', 'AgentDeclined', 'Agent Cancelled'].map(f => (
                     <button key={f} onClick={() => setFilter(f)}
                         style={{
                             ...S.filterBtn,
@@ -144,9 +147,11 @@ const AgentVisitsPage = () => {
                         {f}
                         {f !== 'All' && (
                             <span style={S.filterCount}>
-                                {visits.filter(v => 
-                                    f === 'To Assign' ? (v.status === 'Pending' || v.status === 'SellerAccepted' || v.status === 'AgentDeclined') : v.status === f
-                                ).length}
+                                {visits.filter(v => {
+                                    if (f === 'To Assign') return (v.status === 'Pending' || v.status === 'SellerAccepted' || v.status === 'AgentDeclined');
+                                    if (f === 'Agent Cancelled') return (v.status === 'Cancelled' && v.cancelled_by === 'agent');
+                                    return v.status === f;
+                                }).length}
                             </span>
                         )}
                     </button>

@@ -58,7 +58,7 @@ const Register = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        
+
         // Live validation logic
         const error = validateField(name, value);
         setErrors(prev => ({ ...prev, [name]: error }));
@@ -76,7 +76,7 @@ const Register = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Final validation check before submit
         const newErrors = {};
         Object.keys(formData).forEach(key => {
@@ -122,9 +122,9 @@ const Register = () => {
     const EyeIcon = ({ show, onToggle }) => (
         <div style={styles.eyeBtn} onClick={onToggle} title={show ? "Hide" : "Show"}>
             {show ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
             ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
             )}
         </div>
     );
@@ -263,13 +263,13 @@ const Register = () => {
                     </div>
                 </div>
 
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     style={{
                         ...styles.button,
                         opacity: Object.keys(errors).some(k => errors[k]) ? 0.6 : 1,
                         cursor: Object.keys(errors).some(k => errors[k]) ? 'not-allowed' : 'pointer'
-                    }} 
+                    }}
                     disabled={loading}
                 >
                     {loading ? 'Registering...' : 'Register'}

@@ -39,6 +39,9 @@ const ConstructorServiceBookingsPage = () => {
     const [updating, setUpdating] = useState(null);
     const [quoteModal, setQuoteModal] = useState(null);
     const [quoteData, setQuoteData] = useState({ amount: '', notes: '' });
+    const [activeTab, setActiveTab] = useState('All');
+
+    const filteredBookings = bookings.filter(b => activeTab === 'All' ? true : b.status === activeTab);
 
     const fetchBookings = () => {
         fetch(`${API}/service-bookings/assigned`, { headers: authH })
@@ -125,7 +128,7 @@ const ConstructorServiceBookingsPage = () => {
     };
 
     return (
-        <div style={S.root}>
+        <div className="page-fade" style={S.root}>
             <div style={S.header}>
                 <div>
                     <h1 style={S.title}>Incoming Requests</h1>
@@ -134,17 +137,30 @@ const ConstructorServiceBookingsPage = () => {
                 <span style={S.countBadge}>{bookings.length} New</span>
             </div>
 
+            <div style={S.tabsContainer}>
+                {['All', 'Pending', 'Quote Submitted'].map(tab => (
+                    <button 
+                        key={tab} 
+                        style={{ ...S.tabBtn, ...(activeTab === tab ? S.tabActive : {}) }}
+                        onClick={() => setActiveTab(tab)}
+                    >
+                        {tab} {tab === 'All' ? `(${bookings.length})` : `(${bookings.filter(b => b.status === tab).length})`}
+                    </button>
+                ))}
+            </div>
+
             {loading ? (
                 <div style={S.empty}>Loading pending requests…</div>
-            ) : bookings.length === 0 ? (
-                <div style={S.emptyBox}>
+            ) : filteredBookings.length === 0 ? (
+                <div className="page-fade" style={S.emptyBox}>
+                    <div style={S.emptyIcon}>🎉</div>
                     <h3 style={{marginTop: 0, color: '#111827'}}>You're all caught up!</h3>
-                    <p style={{margin: 0}}>There are no new pending requests assigned to your team.</p>
+                    <p style={{margin: 0}}>There are no {activeTab !== 'All' ? activeTab.toLowerCase() : 'new pending'} requests right now.</p>
                 </div>
             ) : (
-                <div style={S.gridContainer}>
-                    {bookings.map(b => (
-                        <div key={b.id} style={S.card}>
+                <div className="page-fade" style={S.gridContainer}>
+                    {filteredBookings.map(b => (
+                        <div key={b.id} className="ui-card" style={S.card}>
                             <div style={S.cardTop}>
                                 <span style={S.idBadge}>#{b.id.substring(b.id.length - 6).toUpperCase()}</span>
                                 <span style={{ ...S.statusPill, ...STATUS_STYLE[b.status] }}>{b.status}</span>
@@ -191,7 +207,7 @@ const ConstructorServiceBookingsPage = () => {
             {/* Detail Modal */}
             {active && (
                 <div style={S.overlay}>
-                    <div style={S.modal}>
+                    <div className="page-fade" style={S.modal}>
                         <div style={S.modalHead}>
                             <h2 style={S.modalTitle}>Request #{String(active.id).substring(String(active.id).length - 6).toUpperCase()}</h2>
                             <button style={S.closeX} onClick={() => setActive(null)}>✕</button>
@@ -243,7 +259,7 @@ const ConstructorServiceBookingsPage = () => {
             {/* Quote Modal */}
             {quoteModal && (
                 <div style={S.overlay}>
-                    <div style={{ ...S.modal, maxWidth: '440px' }}>
+                    <div className="page-fade" style={{ ...S.modal, maxWidth: '440px' }}>
                         <div style={S.modalHead}>
                             <h2 style={S.modalTitle}>Submit Quote</h2>
                             <button style={S.closeX} onClick={() => setQuoteModal(null)}>✕</button>
@@ -295,17 +311,22 @@ const ConstructorServiceBookingsPage = () => {
 };
 
 const S = {
-    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' },
-    title: { fontSize: '2.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0, letterSpacing: '-0.02em' },
+    title: { fontSize: '2.4rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0, letterSpacing: '-0.03em' },
     subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem', fontWeight: '500', marginTop: '6px' },
     countBadge: { background: 'var(--color-primary)', color: '#fff', borderRadius: '30px', padding: '8px 20px', fontWeight: '800', fontSize: '0.85rem' },
+
+    tabsContainer: { display: 'flex', gap: '12px', marginBottom: '30px', paddingBottom: '16px', borderBottom: '1px solid var(--color-border)' },
+    tabBtn: { padding: '10px 24px', borderRadius: '100px', border: '1.5px solid transparent', background: 'var(--color-bg)', color: '#777', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.3s ease' },
+    tabActive: { background: '#fff', borderColor: 'var(--color-primary)', color: 'var(--color-primary)', boxShadow: '0 4px 12px rgba(76, 175, 80, 0.15)' },
     
+    emptyIcon: { fontSize: '3rem', marginBottom: '8px' },
     empty: { textAlign: 'center', color: '#BBB', padding: '100px 40px', background: '#fff', borderRadius: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
-    emptyBox: { textAlign: 'center', color: 'var(--color-text-soft)', padding: '100px 40px', background: '#fff', borderRadius: '32px', border: '1px dashed var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' },
+    emptyBox: { textAlign: 'center', color: 'var(--color-text-soft)', padding: '100px 40px', background: 'linear-gradient(145deg, #ffffff, #fdfdfd)', borderRadius: '32px', border: '1.5px dashed var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', boxShadow: 'inset 0 4px 20px rgba(0,0,0,0.02)' },
     
     gridContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' },
-    card: { background: '#fff', padding: '32px', borderRadius: '24px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '20px' },
+    card: { padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px', borderRadius: '24px' },
     cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: '16px' },
     idBadge: { background: 'var(--color-bg)', color: '#AAA', padding: '4px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' },
     statusPill: { fontSize: '0.68rem', fontWeight: '900', padding: '4px 12px', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.05em' },
@@ -321,8 +342,8 @@ const S = {
     acceptBtn: { flex: 1, padding: '12px', background: 'var(--color-dark)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
     rejectBtn: { flex: 1, padding: '12px', background: 'transparent', color: '#e74c3c', border: '1.5px solid #ffccbc', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' },
 
-    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' },
-    modal: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '560px', boxShadow: 'var(--shadow-elevated)', display: 'flex', flexDirection: 'column', gap: '24px' },
+    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' },
+    modal: { background: '#fff', borderRadius: '32px', padding: '40px', width: '100%', maxWidth: '560px', boxShadow: 'var(--shadow-elevated)', display: 'flex', flexDirection: 'column', gap: '24px', border: '1px solid rgba(255, 255, 255, 0.4)' },
     modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     modalTitle: { fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
     closeX: { background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#AAA' },

@@ -5,7 +5,7 @@ from datetime import datetime
 
 class InquiryCreate(BaseModel):
     title: str
-    inquiry_type: str  # "Listing" | "Service" | "General"
+    inquiry_type: str  #  "Listing" |  "Service" |  "General"
     message: str
     land_id: Optional[str] = None
 

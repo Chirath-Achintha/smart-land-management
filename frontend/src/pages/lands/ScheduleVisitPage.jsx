@@ -78,7 +78,7 @@ const ScheduleVisitPage = () => {
             });
     }, [id]);
 
-    // --- LIVE VALIDATION ---
+    // --- LIVE VALIDATION: Checks owner availability vs user selected date/time ---
     useEffect(() => {
         if (!date || !availability || availability.length === 0) {
             setError('');
@@ -118,8 +118,15 @@ const ScheduleVisitPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (error) return; // Prevent submission if live error exists
-        if (visitType === 'agent_visit' && !agreedToFee) return; // Must agree to fee for agent visit
+
+        // VALIDATION: Prevent submission if there's a live error (e.g. owner not available)
+        if (error) return; 
+
+        // VALIDATION: Ensure user agreed to the service fee if booking an Agent Visit
+        if (visitType === 'agent_visit' && !agreedToFee) {
+            toast.error('Please agree to the service fee to proceed.');
+            return;
+        }
 
         setError(''); setSubmitting(true);
         const token = localStorage.getItem('access_token');

@@ -13,7 +13,8 @@ const AgentClientsPage = () => {
 
     const [loading, setLoading] = useState(false);
     const [viewMode, setViewMode] = useState('calendar');
-    const [currentDate, setCurrentDate] = useState(new Date()); // Auto-detect current month/year
+    const [filterType, setFilterType] = useState('all'); // all, today, upcoming, completed
+    const [currentDate, setCurrentDate] = useState(new Date()); 
     const [highlightedClient, setHighlightedClient] = useState(null);
 
     useEffect(() => {
@@ -26,25 +27,25 @@ const AgentClientsPage = () => {
                 const data = await res.json();
                 if (res.ok && Array.isArray(data)) {
                     setAllVisits(data);
-                    // Unique buyers from accepted assignments (Accepted, Completed)
-                    const buyersMap = {};
-                    data.filter(v => v.status === 'Accepted' || v.status === 'Completed').forEach(v => {
-                        const bName = v.buyer_name || 'Buyer';
-                        if (!buyersMap[bName]) {
-                            buyersMap[bName] = {
-                                visitId: v._id || v.id, // Keep the latest visit ID for updating notes
-                                name: bName,
-                                phone: v.buyer_phone || 'N/A',
-                                address: v.land_address || 'Address not listed',
-                                lastInterest: v.land_name || 'Property',
-                                seller_name: v.seller_name || 'Not Available',
-                                seller_phone: v.seller_phone || 'N/A',
-                                time: v.visit_time || 'TBD',
-                                notes: v.internal_notes || '' 
-                            };
-                        }
-                    });
-                    setClients(Object.values(buyersMap));
+                    
+                    // Map ALL visits that are Accepted or Completed as cards
+                    // Removing deduplication by buyer name so agents can see past history/multiple properties
+                    const clientsList = data
+                        .filter(v => v.status === 'Accepted' || v.status === 'Completed' || v.status === 'Assigned')
+                        .map(v => ({
+                            visitId: v._id || v.id,
+                            name: v.buyer_name || 'Buyer',
+                            phone: v.buyer_phone || 'N/A',
+                            address: v.land_address || 'Address not listed',
+                            lastInterest: v.land_name || 'Property',
+                            seller_name: v.seller_name || 'Not Available',
+                            seller_phone: v.seller_phone || 'N/A',
+                            time: v.visit_time || 'TBD',
+                            date: v.visit_date || '',
+                            notes: v.internal_notes || '',
+                            status: v.status
+                        }));
+                    setClients(clientsList);
                 }
             } catch (err) { console.error('Clients fetch error:', err); }
             setLoading(false);
@@ -61,13 +62,14 @@ const AgentClientsPage = () => {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}` 
                 },
                 body: JSON.stringify({ 
-                    status: 'Accepted', // Keep current status
+                    status: client.status, // Preserve current status
                     internal_notes: tempNotes 
                 })
             });
             if (res.ok) {
                 setClients(prev => prev.map(c => c.visitId === client.visitId ? { ...c, notes: tempNotes } : c));
                 setEditingNotes(null);
+                toast.success('Notes updated successfully');
             } else {
                 toast.error('Cloud save failed. Please check connection.');
             }
@@ -86,8 +88,8 @@ const AgentClientsPage = () => {
     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
     const goToToday = () => setCurrentDate(new Date());
 
-    // Accepted visits for Agent
-    const activeSchedule = allVisits.filter(v => v.status === 'Accepted' || v.status === 'Completed');
+    // Accepted visits for Agent (Confirmed schedule)
+    const activeSchedule = allVisits.filter(v => v.status === 'Accepted');
     const scheduleByDate = activeSchedule.reduce((acc, v) => {
         const date = v.visit_date;
         if (!acc[date]) acc[date] = [];
@@ -96,15 +98,30 @@ const AgentClientsPage = () => {
     }, {});
     const sortedDates = Object.keys(scheduleByDate).sort((a, b) => new Date(a) - new Date(b));
 
-    const scrollToClient = (buyerName) => {
-        setHighlightedClient(buyerName);
-        const element = document.getElementById(`client-${buyerName.replace(/\s+/g, '-').toLowerCase()}`);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Remove highlight after a few seconds
-            setTimeout(() => setHighlightedClient(null), 3000);
-        }
+    const scrollToClient = (visitId) => {
+        setHighlightedClient(visitId);
+        // If the visit is filtered out, switch to 'all' to show it
+        const existsInFiltered = filteredClients.some(c => c.visitId === visitId);
+        if (!existsInFiltered) setFilterType('all');
+        
+        // Wait for re-render if we switched filter
+        setTimeout(() => {
+            const element = document.getElementById(`client-${visitId}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => setHighlightedClient(null), 3000);
+            }
+        }, existsInFiltered ? 0 : 100);
     };
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const filteredClients = clients.filter(c => {
+        if (filterType === 'today') return c.date === todayStr;
+        if (filterType === 'upcoming') return c.date > todayStr && c.status !== 'Completed';
+        if (filterType === 'completed') return c.date < todayStr || c.status === 'Completed';
+        return true;
+    });
 
     const renderCalendar = () => {
         const month = currentDate.getMonth();
@@ -146,11 +163,11 @@ const AgentClientsPage = () => {
                                         <div 
                                             key={v.id || v._id} 
                                             style={{ ...S.eventTag, cursor: 'pointer' }}
-                                            onClick={() => scrollToClient(v.buyer_name)}
+                                            onClick={() => scrollToClient(v.id || v._id)}
                                             title="Click to see client details"
                                         >
                                             <span style={S.eventDot}></span>
-                                            {v.visit_time} - {v.buyer_name} - {v.land_name}
+                                            {v.visit_time} - {v.buyer_name}
                                         </div>
                                     ))}
                                 </div>
@@ -169,26 +186,55 @@ const AgentClientsPage = () => {
                 <p style={S.subtitle}>Directory of buyers you are currently assisting.</p>
             </div>
 
+            <div style={S.filterBar}>
+                {['all', 'today', 'upcoming', 'completed'].map(f => (
+                    <button 
+                        key={f}
+                        style={{ ...S.filterBtn, ...(filterType === f ? S.activeFilterBtn : {}) }}
+                        onClick={() => setFilterType(f)}
+                    >
+                        {f.charAt(0).toUpperCase() + f.slice(1)}
+                        <span style={S.filterCount}>
+                            {f === 'all' ? clients.length : clients.filter(c => {
+                                if (f === 'today') return c.date === todayStr;
+                                if (f === 'upcoming') return c.date > todayStr && c.status !== 'Completed';
+                                if (f === 'completed') return c.date < todayStr || c.status === 'Completed';
+                                return false;
+                            }).length}
+                        </span>
+                    </button>
+                ))}
+            </div>
+
             <div style={S.clientGrid}>
-                {clients.length === 0 ? (
-                    <div style={S.emptyBox}>No active clients found in your assignments.</div>
+                {filteredClients.length === 0 ? (
+                    <div style={S.emptyBox}>No {filterType !== 'all' ? filterType : ''} clients found.</div>
                 ) : (
-                    clients.map((c, i) => (
+                    filteredClients.map((c, i) => (
                         <div 
-                            key={i} 
-                            id={`client-${c.name.replace(/\s+/g, '-').toLowerCase()}`}
+                            key={c.visitId} 
+                            id={`client-${c.visitId}`}
                             style={{
                                 ...S.clientCard,
-                                border: highlightedClient === c.name ? '2px solid #3498db' : '1px solid #F0F0F0',
-                                boxShadow: highlightedClient === c.name ? '0 12px 32px rgba(52, 152, 219, 0.2)' : '0 4px 20px rgba(0,0,0,0.03)',
+                                border: highlightedClient === c.visitId ? '2px solid #3498db' : '1px solid #F0F0F0',
+                                boxShadow: highlightedClient === c.visitId ? '0 12px 32px rgba(52, 152, 219, 0.2)' : '0 4px 20px rgba(0,0,0,0.03)',
                                 transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                                transform: highlightedClient === c.name ? 'scale(1.02)' : 'scale(1)'
+                                transform: highlightedClient === c.visitId ? 'scale(1.02)' : 'scale(1)'
                             }}
                         >
                             <div style={S.cardTop}>
                                 <div style={S.avatar}>{c.name.charAt(0)}</div>
                                 <div style={S.mainInfo}>
-                                    <h3 style={S.clientName}>{c.name} <span style={{fontSize: '0.7rem', fontWeight: 500, color: '#888', marginLeft: '5px'}}>(Buyer)</span></h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <h3 style={S.clientName}>{c.name}</h3>
+                                        <span style={{
+                                            ...S.statusBadge,
+                                            background: c.status === 'Completed' ? '#e8f5e9' : c.status === 'Assigned' ? '#fff3e0' : '#e3f2fd',
+                                            color: c.status === 'Completed' ? '#2e7d32' : c.status === 'Assigned' ? '#ef6c00' : '#1565c0'
+                                        }}>
+                                            {c.status}
+                                        </span>
+                                    </div>
                                     <span style={S.clientPhone}>TEL: {c.phone}</span>
                                 </div>
                             </div>
@@ -200,8 +246,8 @@ const AgentClientsPage = () => {
                                     <span style={S.addressValue}>{c.address}</span>
                                 </div>
                                 <div style={S.infoItem}>
-                                    <span style={S.labelSmall}>Scheduled Visit</span>
-                                    <span style={S.timeValue}>TIME: {c.time}</span>
+                                    <span style={S.labelSmall}>{c.status === 'Completed' ? 'Visit Conducted' : 'Scheduled Visit'}</span>
+                                    <span style={S.timeValue}>{c.date} at {c.time}</span>
                                 </div>
                             </div>
 
@@ -216,13 +262,13 @@ const AgentClientsPage = () => {
                             <div style={S.notesSection}>
                                 <div style={S.notesHeader}>
                                     <span style={S.labelExtraSmall}>Confidential Agent Notes</span>
-                                    {editingNotes !== c.name ? (
-                                        <button style={S.editNoteBtn} onClick={() => { setEditingNotes(c.name); setTempNotes(c.notes); }}>Edit Notes</button>
+                                    {editingNotes !== c.visitId ? (
+                                        <button style={S.editNoteBtn} onClick={() => { setEditingNotes(c.visitId); setTempNotes(c.notes); }}>Edit Notes</button>
                                     ) : (
                                         <button style={S.saveNoteBtn} onClick={() => handleSaveNotes(c)}>Save to Cloud</button>
                                     )}
                                 </div>
-                                {editingNotes === c.name ? (
+                                {editingNotes === c.visitId ? (
                                     <textarea
                                         style={S.notesInput}
                                         value={tempNotes}
@@ -259,6 +305,12 @@ const S = {
     subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem' },
 
     clientGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' },
+    
+    filterBar: { display: 'flex', gap: '12px', marginBottom: '32px', flexWrap: 'wrap' },
+    filterBtn: { padding: '10px 20px', borderRadius: '12px', border: '1px solid var(--color-border)', background: '#fff', color: 'var(--color-text-soft)', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' },
+    activeFilterBtn: { background: 'var(--color-dark)', color: '#fff', borderColor: 'var(--color-dark)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
+    filterCount: { background: 'rgba(0,0,0,0.05)', padding: '2px 8px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800' },
+
     clientCard: { background: '#fff', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '20px' },
 
     cardTop: { display: 'flex', gap: '16px', alignItems: 'center' },
@@ -266,6 +318,7 @@ const S = {
     mainInfo: { display: 'flex', flexDirection: 'column', gap: '4px' },
     clientName: { margin: 0, fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)' },
     clientPhone: { fontSize: '0.9rem', color: '#555', fontWeight: '700' },
+    statusBadge: { padding: '2px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase' },
 
     infoGrid: { display: 'flex', flexDirection: 'column', gap: '16px' },
     infoItem: { display: 'flex', flexDirection: 'column', gap: '4px' },

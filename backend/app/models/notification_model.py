@@ -9,6 +9,8 @@ class NotificationType(str, enum.Enum):
     bid_outbid = "bid_outbid"
     bid_closed = "bid_closed"
     general = "general"
+    system = "system"
+    service_update = "service_update"
 
 class Notification(Document):
     user_id: PydanticObjectId

@@ -8,6 +8,7 @@ from app.models.service_booking_model import ServiceBooking
 from app.models.land_model import Land
 from app.models.user_model import User
 from app.models.constructor_team_model import ConstructorTeam
+from app.models.notification_model import Notification, NotificationType
 from app.schemas.service_booking_schema import (
     ServiceBookingCreate, ServiceBookingUpdate,
     ServiceBookingStatusUpdate, ServiceBookingResponse,
@@ -76,6 +77,19 @@ async def create_booking(
         status="Pending",
     )
     await booking.insert()
+
+    # Notify Admins
+    admins = await User.find(User.role == "admin").to_list()
+    for admin in admins:
+        notif = Notification(
+            user_id=admin.id,
+            type=NotificationType.system,
+            title="New Service Request",
+            message=f"{current_user.full_name} has requested a new '{data.service_type}' service. Please assign a constructor.",
+            link="/dashboard/admin"  # or specific assignment page if available
+        )
+        await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -203,6 +217,17 @@ async def assign_constructor(
     booking.status = "Pending"
     booking.updated_at = datetime.utcnow()
     await booking.save()
+
+    # Notify Constructor
+    notif = Notification(
+        user_id=constructor.id,
+        type=NotificationType.system,
+        title="New Project Request",
+        message=f"Admin assigned a new '{booking.service_type}' project to your team.",
+        link="/dashboard/service-requests"
+    )
+    await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -255,6 +280,17 @@ async def update_status(
     booking.status = data.status
     booking.updated_at = datetime.utcnow()
     await booking.save()
+
+    # Notify Buyer
+    notif = Notification(
+        user_id=booking.buyer_id,
+        type=NotificationType.system,
+        title="Project Status Update",
+        message=f"Your '{booking.service_type}' project status was updated to {data.status}.",
+        link="/dashboard/services"
+    )
+    await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -280,6 +316,17 @@ async def submit_quote(
     booking.status = "Quote Submitted"
     booking.updated_at = datetime.utcnow()
     await booking.save()
+
+    # Notify Buyer
+    notif = Notification(
+        user_id=booking.buyer_id,
+        type=NotificationType.service_update,
+        title="New Quote Received",
+        message=f"Constructor submitted a quote of Rs. {data.quote_amount:,.2f} for your '{booking.service_type}' project.",
+        link="/dashboard/services"
+    )
+    await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -299,6 +346,18 @@ async def approve_quote(
     booking.status = "Accepted"
     booking.updated_at = datetime.utcnow()
     await booking.save()
+
+    # Notify Constructor
+    if booking.constructor_id:
+        notif = Notification(
+            user_id=booking.constructor_id,
+            type=NotificationType.service_update,
+            title="Quote Approved",
+            message=f"The buyer approved your quote for the '{booking.service_type}' project.",
+            link="/dashboard/service-requests"
+        )
+        await notif.insert()
+
     return await _build_response(booking)
 
 

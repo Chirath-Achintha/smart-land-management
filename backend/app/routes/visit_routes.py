@@ -70,7 +70,7 @@ async def book_visit(
     if not land:
         raise HTTPException(status_code=404, detail="Land not found")
 
-    # NEW: Prevent double-booking across ALL properties
+    # VALIDATION 1: Prevent the buyer from double-booking themselves (Different lands at the same time)
     conflict = await Visit.find_one(
         Visit.buyer_id == current_user.id,
         Visit.visit_date == data.visit_date,
@@ -83,7 +83,7 @@ async def book_visit(
             detail=f"You already have a visit request for {data.visit_date} at {data.visit_time}. Please pick a different time slot."
         )
 
-    # Prevent duplicate pending visit (ANY TYPE) for same buyer/land
+    # VALIDATION 2: Prevent multiple pending requests for the SAME land by the same buyer
     existing = await Visit.find_one(
         Visit.land_id == land_id,
         Visit.buyer_id == current_user.id,

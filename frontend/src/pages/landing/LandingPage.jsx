@@ -21,8 +21,8 @@ const LandingPage = () => {
         fetch(`${API}/lands/`)
             .then(r => r.json())
             .then(data => {
-                // Take up to 3 lands for the featured section
-                setLands(Array.isArray(data) ? data.slice(0, 3) : []);
+                // Take up to 4 lands to fill the 4-column grid row
+                setLands(Array.isArray(data) ? data.slice(0, 4) : []);
                 setLoading(false);
             })
             .catch(() => {

@@ -469,7 +469,7 @@ const AdminDashboard = () => {
     }, []);
 
     return (
-        <div style={S.root}>
+        <div className="page-fade" style={S.root}>
             <div style={S.header}>
                 <h1 style={S.title}>Admin Dashboard</h1>
                 <p style={S.subtitle}>
@@ -482,7 +482,8 @@ const AdminDashboard = () => {
                 {stats.map((c, i) => (
                     <div
                         key={i}
-                        style={{ ...S.card, borderTop: `4px solid ${c.color}` }}
+                        className="ui-card"
+                        style={{ ...S.card, borderTop: `4px solid ${c.color}`, cursor: 'pointer' }}
                         onClick={() => navigate(c.route)}
                     >
                         <div style={{ ...S.statVal, color: c.color }}>{c.count}</div>
@@ -557,7 +558,7 @@ const AdminDashboard = () => {
             <div style={S.dashboardContent}>
                 <div style={S.mainColumn}>
                     {/* Quick Actions */}
-                    <div style={S.sectionCard}>
+                    <div className="ui-card page-fade" style={S.sectionCard}>
                         <h2 style={S.sectionTitle}>System Management</h2>
                         <div style={S.btnRow}>
                             <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/users')}>
@@ -570,7 +571,7 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* Land Verification */}
-                    <div style={S.sectionCard}>
+                    <div className="ui-card page-fade" style={S.sectionCard}>
                         <div style={S.cardHeader}>
                             <h2 style={S.sectionTitle}>Land Management</h2>
                             <div style={S.tabActions}>
@@ -645,7 +646,7 @@ const AdminDashboard = () => {
 
                 <div style={S.sideColumn}>
                     {/* System Status Activity */}
-                    <div style={S.sectionCard}>
+                    <div className="ui-card page-fade" style={S.sectionCard}>
                         <h2 style={S.sectionTitle}>System Logs</h2>
                         <div style={S.activityList}>
                             {[
@@ -785,12 +786,12 @@ const AdminDashboard = () => {
 };
 
 const S = {
-    root: { background: 'var(--color-bg)', minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
+    root: { minHeight: '100%', padding: '40px', fontFamily: "'DM Sans', sans-serif" },
     header: { marginBottom: '36px' },
     title: { fontSize: '2rem', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' },
     subtitle: { color: 'var(--color-text-soft)', fontSize: '1rem' },
     cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '40px' },
-    card: { background: 'var(--color-surface)', borderRadius: '16px', padding: '32px 28px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.3s ease, box-shadow 0.3s ease', cursor: 'default' },
+    card: { padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: '8px' },
     statVal: { fontSize: '2.8rem', fontWeight: '800', lineHeight: 1 },
     statLabel: { fontSize: '0.85rem', color: 'var(--color-text-soft)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
 
@@ -798,7 +799,7 @@ const S = {
     mainColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
     sideColumn: { display: 'flex', flexDirection: 'column', gap: '32px' },
 
-    sectionCard: { background: 'var(--color-surface)', borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-soft)', border: '1px solid var(--color-border)' },
+    sectionCard: { padding: '32px' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--color-border-light)', paddingBottom: '16px' },
     sectionTitle: { fontSize: '1.2rem', fontWeight: '800', color: 'var(--color-dark)', margin: 0 },
     tabActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },

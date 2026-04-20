@@ -12,6 +12,7 @@ const InquiryPage = () => {
     const [useCustomType, setUseCustomType] = useState(false);
     const [customType, setCustomType] = useState('');
     const [message, setMessage] = useState('');
+    const [messageError, setMessageError] = useState('');
     const [selectedDistrict, setSelectedDistrict] = useState('');
     const [selectedLandId, setSelectedLandId] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -28,6 +29,7 @@ const InquiryPage = () => {
     const [editTitle, setEditTitle] = useState('');
     const [editType, setEditType] = useState('General');
     const [editMessage, setEditMessage] = useState('');
+    const [editMessageError, setEditMessageError] = useState('');
     const [editLandId, setEditLandId] = useState('');
     const [editDistrict, setEditDistrict] = useState('');
 
@@ -55,6 +57,24 @@ const InquiryPage = () => {
 
         if (!/^[A-Za-z0-9 _-]*$/.test(trimmed)) {
             return 'Use only letters, numbers, spaces, underscore (_), or hyphen (-).';
+        }
+
+        return '';
+    };
+
+    const validateMessage = (value) => {
+        const trimmed = value.trim();
+
+        if (!trimmed) {
+            return 'Message details cannot be empty.';
+        }
+
+        if (trimmed.length < 10) {
+            return `Message must be at least 10 characters long (currently ${trimmed.length}).`;
+        }
+
+        if (trimmed.length > 1000) {
+            return `Message must not exceed 1000 characters (currently ${trimmed.length}).`;
         }
 
         return '';
@@ -118,11 +138,17 @@ const InquiryPage = () => {
 
     const handleUpdate = async (e) => {
         e.preventDefault();
-        setSubmitError(''); setSubmitMsg('');
+        setSubmitError(''); setSubmitMsg(''); setEditMessageError('');
 
         const normalizedEditType = normalizeInquiryType(editType);
         if (normalizedEditType === 'Listing' && !editLandId) {
             setSubmitError('Please select a land for listing inquiries.');
+            return;
+        }
+
+        const messageValidationError = validateMessage(editMessage);
+        if (messageValidationError) {
+            setEditMessageError(messageValidationError);
             return;
         }
 
@@ -178,7 +204,7 @@ const InquiryPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setSubmitError(''); setSubmitMsg('');
+        setSubmitError(''); setSubmitMsg(''); setMessageError('');
 
         if (!token) {
             navigate('/login');
@@ -200,6 +226,12 @@ const InquiryPage = () => {
 
         if (!useCustomType && type === 'Listing' && !selectedLandId) {
             setSubmitError('Please select a land for listing inquiries.');
+            return;
+        }
+
+        const messageValidationError = validateMessage(message);
+        if (messageValidationError) {
+            setMessageError(messageValidationError);
             return;
         }
 
@@ -402,12 +434,24 @@ const InquiryPage = () => {
                                 <div style={S.inputGroup}>
                                     <label style={S.label}>Message Details</label>
                                     <textarea
-                                        style={{ ...S.input, height: '130px', resize: 'vertical' }}
-                                        placeholder="Describe your inquiry in detail…"
+                                        style={{
+                                            ...S.input,
+                                            height: '130px',
+                                            resize: 'vertical',
+                                            borderColor: messageError ? '#F56565' : S.input.borderColor,
+                                            backgroundColor: messageError ? '#FFF5F5' : S.input.backgroundColor
+                                        }}
+                                        placeholder="Describe your inquiry in detail… (Min: 10 characters, Max: 1000 characters)"
                                         value={message}
-                                        onChange={e => setMessage(e.target.value)}
+                                        onChange={e => {
+                                            setMessage(e.target.value);
+                                            if (messageError) setMessageError('');
+                                        }}
+                                        maxLength={1000}
                                         required
                                     />
+                                    {messageError && <p style={{ color: '#F56565', fontSize: '0.875rem', marginTop: '6px' }}>⚠️ {messageError}</p>}
+                                    <p style={{ fontSize: '0.75rem', color: '#999', marginTop: '4px' }}>{message.trim().length}/1000 characters</p>
                                 </div>
 
                                 <button type="submit" style={S.submitBtn} disabled={submitting}>
@@ -514,11 +558,24 @@ const InquiryPage = () => {
                                                 <div style={S.inputGroup}>
                                                     <label style={S.label}>Message Details</label>
                                                     <textarea
-                                                        style={{ ...S.input, height: '100px', resize: 'vertical' }}
+                                                        style={{
+                                                            ...S.input,
+                                                            height: '100px',
+                                                            resize: 'vertical',
+                                                            borderColor: editMessageError ? '#F56565' : S.input.borderColor,
+                                                            backgroundColor: editMessageError ? '#FFF5F5' : S.input.backgroundColor
+                                                        }}
+                                                        placeholder="Min: 10 characters, Max: 1000 characters"
                                                         value={editMessage}
-                                                        onChange={e => setEditMessage(e.target.value)}
+                                                        onChange={e => {
+                                                            setEditMessage(e.target.value);
+                                                            if (editMessageError) setEditMessageError('');
+                                                        }}
+                                                        maxLength={1000}
                                                         required
                                                     />
+                                                    {editMessageError && <p style={{ color: '#F56565', fontSize: '0.875rem', marginTop: '6px' }}>⚠️ {editMessageError}</p>}
+                                                    <p style={{ fontSize: '0.75rem', color: '#999', marginTop: '4px' }}>{editMessage.trim().length}/1000 characters</p>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '10px' }}>
                                                     <button type="submit" style={{ ...S.submitBtn, flex: 1, marginTop: 0 }}>Save Changes</button>

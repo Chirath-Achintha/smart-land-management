@@ -175,7 +175,6 @@ const EMPTY_PREDICT_FORM = {
     electricity: false,
     water: false,
     distance_to_town_km: '',
-    distance_to_city_km: '',
 };
 
 function calcTotal(perches, ppp) {
@@ -220,7 +219,7 @@ const SellerListingsPage = () => {
     const [showPredictor, setShowPredictor] = useState(false);
     const [predictForm, setPredictForm] = useState(EMPTY_PREDICT_FORM);
     const [isPredictVillageCustomInput, setIsPredictVillageCustomInput] = useState(false);
-    const [predictFieldErrors, setPredictFieldErrors] = useState({ district: '', village: '', perches: '', distance_to_town_km: '', distance_to_city_km: '' });
+    const [predictFieldErrors, setPredictFieldErrors] = useState({ district: '', village: '', perches: '', distance_to_town_km: '' });
     const [predictionResult, setPredictionResult] = useState(null);
     const [predicting, setPredicting] = useState(false);
     const totalPrice = calcTotal(form.perches, form.price_per_perch);
@@ -368,7 +367,10 @@ const SellerListingsPage = () => {
     const [isDragging, setIsDragging] = useState(false);
 
     const uploadSingleImage = async (file) => {
-        const landNameForFolder = (form.name || '').trim() || 'untitled-land';
+        const landNameForFolder = (form.name || '').trim();
+        if (!landNameForFolder) {
+            throw new Error('Please enter the land name before uploading images.');
+        }
         const formData = new FormData();
         formData.append('file', file);
         formData.append('land_name', landNameForFolder);
@@ -384,6 +386,11 @@ const SellerListingsPage = () => {
 
     const handleUploadMany = async (files) => {
         if (!files || files.length === 0) return;
+
+        if (!(form.name || '').trim()) {
+            setError('Enter the property name first. Images are saved inside that land-name folder.');
+            return;
+        }
 
         const existingUrls = getImageUrls(form.image_url);
         const remainingSlots = MAX_IMAGES - existingUrls.length;
@@ -479,7 +486,6 @@ const SellerListingsPage = () => {
     const handlePredict = async () => {
         const perchesValue = Number(predictForm.perches);
         const townDistanceValue = Number(predictForm.distance_to_town_km);
-        const cityDistanceValue = Number(predictForm.distance_to_city_km);
 
         const nextPredictErrors = {
             district: !predictForm.district ? 'District is required.' : '',
@@ -487,9 +493,6 @@ const SellerListingsPage = () => {
             perches: !Number.isFinite(perchesValue) || perchesValue <= 0 ? 'Perches must be greater than zero.' : '',
             distance_to_town_km: predictForm.distance_to_town_km === '' || !Number.isFinite(townDistanceValue) || townDistanceValue < 0
                 ? 'Distance to town must be zero or greater.'
-                : '',
-            distance_to_city_km: predictForm.distance_to_city_km === '' || !Number.isFinite(cityDistanceValue) || cityDistanceValue < 0
-                ? 'Distance to city must be zero or greater.'
                 : '',
         };
 
@@ -512,7 +515,6 @@ const SellerListingsPage = () => {
                 electricity: !!predictForm.electricity,
                 water: !!predictForm.water,
                 distance_to_town_km: townDistanceValue,
-                distance_to_city_km: cityDistanceValue,
             };
             const res = await fetch(`${API}/lands/predict-price`, {
                 method: 'POST',
@@ -709,7 +711,7 @@ const SellerListingsPage = () => {
                             setShowPredictor(true);
                             setPredictionResult(null);
                             setError('');
-                            setPredictFieldErrors({ district: '', village: '', perches: '', distance_to_town_km: '', distance_to_city_km: '' });
+                            setPredictFieldErrors({ district: '', village: '', perches: '', distance_to_town_km: '' });
                             setIsPredictVillageCustomInput(!!(form.village && !((DISTRICT_VILLAGE_AREAS[form.district] || []).includes(form.village))));
                             setPredictForm({
                                 district: form.district || '',
@@ -720,7 +722,6 @@ const SellerListingsPage = () => {
                                 electricity: !!form.electricity,
                                 water: !!form.water,
                                 distance_to_town_km: form.distance_to_town_km || '',
-                                distance_to_city_km: '',
                             });
                         }}
                     >
@@ -1290,25 +1291,6 @@ const SellerListingsPage = () => {
                                 />
                                 {predictFieldErrors.distance_to_town_km && <span style={S.fieldError}>{predictFieldErrors.distance_to_town_km}</span>}
                             </div>
-                            <div style={S.formGroup}>
-                                <label style={S.label}>Distance to City (km)</label>
-                                <input
-                                    className="no-number-spinner"
-                                    type="number"
-                                    min="0"
-                                    step="0.1"
-                                    value={predictForm.distance_to_city_km}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        setPredictForm({ ...predictForm, distance_to_city_km: value });
-                                        if (value !== '' && Number(value) >= 0) {
-                                            setPredictFieldErrors((prev) => ({ ...prev, distance_to_city_km: '' }));
-                                        }
-                                    }}
-                                    style={S.input}
-                                />
-                                {predictFieldErrors.distance_to_city_km && <span style={S.fieldError}>{predictFieldErrors.distance_to_city_km}</span>}
-                            </div>
                             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '24px' }}>
                                 <label style={S.checkLabel}>
                                     <input
@@ -1327,7 +1309,7 @@ const SellerListingsPage = () => {
                             </div>
                             <button 
                                 onClick={handlePredict} 
-                                disabled={!predictForm.district || !predictForm.village || !predictForm.perches || predictForm.distance_to_town_km === '' || predictForm.distance_to_city_km === '' || predicting}
+                                disabled={!predictForm.district || !predictForm.village || !predictForm.perches || predictForm.distance_to_town_km === '' || predicting}
                                 style={{ ...S.saveBtn, background: '#1A52E8', marginTop: '10px', gridColumn: '1 / -1' }}
                             >
                                 {predicting ? 'Analyzing...' : 'Predict Market Value'}
@@ -1374,6 +1356,10 @@ const SellerListingsPage = () => {
                                                     distance_to_town_km: predictForm.distance_to_town_km,
                                                     price_per_perch: Number(predictionResult.predicted_price_per_perch || 0).toFixed(2),
                                                 }));
+                                                setEditingId(null);
+                                                setAnomalyWarning(null);
+                                                setError('');
+                                                setShowForm(true);
                                                 setShowPredictor(false);
                                             }}
                                         >

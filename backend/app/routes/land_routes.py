@@ -74,6 +74,27 @@ def get_local_uploaded_image_paths(image_url_value: str) -> List[str]:
     return resolved_paths
 
 
+def get_local_uploaded_image_dirs(image_url_value: str) -> List[str]:
+    dirs: List[str] = []
+    seen = set()
+
+    for image_path in get_local_uploaded_image_paths(image_url_value):
+        image_dir = os.path.dirname(image_path)
+        if not image_dir:
+            continue
+        try:
+            if os.path.commonpath([UPLOAD_ROOT, image_dir]) != UPLOAD_ROOT:
+                continue
+        except ValueError:
+            continue
+
+        if image_dir not in seen:
+            seen.add(image_dir)
+            dirs.append(image_dir)
+
+    return dirs
+
+
 async def attach_bidding_data(land: Land) -> Land:
     bidding = await BiddingSetup.find_one(BiddingSetup.land_id == land.id)
     if bidding:
@@ -126,8 +147,14 @@ def ensure_admin(user: User):
 @router.post("/upload")
 async def upload_image(
     file: UploadFile = File(...),
-    land_name: str = Form("untitled-land")
+    land_name: str = Form(...)
 ):
+    if not (land_name or "").strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="land_name is required"
+        )
+
     # Create /static/uploads/{land-name} and keep each land's files grouped.
     land_folder = sanitize_land_folder_name(land_name)
     land_upload_root = os.path.join(UPLOAD_ROOT, land_folder)
@@ -505,6 +532,7 @@ async def delete_land(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Land not found")
 
     image_paths = get_local_uploaded_image_paths(land.image_url or "")
+    image_dirs = get_local_uploaded_image_dirs(land.image_url or "")
     
     # Also delete associated bidding setup
     bidding = await BiddingSetup.find_one(BiddingSetup.land_id == land_id)
@@ -520,3 +548,21 @@ async def delete_land(
             except OSError:
                 # Ignore filesystem errors so land deletion is not blocked.
                 pass
+
+    # Remove land image folders that are no longer referenced by any other listing.
+    if image_dirs:
+        remaining_lands = await Land.find(Land.image_url != None).to_list()
+        used_dirs = set()
+        for remaining_land in remaining_lands:
+            for folder_path in get_local_uploaded_image_dirs(remaining_land.image_url or ""):
+                used_dirs.add(folder_path)
+
+        for folder_path in image_dirs:
+            if folder_path in used_dirs:
+                continue
+            if os.path.isdir(folder_path):
+                try:
+                    shutil.rmtree(folder_path)
+                except OSError:
+                    # Ignore filesystem errors so land deletion is not blocked.
+                    pass

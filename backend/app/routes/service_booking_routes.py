@@ -4,6 +4,7 @@ from beanie import PydanticObjectId
 from datetime import datetime
 
 from app.models.service_booking_model import ServiceBooking
+from app.models.notification_model import Notification, NotificationType
 from beanie.operators import In
 
 from app.models.land_model import Land
@@ -77,6 +78,19 @@ async def create_booking(
         status="Pending",
     )
     await booking.insert()
+
+    # Notify Admins
+    admins = await User.find(User.role == "admin").to_list()
+    for admin in admins:
+        notif = Notification(
+            user_id=admin.id,
+            type=NotificationType.general,
+            title="New Service Booking Requested",
+            message=f"A new {data.service_type} service has been requested. Please assign a constructor team.",
+            link="/dashboard/admin/services"
+        )
+        await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -204,6 +218,17 @@ async def assign_constructor(
     booking.status = "Pending"
     booking.updated_at = datetime.utcnow()
     await booking.save()
+
+    # Notify Constructor
+    notif = Notification(
+        user_id=constructor.id,
+        type=NotificationType.general,
+        title="New Service Booking Assigned",
+        message=f"You have been assigned a new {booking.service_type} booking. Please review it on your dashboard.",
+        link="/dashboard/service-requests"
+    )
+    await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -256,6 +281,17 @@ async def update_status(
     booking.status = data.status
     booking.updated_at = datetime.utcnow()
     await booking.save()
+
+    # Notify Buyer
+    notif = Notification(
+        user_id=booking.buyer_id,
+        type=NotificationType.general,
+        title="Service Booking Status Update",
+        message=f"Your {booking.service_type} booking status has been updated to {data.status}.",
+        link="/dashboard/services"
+    )
+    await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -281,6 +317,17 @@ async def submit_quote(
     booking.status = "Quote Submitted"
     booking.updated_at = datetime.utcnow()
     await booking.save()
+
+    # Notify Buyer
+    notif = Notification(
+        user_id=booking.buyer_id,
+        type=NotificationType.general,
+        title="Service Quote Received",
+        message=f"You have received a quote of LKR {booking.quote_amount} for your {booking.service_type} booking.",
+        link="/dashboard/services"
+    )
+    await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -300,6 +347,18 @@ async def approve_quote(
     booking.status = "Accepted"
     booking.updated_at = datetime.utcnow()
     await booking.save()
+
+    # Notify Constructor
+    if booking.constructor_id:
+        notif = Notification(
+            user_id=booking.constructor_id,
+            type=NotificationType.general,
+            title="Service Quote Accepted",
+            message=f"The buyer has accepted your quote for the {booking.service_type} booking.",
+            link="/dashboard/projects"
+        )
+        await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -324,6 +383,17 @@ async def add_milestone(
     new_milestone = Milestone(title=data.title)
     booking.milestones.append(new_milestone)
     await booking.save()
+
+    # Notify Buyer
+    notif = Notification(
+        user_id=booking.buyer_id,
+        type=NotificationType.general,
+        title="New Project Milestone",
+        message=f"A new milestone '{data.title}' has been added to your {booking.service_type} project.",
+        link="/dashboard/services"
+    )
+    await notif.insert()
+
     return await _build_response(booking)
 
 
@@ -346,6 +416,16 @@ async def toggle_milestone(
     for m in booking.milestones:
         if m.id == milestone_id:
             m.is_completed = not m.is_completed
+            # Notify Buyer
+            status_str = "completed" if m.is_completed else "marked incomplete"
+            notif = Notification(
+                user_id=booking.buyer_id,
+                type=NotificationType.general,
+                title="Milestone Update",
+                message=f"The milestone '{m.title}' has been {status_str} in your {booking.service_type} project.",
+                link="/dashboard/services"
+            )
+            await notif.insert()
             break
     else:
         raise HTTPException(status_code=404, detail="Milestone not found")

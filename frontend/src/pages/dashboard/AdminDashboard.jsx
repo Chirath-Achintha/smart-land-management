@@ -47,6 +47,11 @@ const AdminDashboard = () => {
     const [editError, setEditError] = useState('');
 
     const getToken = () => localStorage.getItem('access_token');
+    const cleanEnumValue = (value) => {
+        if (!value) return '-';
+        const text = String(value);
+        return text.includes('.') ? text.split('.').pop() : text;
+    };
 
     const fetchSellerLandGroups = async () => {
         const token = getToken();
@@ -324,6 +329,11 @@ const AdminDashboard = () => {
             });
 
             if (!res.ok) {
+                // Keep showing the already available row data in preview modal
+                // instead of surfacing a noisy "Land not found" banner.
+                if (res.status === 404) {
+                    return;
+                }
                 const err = await res.json().catch(() => ({}));
                 throw new Error(err.detail || 'Failed to load full land details.');
             }
@@ -381,7 +391,7 @@ const AdminDashboard = () => {
                             {land.village}, {land.district} | {land.perches} perches | Rs. {Number(land.total_price || 0).toLocaleString()}
                         </div>
                         <div style={S.landMeta}>
-                            Status: {land.status} | Verification: {land.is_verified ? 'Verified' : 'Pending'}
+                            Status: {cleanEnumValue(land.status)} | Verification: {land.is_verified ? 'Verified' : 'Pending'}
                         </div>
                         <div style={S.landMeta}>
                             AI Price Analysis: {land.is_anomaly ? (
@@ -529,7 +539,7 @@ const AdminDashboard = () => {
                                         <div style={S.previewDetailItem}><span style={S.previewLabel}>Price / Perch</span><span style={S.previewValue}>Rs. {Number(previewLand.price_per_perch || 0).toLocaleString()}</span></div>
                                         <div style={S.previewDetailItem}><span style={S.previewLabel}>Total Price</span><span style={S.previewValue}>Rs. {Number(previewLand.total_price || 0).toLocaleString()}</span></div>
                                         <div style={S.previewDetailItem}><span style={S.previewLabel}>Road Access</span><span style={S.previewValue}>{previewLand.road_access || '-'}</span></div>
-                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Status</span><span style={S.previewValue}>{previewLand.status || '-'}</span></div>
+                                        <div style={S.previewDetailItem}><span style={S.previewLabel}>Status</span><span style={S.previewValue}>{cleanEnumValue(previewLand.status)}</span></div>
                                         <div style={S.previewDetailItem}><span style={S.previewLabel}>Verification</span><span style={S.previewValue}>{previewLand.is_verified ? 'Verified' : 'Pending'}</span></div>
                                         <div style={S.previewDetailItem}><span style={S.previewLabel}>Electricity</span><span style={S.previewValue}>{previewLand.electricity ? 'Yes' : 'No'}</span></div>
                                         <div style={S.previewDetailItem}><span style={S.previewLabel}>Water</span><span style={S.previewValue}>{previewLand.water ? 'Yes' : 'No'}</span></div>

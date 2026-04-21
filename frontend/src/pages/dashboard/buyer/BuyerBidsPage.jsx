@@ -92,7 +92,13 @@ const BuyerBidsPage = () => {
                 fetchData();
             } else {
                 const err = await res.json();
-                alert(`Error: ${err.detail || 'Failed to respond.'}`);
+                let detail = err?.detail;
+                if (Array.isArray(detail)) {
+                    detail = detail.map(d => d?.msg || JSON.stringify(d)).join(', ');
+                } else if (typeof detail === 'object' && detail !== null) {
+                    detail = JSON.stringify(detail);
+                }
+                alert(`Error: ${detail || 'Failed to respond.'}`);
             }
         } catch {
             alert('Server error.');
@@ -126,12 +132,14 @@ const BuyerBidsPage = () => {
                     </div>
                 ) : (
                     <div style={S.grid}>
-                        {myBids.map(bid => (
-                            <div key={bid.id} style={{ ...S.card, border: bid.is_winner ? '2px solid #FFD700' : '1px solid #F0EBE4' }}>
+                        {myBids.map(bid => {
+                            const bidId = bid.id || bid._id;
+                            return (
+                            <div key={bidId} style={{ ...S.card, border: bid.is_winner ? '2px solid #FFD700' : '1px solid #F0EBE4' }}>
                                 {bid.is_winner && <div style={S.winnerMedal}>🏆 WINNER</div>}
                                 <div style={S.cardHeader}>
                                     <h3 style={S.landName}>{bid.land_name || `Land #${bid.land_id}`}</h3>
-                                    <span style={S.bidId}>BID ID: {String(bid.id).slice(-8).toUpperCase()}</span>
+                                    <span style={S.bidId}>BID ID: {bidId ? String(bidId).slice(-8).toUpperCase() : 'N/A'}</span>
                                 </div>
                                 <div style={S.details}>
                                     <div style={S.detailRow}>
@@ -158,13 +166,13 @@ const BuyerBidsPage = () => {
                                             <>
                                                 <button
                                                     style={{ ...S.viewBtn, background: '#27ae60', color: '#FFF', border: 'none' }}
-                                                    onClick={() => handleRespond(bid.id, 'accept')}
+                                                    onClick={() => handleRespond(bidId, 'accept')}
                                                 >
                                                     Accept Win
                                                 </button>
                                                 <button
                                                     style={{ ...S.viewBtn, background: '#e74c3c', color: '#FFF', border: 'none' }}
-                                                    onClick={() => handleRespond(bid.id, 'decline')}
+                                                    onClick={() => handleRespond(bidId, 'decline')}
                                                 >
                                                     Decline
                                                 </button>
@@ -192,7 +200,8 @@ const BuyerBidsPage = () => {
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 

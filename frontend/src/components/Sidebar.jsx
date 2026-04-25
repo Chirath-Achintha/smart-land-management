@@ -7,6 +7,7 @@ const NAV = {
     buyer: [
         { to: '/dashboard', label: 'Overview' },
         { to: '/dashboard/bids', label: 'My Biddings' },
+        { to: '/dashboard/purchased-lands', label: 'My Purchased Lands' },
         { to: '/dashboard/visits', label: ' My Site Visits' },
         { to: '/dashboard/properties', label: 'Saved Properties' },
         { to: '/dashboard/services', label: 'Service Requests' },

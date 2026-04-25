@@ -38,7 +38,7 @@ const LandDetailPage = () => {
     const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
 
     // ── Tab state ──────────────────────────────────────────────────────────────
-    const [activeTab, setActiveTab] = useState('property'); // 'property' | 'services'
+    const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'property'); // 'property' | 'services'
 
     // ── Service booking modal state ────────────────────────────────────────────
     const [bookingService, setBookingService] = useState(null);   // null | { type, icon, desc, estimate }

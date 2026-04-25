@@ -64,6 +64,14 @@ const BuyerDashboard = () => {
                 </div>
 
                 <div style={S.card}>
+                    <h2 style={S.cardTitle}>Purchased Lands</h2>
+                    <p style={S.cardText}>Manage your owned properties and book construction services.</p>
+                    <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/purchased-lands')}>
+                        Open Portfolio
+                    </button>
+                </div>
+
+                <div style={S.card}>
                     <h2 style={S.cardTitle}>Saved Properties</h2>
                     <p style={S.cardText}>Keep your shortlisted properties in one place.</p>
                     <button className="btn-dark" style={S.actionBtn} onClick={() => navigate('/dashboard/properties')}>

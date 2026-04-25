@@ -41,6 +41,7 @@ import ConstructorCalendarPage from '../pages/dashboard/constructor/ConstructorC
 // Buyer Sub-pages
 import BuyerBidsPage from '../pages/dashboard/buyer/BuyerBidsPage';
 import BuyerVisitsPage from '../pages/dashboard/buyer/BuyerVisitsPage';
+import BuyerPurchasedLandsPage from '../pages/dashboard/buyer/BuyerPurchasedLandsPage';
 
 // Seller Sub-pages
 import SellerListingsPage from '../pages/dashboard/seller/SellerListingsPage';
@@ -130,6 +131,7 @@ const AppRoutes = () => {
 
                     {/* Buyer Sub-pages */}
                     <Route path="/dashboard/bids" element={<BuyerBidsPage />} />
+                    <Route path="/dashboard/purchased-lands" element={<BuyerPurchasedLandsPage />} />
                     <Route path="/dashboard/visits" element={<BuyerVisitsPage />} />
                     <Route
                         path="/dashboard/services"

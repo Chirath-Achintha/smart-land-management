@@ -67,6 +67,20 @@ async def create_booking(
     data: ServiceBookingCreate,
     current_user: User = Depends(get_current_user)
 ):
+    if data.land_id:
+        from app.models.bid_model import Bid, BidStatus
+        land_id = PydanticObjectId(data.land_id)
+        won_bid = await Bid.find_one(
+            Bid.land_id == land_id,
+            Bid.buyer_id == current_user.id,
+            Bid.status == BidStatus.won
+        )
+        if not won_bid:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only book construction services for lands you have successfully purchased (won the bid)."
+            )
+
     booking = ServiceBooking(
         buyer_id=current_user.id,
         land_id=PydanticObjectId(data.land_id) if data.land_id else None,

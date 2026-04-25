@@ -369,34 +369,64 @@ const LandDetailPage = () => {
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1A1A1A', marginBottom: '8px' }}>
                                     Available Land Services
                                 </h3>
-                                <p style={{ fontSize: '0.82rem', color: '#666', lineHeight: '1.6', marginBottom: '20px' }}>
-                                    Enhance your land with our professional construction and development services.
-                                    Our automated matching system will assign the best local team for your project.
-                                </p>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                                    {SERVICES.map(svc => (
-                                        <div key={svc.type} style={S.svcRow}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
-                                                <span style={{ fontSize: '1.8rem' }}>{svc.icon}</span>
-                                                <div>
-                                                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1A1A1A' }}>{svc.type}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '2px' }}>{svc.desc}</div>
+                                
+                                {(!currentUser?.loggedIn || !bids.some(b => String(b.buyer_id) === String(currentUser.id) && b.status === "Won")) ? (
+                                    <div style={{
+                                        background: '#F9FAFB',
+                                        border: '2px dashed #E5E7EB',
+                                        borderRadius: '20px',
+                                        padding: '40px 30px',
+                                        textAlign: 'center',
+                                        marginTop: '10px'
+                                    }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔒</div>
+                                        <h4 style={{ margin: '0 0 10px 0', color: '#111827', fontWeight: '800' }}>Exclusive Owner Services</h4>
+                                        <p style={{ margin: 0, fontSize: '0.88rem', color: '#666', lineHeight: '1.6' }}>
+                                            Construction and land development services are available exclusively to the verified owner of this property.
+                                            Once your bid is <strong>Accepted</strong> and you have <strong>Won</strong> the listing, you'll be able to book these services.
+                                        </p>
+                                        <button 
+                                            style={{
+                                                marginTop: '20px',
+                                                padding: '10px 24px',
+                                                background: '#1A1A1A',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: '10px',
+                                                fontWeight: '700',
+                                                fontSize: '0.85rem',
+                                                cursor: 'pointer'
+                                            }}
+                                            onClick={() => setActiveTab('property')}
+                                        >
+                                            Return to Details
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p style={{ fontSize: '0.82rem', color: '#666', lineHeight: '1.6', marginBottom: '20px' }}>
+                                            Congratulations on your purchase! Enhance your new land with our professional construction and development services.
+                                            Our automated matching system will assign the best local team for your project.
+                                        </p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                                            {SERVICES.map(svc => (
+                                                <div key={svc.type} style={S.svcRow}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
+                                                        <span style={{ fontSize: '1.8rem' }}>{svc.icon}</span>
+                                                        <div>
+                                                            <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1A1A1A' }}>{svc.type}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '2px' }}>{svc.desc}</div>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        style={S.svcBookBtn}
+                                                        onClick={() => openBookingModal(svc)}
+                                                    >Book Now</button>
                                                 </div>
-                                            </div>
-                                            <button
-                                                style={S.svcBookBtn}
-                                                onClick={() => {
-                                                    if (!currentUser?.loggedIn) {
-                                                        // Use the current land detail path as the 'from' location
-                                                        navigate('/login', { state: { from: `/lands/${id}` } });
-                                                    } else {
-                                                        openBookingModal(svc);
-                                                    }
-                                                }}
-                                            >Book Now</button>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
+                                    </>
+                                )}
                             </div>
                         )}
 

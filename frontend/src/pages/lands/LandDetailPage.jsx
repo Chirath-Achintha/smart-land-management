@@ -55,13 +55,11 @@ const LandDetailPage = () => {
                 type: 'Full Construction', 
                 icon: '🏗️', 
                 desc: 'Architectural design & complete building services.', 
-                estimate: `Rs. ${(5000000 + (p * 500000)).toLocaleString()}+` 
             },
             { 
                 type: 'Land Development', 
                 icon: '🚜', 
                 desc: 'Clearance, leveling, and utility infrastructure.', 
-                estimate: `Rs. ${(500000 + (p * 100000)).toLocaleString()}+` 
             },
         ];
     };
@@ -642,7 +640,6 @@ const LandDetailPage = () => {
                                         ['Land', land.name],
                                         ['Date', bkgForm.preferred_date],
                                         ['Time', bkgForm.preferred_time],
-                                        ['Estimate', bookingService.estimate],
                                         ...(bkgForm.notes ? [['Notes', bkgForm.notes]] : []),
                                     ].map(([k, v]) => (
                                         <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '0.9rem' }}>

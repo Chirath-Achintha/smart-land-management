@@ -8,7 +8,7 @@ from app.models.bid_model import Bid, BidStatus
 from app.models.land_model import Land
 from app.models.user_model import User
 from app.models.bidding_setup_model import BiddingSetup
-from app.schemas.bid_schema import BidCreate, BidResponse
+from app.schemas.bid_schema import BidCreate, BidResponse, BidUpdate
 from app.routes.auth_routes import get_current_user
 
 from app.models.notification_model import Notification, NotificationType
@@ -472,3 +472,34 @@ async def delete_bid(
 
     await bid.delete()
 
+
+# ── Buyer updates their own bid (only while auction is still live) ─────────────
+@router.put("/{bid_id}", response_model=BidResponse)
+async def update_bid(
+    bid_id: PydanticObjectId,
+    data: BidUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    bid = await Bid.find_one(Bid.id == bid_id, Bid.buyer_id == current_user.id)
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found or not yours")
+
+    # Check if auction is still live — buyers cannot update after it ends
+    bidding = await BiddingSetup.find_one(BiddingSetup.land_id == bid.land_id)
+    if bidding and bidding.bidding_end:
+        try:
+            end_time = dateutil.parser.isoparse(bidding.bidding_end)
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=timezone.utc)
+            if end_time <= datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Auction has ended. You can no longer update this bid.")
+        except ValueError:
+            pass
+
+    if data.amount is not None:
+        bid.amount = data.amount
+    if data.message is not None:
+        bid.message = data.message
+        
+    await bid.save()
+    return await _to_response(bid)

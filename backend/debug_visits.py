@@ -1,13 +1,14 @@
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
+from app.core.config import settings
 from app.models.visit_model import Visit
 from app.models.user_model import User
 from app.models.land_model import Land
 
 async def run():
     try:
-        client = AsyncIOMotorClient('mongodb+srv://uvindu:wlCkhUU4WuNNs6GL@cluster0.yckakom.mongodb.net/smart_land_db?retryWrites=true&w=majority')
+        client = AsyncIOMotorClient(settings.DATABASE_URL)
         db = client.get_default_database()
         await init_beanie(database=db, document_models=[Visit, User, Land])
         visits = await Visit.find_all().to_list()

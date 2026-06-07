@@ -1,4 +1,9 @@
-Total lands in database: 3
-Name: Rathna Siri Lands, Status: Available, Verified: True, Village: Alpitiya, District: Galle
-Name: DSD Property, Status: Available, Verified: False, Village: Kurunegala, District: Kurunegala
-Name: land, Status: Available, Verified: True, Village: habaraduwa, District: Galle
+Total lands in database: 8
+Name: kottawa lands, Status: Available, Verified: True, Village: Kottawa, District: Colombo
+Name: Lokuge Lands, Status: Available, Verified: True, Village: Kallady, District: Batticaloa
+Name: Medhavi lands, Status: Available, Verified: True, Village: Eppawala, District: Anuradhapura
+Name: saduni lands, Status: Available, Verified: True, Village: Dehiwala, District: Colombo
+Name: pro lands, Status: Available, Verified: True, Village: Eppawala, District: Anuradhapura
+Name: Test Land, Status: Available, Verified: True, Village: Badulla Town, District: Badulla
+Name: 26 P Land For Sale - Kandy View Garden, Kandy, Status: Available, Verified: True, Village: Peradeniya, District: Kandy
+Name: test Land, Status: Available, Verified: True, Village: Kotte, District: Colombo

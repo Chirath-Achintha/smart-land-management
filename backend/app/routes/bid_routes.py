@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+from typing import List, Optional
 from beanie import PydanticObjectId
 
 from pydantic import BaseModel, Field
@@ -8,7 +8,7 @@ from app.models.bid_model import Bid, BidStatus
 from app.models.land_model import Land
 from app.models.user_model import User
 from app.models.bidding_setup_model import BiddingSetup
-from app.schemas.bid_schema import BidCreate, BidResponse
+from app.schemas.bid_schema import BidCreate, BidResponse, BidUpdate
 from app.routes.auth_routes import get_current_user
 
 from app.models.notification_model import Notification, NotificationType
@@ -263,6 +263,46 @@ async def notify_winner_manually(
 class BidResponseAction(BaseModel):
     action: str # "accept" or "decline"
 
+
+async def _offer_next_highest_bidder(land: Land, excluded_bid_id: Optional[PydanticObjectId] = None):
+    """Promote the next eligible highest bid to Offered and notify that buyer."""
+    all_bids = await Bid.find(Bid.land_id == land.id).sort("-amount").to_list()
+
+    next_bid = None
+    for candidate in all_bids:
+        if excluded_bid_id and str(candidate.id) == str(excluded_bid_id):
+            continue
+        if candidate.status in {BidStatus.pending, BidStatus.accepted}:
+            next_bid = candidate
+            break
+
+    if not next_bid:
+        return None
+
+    next_bid.status = BidStatus.offered
+    await next_bid.save()
+
+    seller = await User.get(land.seller_id)
+    contact_parts = []
+    if seller:
+        contact_parts = [f"Name: {seller.full_name}", f"Email: {seller.email}"]
+        if seller.phone:
+            contact_parts.append(f"Phone: {seller.phone}")
+        if seller.address:
+            contact_parts.append(f"Address: {seller.address}")
+    seller_info = " | ".join(contact_parts) if contact_parts else "Seller contact will be shared after acceptance."
+
+    notif = Notification(
+        user_id=next_bid.buyer_id,
+        type=NotificationType.bid_won,
+        title="You Are the Next Highest Bidder",
+        message=f"The previous winner declined for \"{land.name}\". You are now offered the winning position. Please accept or decline from your My Biddings page. Seller contact: {seller_info}",
+        link=f"/lands/{str(land.id)}"
+    )
+    await notif.insert()
+
+    return next_bid
+
 @router.post("/{bid_id}/respond")
 async def respond_to_bid(
     bid_id: PydanticObjectId,
@@ -276,12 +316,35 @@ async def respond_to_bid(
     if bid.status != BidStatus.offered:
          raise HTTPException(status_code=400, detail="This bid is not currently offered to you")
 
+    land = await Land.get(bid.land_id)
+    if not land:
+        raise HTTPException(status_code=404, detail="Land not found")
+
     if data.action == "accept":
         bid.status = BidStatus.won
         await bid.save()
 
+        # Mark all other active bids on this land as rejected since a final winner is confirmed.
+        other_bids = await Bid.find(Bid.land_id == bid.land_id).to_list()
+        for other in other_bids:
+            if str(other.id) == str(bid.id):
+                continue
+            if other.status not in {BidStatus.rejected, BidStatus.declined, BidStatus.won}:
+                other.status = BidStatus.rejected
+                await other.save()
+
+        # Close bidding on this land after a successful acceptance.
+        bidding = await BiddingSetup.find_one(BiddingSetup.land_id == bid.land_id)
+        if bidding:
+            bidding.open_for_bidding = False
+            bidding.winner_notified = True
+            await bidding.save()
+
+        if land:
+            land.open_for_bidding = False
+            await land.save()
+
         # Notify Seller
-        land = await Land.get(bid.land_id)
         notif = Notification(
             user_id=land.seller_id,
             type=NotificationType.general,
@@ -296,20 +359,36 @@ async def respond_to_bid(
         bid.status = BidStatus.declined
         await bid.save()
 
-        # Find land and notify seller
-        land = await Land.get(bid.land_id)
+        # Find land and auto-offer to the next highest eligible bidder.
+        next_bid = await _offer_next_highest_bidder(land, excluded_bid_id=bid.id)
+
+        if next_bid:
+            next_buyer = await User.get(next_bid.buyer_id)
+            buyer_name = next_buyer.full_name if next_buyer else "Next highest bidder"
+            seller_message = (
+                f"The current winner for \"{land.name}\" declined. "
+                f"The offer has been automatically moved to {buyer_name} (Rs. {next_bid.amount:,.0f})."
+            )
+        else:
+            seller_message = (
+                f"The current winner for \"{land.name}\" has declined the offer. "
+                "No other eligible bids remain."
+            )
+
         notif = Notification(
             user_id=land.seller_id,
             type=NotificationType.general,
             title="Winning Offer Declined",
-            message=f"The current winner for \"{land.name}\" has declined the offer. You can now notify the next highest bidder.",
+            message=seller_message,
             link=f"/dashboard/seller/bids"
         )
         await notif.insert()
 
-        # Note: The system will automatically skip this bid in the _to_response logic
-        # and when the seller views their dashboard, the "next" highest will appear as the winner.
-        return {"status": "declined"}
+        return {
+            "status": "declined",
+            "next_offered_bid_id": str(next_bid.id) if next_bid else None,
+            "next_offered_buyer_id": str(next_bid.buyer_id) if next_bid else None,
+        }
     
     else:
         raise HTTPException(status_code=400, detail="Invalid action. Use 'accept' or 'decline'.")
@@ -393,3 +472,34 @@ async def delete_bid(
 
     await bid.delete()
 
+
+# ── Buyer updates their own bid (only while auction is still live) ─────────────
+@router.put("/{bid_id}", response_model=BidResponse)
+async def update_bid(
+    bid_id: PydanticObjectId,
+    data: BidUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    bid = await Bid.find_one(Bid.id == bid_id, Bid.buyer_id == current_user.id)
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found or not yours")
+
+    # Check if auction is still live — buyers cannot update after it ends
+    bidding = await BiddingSetup.find_one(BiddingSetup.land_id == bid.land_id)
+    if bidding and bidding.bidding_end:
+        try:
+            end_time = dateutil.parser.isoparse(bidding.bidding_end)
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=timezone.utc)
+            if end_time <= datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Auction has ended. You can no longer update this bid.")
+        except ValueError:
+            pass
+
+    if data.amount is not None:
+        bid.amount = data.amount
+    if data.message is not None:
+        bid.message = data.message
+        
+    await bid.save()
+    return await _to_response(bid)

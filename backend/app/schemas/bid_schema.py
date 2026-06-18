@@ -9,6 +9,10 @@ class BidCreate(BaseModel):
     amount: float
     message: Optional[str] = None
 
+class BidUpdate(BaseModel):
+    amount: Optional[float] = None
+    message: Optional[str] = None
+
 # ── Response Schema ───────────────────────────────────────────────────────────
 
 class BidResponse(BaseModel):

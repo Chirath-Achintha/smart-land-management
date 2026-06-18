@@ -91,12 +91,12 @@ class AnomalyDetectionService:
         prediction = self.model.predict(features)[0]
         score = self.model.decision_function(features)[0]
 
-        # 7. Final practical check - only flag if price is significantly different (e.g. > 25%)
+        # 7. Final practical check - only flag if price is significantly different (e.g. > 15%)
         # and model says -1.
         is_significant = False
         if dist_mean > 0:
             diff_percent = abs(price_per_perch - dist_mean) / dist_mean
-            if diff_percent > 0.25: # 25% buffer
+            if diff_percent > 0.15: # 15% buffer
                 is_significant = True
 
         final_is_anomaly = bool(prediction == -1 and is_significant)

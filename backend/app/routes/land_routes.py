@@ -1,3 +1,5 @@
+
+from app.schemas.land_schema import BiddingSetupCreate, BiddingSetupResponse
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 import os
 import uuid
@@ -28,6 +30,33 @@ from app.services.anomaly_detection_service import anomaly_service
 from app.services.price_prediction_service import price_prediction_service
 
 router = APIRouter(prefix="/lands", tags=["Lands"])
+
+# ── Enable or Update Bidding Setup for a Land ───────────────────────────────
+@router.post("/{land_id}/bidding-setup", response_model=BiddingSetupResponse)
+async def set_bidding_setup(
+    land_id: str,
+    data: BiddingSetupCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Only sellers can update bidding setup for their own lands
+    land = await Land.get(PydanticObjectId(land_id))
+    if not land:
+        raise HTTPException(status_code=404, detail="Land not found")
+    if land.seller_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not own this land")
+
+    # Find or create bidding setup
+    bidding = await BiddingSetup.find_one(BiddingSetup.land_id == land.id)
+    if not bidding:
+        bidding = BiddingSetup(land_id=land.id)
+
+    bidding.open_for_bidding = data.open_for_bidding
+    bidding.starting_bid = data.starting_bid
+    bidding.bidding_start = data.bidding_start
+    bidding.bidding_end = data.bidding_end
+    await bidding.save()
+
+    return BiddingSetupResponse.model_validate(bidding)
 UPLOAD_ROOT = os.path.abspath(os.path.join("static", "uploads"))
 
 

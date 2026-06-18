@@ -12,6 +12,15 @@ const ALL_DISTRICTS = [
     'Trincomalee', 'Vavuniya',
 ];
 
+const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+const validatePhone = (phone) => {
+    if (!phone) return true; // Optional field
+    return /^(0)[0-9]{9}$/.test(phone);
+};
+
 const AdminConstructorTeamsPage = () => {
     const token = localStorage.getItem('access_token');
     const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
@@ -47,6 +56,17 @@ const AdminConstructorTeamsPage = () => {
 
     const handleCreateTeam = async (e) => {
         e.preventDefault();
+
+        // Validations
+        if (!validateEmail(teamForm.email)) {
+            toast.error('Please enter a valid email address');
+            return;
+        }
+        if (teamForm.phone && !validatePhone(teamForm.phone)) {
+            toast.error('Please enter a valid 10-digit phone number starting with 0');
+            return;
+        }
+
         setCreatingTeam(true);
         try {
             const payload = { ...teamForm, state: 'N/A', address: teamForm.district };
@@ -71,6 +91,13 @@ const AdminConstructorTeamsPage = () => {
     const handleUpdateTeam = async (e) => {
         e.preventDefault();
         if (!editingTeam) return;
+
+        // Validations
+        if (editingTeam.phone && !validatePhone(editingTeam.phone)) {
+            toast.error('Please enter a valid 10-digit phone number starting with 0');
+            return;
+        }
+
         setUpdating(true);
         try {
             const payload = {

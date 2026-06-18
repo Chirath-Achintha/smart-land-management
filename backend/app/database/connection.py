@@ -15,6 +15,10 @@ if settings.USE_GOOGLE_DNS_FOR_MONGO:
 
 
 # Export the database client and initialization function
+# Patch Motor client to support Beanie with newer motor versions (Motor >= 3.7.0 removed append_metadata)
+if not hasattr(AsyncIOMotorClient, 'append_metadata'):
+    AsyncIOMotorClient.append_metadata = lambda *args, **kwargs: None
+
 client = AsyncIOMotorClient(settings.DATABASE_URL)
 db = client.get_default_database()
 
